@@ -73,38 +73,34 @@ const GeneratingLoadingAnimation = ({ isDarkMode }: { isDarkMode: boolean }) => 
             0% {
               transform: rotate(90deg);
               box-shadow:
-                0 10px 20px 0 ${isDarkMode ? '#fff' : '#6b7280'} inset,
-                0 20px 30px 0 ${isDarkMode ? '#ad5fff' : '#8b5cf6'} inset,
-                0 60px 60px 0 ${isDarkMode ? '#471eec' : '#7c3aed'} inset;
+                0 10px 20px 0 var(--muted-foreground) inset,
+                0 20px 30px 0 var(--primary) inset,
+                0 60px 60px 0 var(--primary) inset;
             }
             50% {
               transform: rotate(270deg);
               box-shadow:
-                0 10px 20px 0 ${isDarkMode ? '#fff' : '#6b7280'} inset,
-                0 20px 10px 0 ${isDarkMode ? '#d60a47' : '#dc2626'} inset,
-                0 40px 60px 0 ${isDarkMode ? '#311e80' : '#6366f1'} inset;
+                0 10px 20px 0 var(--muted-foreground) inset,
+                0 20px 10px 0 var(--destructive) inset,
+                0 40px 60px 0 var(--primary) inset;
             }
             100% {
               transform: rotate(450deg);
               box-shadow:
-                0 10px 20px 0 ${isDarkMode ? '#fff' : '#6b7280'} inset,
-                0 20px 30px 0 ${isDarkMode ? '#ad5fff' : '#8b5cf6'} inset,
-                0 60px 60px 0 ${isDarkMode ? '#471eec' : '#7c3aed'} inset;
+                0 10px 20px 0 var(--muted-foreground) inset,
+                0 20px 30px 0 var(--primary) inset,
+                0 60px 60px 0 var(--primary) inset;
             }
           }
-
+          
           @keyframes loader-letter-anim {
             0%, 100% {
               opacity: 0.4;
               transform: translateY(0);
             }
-            20% {
+            50% {
               opacity: 1;
-              transform: scale(1.15);
-            }
-            40% {
-              opacity: 0.7;
-              transform: translateY(0);
+              transform: translateY(-10px);
             }
           }
         `
