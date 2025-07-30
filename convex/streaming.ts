@@ -292,6 +292,7 @@ ${mcpConnections.length > 0 ? '• **MCP Tools**: Various tools available throug
 
       console.log(`🤖 Selected model: ${selectedModel} for task type based on prompt:`, message.content);
 
+      // Use streaming completion for real-time updates
       const completion = await openrouter.chat.completions.create({
         model: selectedModel,
         messages: messagesWithSystem,
@@ -299,11 +300,46 @@ ${mcpConnections.length > 0 ? '• **MCP Tools**: Various tools available throug
         temperature: modelParams.temperature,
         top_p: modelParams.top_p,
         tools: tools,
-        tool_choice: "auto"
+        tool_choice: "auto",
+        stream: true
       });
 
-      const responseMessage = completion.choices[0]?.message;
-      const toolCalls = responseMessage?.tool_calls;
+      let streamedContent = "";
+      let responseMessage: any = null;
+      let toolCalls: any = null;
+
+      // Process streaming chunks
+      for await (const chunk of completion) {
+        const delta = chunk.choices[0]?.delta;
+        
+        if (delta?.content) {
+          streamedContent += delta.content;
+          
+          // Update message in real-time every few chunks to avoid too many DB calls
+          if (streamedContent.length % 50 === 0 || streamedContent.length > 100) {
+            await ctx.runMutation(internal.messages.updateStreamingMessage, {
+              messageId: args.messageId,
+              content: streamedContent,
+              isComplete: false,
+            });
+          }
+        }
+        
+        // Capture tool calls during streaming
+        if (delta?.tool_calls) {
+          toolCalls = delta.tool_calls;
+        }
+        
+        // Mark as complete when streaming finishes
+        if (chunk.choices[0]?.finish_reason) {
+          responseMessage = { content: streamedContent };
+        }
+      }
+
+      // Ensure we have the final content
+      if (!responseMessage) {
+        responseMessage = { content: streamedContent };
+      }
 
       if (toolCalls && toolCalls.length > 0) {
         // Handle the first tool call
@@ -381,25 +417,41 @@ ${mcpConnections.length > 0 ? '• **MCP Tools**: Various tools available throug
               }
             ];
 
-            // Make follow-up call to get informed response
+            // Make follow-up call to get informed response with streaming
             const informedResponse = await openrouter.chat.completions.create({
               model: selectedModel,
               messages: followUpMessages,
               max_tokens: modelParams.max_tokens,
               temperature: modelParams.temperature,
               top_p: modelParams.top_p,
+              stream: true,
             });
 
-            const responseContent = informedResponse.choices[0]?.message?.content || "I found some information but couldn't process it properly.";
+            let searchResponseContent = "";
+            const searchPrefix = `🔍 **Searched for current information**: ${params.query}\n*Reason: ${params.reason}*\n\n`;
             
-            fullContent = `🔍 **Searched for current information**: ${params.query}\n*Reason: ${params.reason}*\n\n${responseContent}`;
+            // Stream the search response content
+            for await (const chunk of informedResponse) {
+              const delta = chunk.choices[0]?.delta;
+              
+              if (delta?.content) {
+                searchResponseContent += delta.content;
+                
+                // Update with search results prefix + streaming content
+                const currentContent = searchPrefix + searchResponseContent;
+                
+                // Update every 30 characters or so to show streaming progress
+                if (searchResponseContent.length % 30 === 0 || searchResponseContent.length > 50) {
+                  await ctx.runMutation(internal.messages.updateStreamingMessage, {
+                    messageId: args.messageId,
+                    content: currentContent,
+                    isComplete: false,
+                  });
+                }
+              }
+            }
             
-            // Update message content first
-            await ctx.runMutation(internal.messages.updateStreamingMessage, {
-              messageId: args.messageId,
-              content: fullContent,
-              isComplete: false,
-            });
+            fullContent = searchPrefix + (searchResponseContent || "I found some information but couldn't process it properly.");
             
           } else {
             fullContent = `I attempted to search for current information about "${params.query}" but didn't find any results. Let me answer based on my existing knowledge.`;
@@ -447,9 +499,16 @@ You can copy this HTML and save it as an \`.html\` file to use immediately!`;
           fullContent = "I encountered an error while generating the landing page. Please try again with more specific requirements.";
         }
       } else {
-        // No tool calls, use the regular response
-        fullContent = responseMessage?.content || "I apologize, but I couldn't generate a response.";
+        // No tool calls, use the streamed response
+        fullContent = streamedContent || "I apologize, but I couldn't generate a response.";
         tokenCount = fullContent.split(/\s+/).length;
+        
+        // Make sure we have the final streamed content in the message
+        await ctx.runMutation(internal.messages.updateStreamingMessage, {
+          messageId: args.messageId,
+          content: fullContent,
+          isComplete: false,
+        });
       }
 
       console.log("OpenRouter stream created successfully");
