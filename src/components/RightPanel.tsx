@@ -16,10 +16,112 @@ interface RightPanelProps {
   width: number;
   onWidthChange: (width: number) => void;
   activeFragment: FragmentType | null;
-  onFragmentChange: (fragment: FragmentType, data?: any) => void;
+  onFragmentChange: (fragment: FragmentType | null, data?: any) => void;
   fragmentData?: any;
   isTransitioning?: boolean;
 }
+
+// Beautiful loading animation component exactly as user provided
+const GeneratingLoadingAnimation = ({ isDarkMode }: { isDarkMode: boolean }) => {
+  const loaderWrapperStyle: React.CSSProperties = {
+    position: 'relative',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    width: '180px',
+    height: '180px',
+    fontFamily: '"Inter", sans-serif',
+    fontSize: '1.2em',
+    fontWeight: 300,
+    color: isDarkMode ? 'white' : '#374151',
+    borderRadius: '50%',
+    backgroundColor: 'transparent',
+    userSelect: 'none'
+  };
+
+  const loaderStyle: React.CSSProperties = {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    width: '100%',
+    aspectRatio: '1 / 1',
+    borderRadius: '50%',
+    backgroundColor: 'transparent',
+    animation: 'loader-rotate 2s linear infinite',
+    zIndex: 0
+  };
+
+  const letterStyle: React.CSSProperties = {
+    display: 'inline-block',
+    opacity: 0.4,
+    transform: 'translateY(0)',
+    animation: 'loader-letter-anim 2s infinite',
+    zIndex: 1,
+    borderRadius: '50ch',
+    border: 'none'
+  };
+
+  return (
+    <div className="flex-1 flex items-center justify-center p-8">
+      <div style={loaderWrapperStyle}>
+        <span style={{...letterStyle, animationDelay: '0s'}}>G</span>
+        <span style={{...letterStyle, animationDelay: '0.1s'}}>e</span>
+        <span style={{...letterStyle, animationDelay: '0.2s'}}>n</span>
+        <span style={{...letterStyle, animationDelay: '0.3s'}}>e</span>
+        <span style={{...letterStyle, animationDelay: '0.4s'}}>r</span>
+        <span style={{...letterStyle, animationDelay: '0.5s'}}>a</span>
+        <span style={{...letterStyle, animationDelay: '0.6s'}}>t</span>
+        <span style={{...letterStyle, animationDelay: '0.7s'}}>i</span>
+        <span style={{...letterStyle, animationDelay: '0.8s'}}>n</span>
+        <span style={{...letterStyle, animationDelay: '0.9s'}}>g</span>
+        <div style={loaderStyle}></div>
+      </div>
+      
+      <style dangerouslySetInnerHTML={{
+        __html: `
+          @keyframes loader-rotate {
+            0% {
+              transform: rotate(90deg);
+              box-shadow:
+                0 10px 20px 0 ${isDarkMode ? '#fff' : '#6b7280'} inset,
+                0 20px 30px 0 ${isDarkMode ? '#ad5fff' : '#8b5cf6'} inset,
+                0 60px 60px 0 ${isDarkMode ? '#471eec' : '#7c3aed'} inset;
+            }
+            50% {
+              transform: rotate(270deg);
+              box-shadow:
+                0 10px 20px 0 ${isDarkMode ? '#fff' : '#6b7280'} inset,
+                0 20px 10px 0 ${isDarkMode ? '#d60a47' : '#dc2626'} inset,
+                0 40px 60px 0 ${isDarkMode ? '#311e80' : '#6366f1'} inset;
+            }
+            100% {
+              transform: rotate(450deg);
+              box-shadow:
+                0 10px 20px 0 ${isDarkMode ? '#fff' : '#6b7280'} inset,
+                0 20px 30px 0 ${isDarkMode ? '#ad5fff' : '#8b5cf6'} inset,
+                0 60px 60px 0 ${isDarkMode ? '#471eec' : '#7c3aed'} inset;
+            }
+          }
+
+          @keyframes loader-letter-anim {
+            0%, 100% {
+              opacity: 0.4;
+              transform: translateY(0);
+            }
+            20% {
+              opacity: 1;
+              transform: scale(1.15);
+            }
+            40% {
+              opacity: 0.7;
+              transform: translateY(0);
+            }
+          }
+        `
+      }} />
+    </div>
+  );
+};
 
 export function RightPanel({
   isOpen,
@@ -68,14 +170,7 @@ export function RightPanel({
 
   const renderContent = () => {
     if (!activeFragment || isTransitioning) {
-      return (
-        <div className={`flex items-center justify-center h-full ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`}>
-          <div className="text-center">
-            <div className="animate-spin w-6 h-6 border-2 border-gray-300 border-t-blue-500 rounded-full mx-auto mb-3"></div>
-            <p className="text-sm">Loading...</p>
-          </div>
-        </div>
-      );
+      return <GeneratingLoadingAnimation isDarkMode={isDarkMode} />;
     }
 
     switch (activeFragment) {
@@ -153,13 +248,13 @@ export function RightPanel({
     switch (activeFragment) {
       case 'code':
         return (
-          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <svg className="w-4 h-4" fill="none" stroke="#10b981" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4" />
           </svg>
         );
       case 'browser':
         return (
-          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <svg className="w-4 h-4" fill="none" stroke="#3b82f6" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 12a9 9 0 01-9 9m9-9a9 9 0 00-9-9m9 9H3m9 9a9 9 0 01-9-9m9 9c1.657 0 3-4.03 3-9s-1.343-9-3-9m0 18c-1.657 0-3-4.03-3-9s1.343-9 3-9m-9 9a9 9 0 019-9" />
           </svg>
         );
@@ -171,30 +266,34 @@ export function RightPanel({
         );
       case 'document':
         return (
-          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <svg className="w-4 h-4" fill="none" stroke="#8b5cf6" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
           </svg>
         );
       case 'mcp':
         return (
-          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <svg className="w-4 h-4" fill="none" stroke="#f59e0b" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
           </svg>
         );
       case 'integrations':
         return (
-          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <svg className="w-4 h-4" fill="none" stroke="#ef4444" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
           </svg>
         );
       case 'agent-builder':
         return (
-          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <svg className="w-4 h-4" fill="none" stroke="#06b6d4" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
           </svg>
         );
       default:
-        return null;
+        return (
+          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
+          </svg>
+        );
     }
   };
 
