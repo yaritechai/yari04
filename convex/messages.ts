@@ -380,3 +380,23 @@ export const addDocumentContent = internalMutation({
     return null;
   },
 });
+
+export const updateDocumentContent = internalMutation({
+  args: {
+    messageId: v.id("messages"),
+    content: v.string(), // JSON string of blocks
+  },
+  returns: v.null(),
+  handler: async (ctx, args) => {
+    const message = await ctx.db.get(args.messageId);
+    if (message && message.documentContent) {
+      await ctx.db.patch(args.messageId, {
+        documentContent: {
+          ...message.documentContent,
+          content: args.content,
+        },
+      });
+    }
+    return null;
+  },
+});

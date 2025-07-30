@@ -1,22 +1,26 @@
-import { useState, useRef, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useTheme } from '../contexts/ThemeContext';
 import { useMutation } from 'convex/react';
 import { api } from '../../convex/_generated/api';
+import { X, Save, Type, List, Hash, Quote, Code, Minus, Bold, Italic, Underline, AlignLeft, AlignCenter, AlignRight } from 'lucide-react';
 
 interface Block {
   id: string;
-  type: 'text' | 'heading' | 'list' | 'code' | 'quote' | 'divider' | 'image' | 'todo';
+  type: 'text' | 'heading' | 'list' | 'todo' | 'quote' | 'code' | 'divider';
   content: string;
-  level?: number; // for headings (1-3)
-  style?: 'bullet' | 'numbered'; // for lists
-  checked?: boolean; // for todos
-  metadata?: any;
+  level?: number; // For headings (1, 2, 3)
+  style?: {
+    bold?: boolean;
+    italic?: boolean;
+    underline?: boolean;
+    alignment?: 'left' | 'center' | 'right';
+  };
 }
 
 interface DocumentEditorProps {
   initialContent?: string;
   title?: string;
-  onSave?: (content: string, title: string) => void;
+  onSave?: (content: string) => void;
   onClose?: () => void;
 }
 
@@ -32,15 +36,18 @@ export function DocumentEditor({ initialContent = '', title: initialTitle = 'Unt
   const [draggedBlockId, setDraggedBlockId] = useState<string | null>(null);
   const [isSaving, setIsSaving] = useState(false);
   const [lastSaved, setLastSaved] = useState<Date | null>(null);
+  const [showFormatToolbar, setShowFormatToolbar] = useState(false);
+  const [selectedText, setSelectedText] = useState('');
   
   const saveDocument = useMutation(api.files.saveDocument);
   const containerRef = useRef<HTMLDivElement>(null);
+  const formatToolbarRef = useRef<HTMLDivElement>(null);
 
-  // Parse initialContent if provided as JSON blocks
+  // Parse initialContent if provided as JSON blocks (for real-time streaming)
   useEffect(() => {
     if (initialContent && initialContent.trim()) {
       try {
-        // Try to parse as JSON blocks first
+        // Try to parse as JSON blocks first (from streaming)
         const parsedBlocks = JSON.parse(initialContent);
         if (Array.isArray(parsedBlocks) && parsedBlocks.length > 0) {
           setBlocks(parsedBlocks);
@@ -51,7 +58,8 @@ export function DocumentEditor({ initialContent = '', title: initialTitle = 'Unt
         const textBlocks = initialContent.split('\n\n').map((paragraph, index) => ({
           id: `block-${index + 1}`,
           type: 'text' as const,
-          content: paragraph.trim()
+          content: paragraph.trim(),
+          style: { bold: false, italic: false, underline: false, alignment: 'left' as const }
         })).filter(block => block.content);
         
         if (textBlocks.length > 0) {
@@ -60,6 +68,61 @@ export function DocumentEditor({ initialContent = '', title: initialTitle = 'Unt
       }
     }
   }, [initialContent]);
+
+  // Listen for real-time content updates (streaming)
+  useEffect(() => {
+    const handleDocumentUpdate = () => {
+      // This will be triggered when streaming updates come in
+      // The initialContent useEffect above will handle the actual updates
+    };
+    
+    // We could add an event listener here for real-time updates if needed
+    return () => {};
+  }, []);
+
+  // Enhanced formatting toolbar
+  const formatCurrentBlock = useCallback((format: string, value?: any) => {
+    if (!focusedBlockId) return;
+    
+    const currentBlock = blocks.find(b => b.id === focusedBlockId);
+    if (!currentBlock) return;
+    
+    const updatedStyle = { ...currentBlock.style };
+    
+    switch (format) {
+      case 'bold':
+        updatedStyle.bold = !updatedStyle.bold;
+        break;
+      case 'italic':
+        updatedStyle.italic = !updatedStyle.italic;
+        break;
+      case 'underline':
+        updatedStyle.underline = !updatedStyle.underline;
+        break;
+      case 'align':
+        updatedStyle.alignment = value;
+        break;
+    }
+    
+    updateBlock(focusedBlockId, { style: updatedStyle });
+  }, [focusedBlockId, blocks]);
+
+  // Handle text selection for formatting
+  const handleTextSelection = useCallback(() => {
+    const selection = window.getSelection();
+    if (selection && selection.toString().length > 0) {
+      setSelectedText(selection.toString());
+      setShowFormatToolbar(true);
+      
+      // Position toolbar near selection
+      const range = selection.getRangeAt(0);
+      const rect = range.getBoundingClientRect();
+      setSlashMenuPosition({ x: rect.left, y: rect.top - 50 });
+    } else {
+      setShowFormatToolbar(false);
+      setSelectedText('');
+    }
+  }, []);
 
   // Global keyboard event listener for shortcuts
   useEffect(() => {
@@ -113,7 +176,7 @@ export function DocumentEditor({ initialContent = '', title: initialTitle = 'Unt
       });
       setLastSaved(new Date());
       if (manual) {
-        onSave?.(content, title);
+        onSave?.(content);
       }
     } catch (error) {
       console.error('Failed to save document:', error);
@@ -293,63 +356,149 @@ export function DocumentEditor({ initialContent = '', title: initialTitle = 'Unt
   };
 
   return (
-    <div className={`h-full flex flex-col ${isDarkMode ? 'bg-neutral-900' : 'bg-white'}`}>
-      {/* Header */}
-      <div className={`flex items-center justify-between p-6 border-b ${
-        isDarkMode ? 'border-neutral-800' : 'border-gray-200'
+    <div 
+      ref={containerRef}
+      className={`h-full flex flex-col ${
+        isDarkMode ? 'bg-gray-900 text-white' : 'bg-white text-gray-900'
+      }`}
+    >
+      {/* Enhanced Header with Formatting Toolbar */}
+      <div className={`p-6 border-b ${
+        isDarkMode ? 'border-gray-700 bg-gray-800' : 'border-gray-200 bg-gray-50'
       }`}>
-        <div className="flex items-center gap-3 flex-1">
+        <div className="flex items-center justify-between mb-4">
           <input
+            type="text"
             value={title}
             onChange={(e) => setTitle(e.target.value)}
             className={`text-2xl font-bold bg-transparent border-none outline-none flex-1 ${
               isDarkMode ? 'text-white placeholder-gray-400' : 'text-gray-900 placeholder-gray-500'
             }`}
-            placeholder="Untitled"
+            placeholder="Document title..."
           />
-          {isSaving && (
-            <div className="flex items-center gap-2 text-sm text-gray-500">
-              <div className="w-3 h-3 border-2 border-gray-300 border-t-blue-500 rounded-full animate-spin" />
-              Saving...
-            </div>
-          )}
-          {lastSaved && !isSaving && (
-            <div className="text-sm text-gray-500">
-              Saved {formatTime(lastSaved)}
-            </div>
-          )}
-        </div>
-        <div className="flex items-center gap-2">
-          <button
-            onClick={() => handleSave()}
-            disabled={isSaving}
-            className={`px-4 py-2 text-sm rounded-lg transition-colors ${
-              isDarkMode
-                ? 'bg-blue-900/30 text-blue-400 hover:bg-blue-900/50'
-                : 'bg-blue-100 text-blue-600 hover:bg-blue-200'
-            } disabled:opacity-50`}
-          >
-            Save
-          </button>
-          {onClose && (
+          <div className="flex items-center gap-2">
+            {/* Save Status */}
+            {isSaving ? (
+              <span className={`text-sm ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`}>
+                Saving...
+              </span>
+            ) : lastSaved ? (
+              <span className={`text-sm ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`}>
+                Saved {lastSaved.toLocaleTimeString()}
+              </span>
+            ) : null}
+            
+            {/* Action Buttons */}
             <button
-              onClick={onClose}
-              className={`p-2 rounded-lg transition-colors ${
-                isDarkMode
-                  ? 'text-gray-400 hover:text-white hover:bg-neutral-800'
-                  : 'text-gray-500 hover:text-gray-700 hover:bg-gray-100'
+              onClick={() => handleSave(true)}
+              className={`p-2 rounded transition-colors ${
+                isDarkMode 
+                  ? 'hover:bg-gray-700 text-gray-300 hover:text-white' 
+                  : 'hover:bg-gray-200 text-gray-600 hover:text-gray-900'
               }`}
+              title="Save document"
             >
-              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-              </svg>
+              <Save className="w-4 h-4" />
             </button>
-          )}
+            
+            {onClose && (
+              <button
+                onClick={onClose}
+                className={`p-2 rounded transition-colors ${
+                  isDarkMode 
+                    ? 'hover:bg-gray-700 text-gray-300 hover:text-white' 
+                    : 'hover:bg-gray-200 text-gray-600 hover:text-gray-900'
+                }`}
+                title="Close document"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            )}
+          </div>
+        </div>
+
+        {/* Quick Formatting Toolbar */}
+        <div className={`flex items-center gap-1 p-2 rounded-lg ${
+          isDarkMode ? 'bg-gray-700' : 'bg-white border border-gray-200'
+        }`}>
+          <button
+            onClick={() => formatCurrentBlock('bold')}
+            className={`p-2 rounded transition-colors ${
+              focusedBlockId && blocks.find(b => b.id === focusedBlockId)?.style?.bold
+                ? (isDarkMode ? 'bg-blue-600 text-white' : 'bg-blue-500 text-white')
+                : (isDarkMode ? 'hover:bg-gray-600 text-gray-300' : 'hover:bg-gray-100 text-gray-600')
+            }`}
+            title="Bold (Ctrl/Cmd + B)"
+          >
+            <Bold className="w-4 h-4" />
+          </button>
+          
+          <button
+            onClick={() => formatCurrentBlock('italic')}
+            className={`p-2 rounded transition-colors ${
+              focusedBlockId && blocks.find(b => b.id === focusedBlockId)?.style?.italic
+                ? (isDarkMode ? 'bg-blue-600 text-white' : 'bg-blue-500 text-white')
+                : (isDarkMode ? 'hover:bg-gray-600 text-gray-300' : 'hover:bg-gray-100 text-gray-600')
+            }`}
+            title="Italic (Ctrl/Cmd + I)"
+          >
+            <Italic className="w-4 h-4" />
+          </button>
+          
+          <button
+            onClick={() => formatCurrentBlock('underline')}
+            className={`p-2 rounded transition-colors ${
+              focusedBlockId && blocks.find(b => b.id === focusedBlockId)?.style?.underline
+                ? (isDarkMode ? 'bg-blue-600 text-white' : 'bg-blue-500 text-white')
+                : (isDarkMode ? 'hover:bg-gray-600 text-gray-300' : 'hover:bg-gray-100 text-gray-600')
+            }`}
+            title="Underline (Ctrl/Cmd + U)"
+          >
+            <Underline className="w-4 h-4" />
+          </button>
+          
+          <div className={`w-px h-6 mx-2 ${isDarkMode ? 'bg-gray-600' : 'bg-gray-300'}`} />
+          
+          <button
+            onClick={() => formatCurrentBlock('align', 'left')}
+            className={`p-2 rounded transition-colors ${
+              focusedBlockId && blocks.find(b => b.id === focusedBlockId)?.style?.alignment === 'left'
+                ? (isDarkMode ? 'bg-blue-600 text-white' : 'bg-blue-500 text-white')
+                : (isDarkMode ? 'hover:bg-gray-600 text-gray-300' : 'hover:bg-gray-100 text-gray-600')
+            }`}
+            title="Align Left"
+          >
+            <AlignLeft className="w-4 h-4" />
+          </button>
+          
+          <button
+            onClick={() => formatCurrentBlock('align', 'center')}
+            className={`p-2 rounded transition-colors ${
+              focusedBlockId && blocks.find(b => b.id === focusedBlockId)?.style?.alignment === 'center'
+                ? (isDarkMode ? 'bg-blue-600 text-white' : 'bg-blue-500 text-white')
+                : (isDarkMode ? 'hover:bg-gray-600 text-gray-300' : 'hover:bg-gray-100 text-gray-600')
+            }`}
+            title="Align Center"
+          >
+            <AlignCenter className="w-4 h-4" />
+          </button>
+          
+          <button
+            onClick={() => formatCurrentBlock('align', 'right')}
+            className={`p-2 rounded transition-colors ${
+              focusedBlockId && blocks.find(b => b.id === focusedBlockId)?.style?.alignment === 'right'
+                ? (isDarkMode ? 'bg-blue-600 text-white' : 'bg-blue-500 text-white')
+                : (isDarkMode ? 'hover:bg-gray-600 text-gray-300' : 'hover:bg-gray-100 text-gray-600')
+            }`}
+            title="Align Right"
+          >
+            <AlignRight className="w-4 h-4" />
+          </button>
         </div>
       </div>
 
       {/* Editor Container */}
-      <div ref={containerRef} className="flex-1 overflow-auto">
+      <div className="flex-1 overflow-auto">
         <div className="max-w-4xl mx-auto p-8">
           {/* Help Text */}
           {blocks.length === 1 && blocks[0].content === '' && (
@@ -485,6 +634,27 @@ function BlockComponent({
       isDarkMode ? 'text-gray-200' : 'text-gray-800'
     }`;
 
+    // Enhanced styling based on block style
+    const getAlignmentClass = () => {
+      if (!block.style?.alignment) return 'text-left';
+      return `text-${block.style.alignment}`;
+    };
+
+    const getStyleClasses = () => {
+      let classes = '';
+      if (block.style?.bold) classes += ' font-bold';
+      if (block.style?.italic) classes += ' italic';
+      if (block.style?.underline) classes += ' underline';
+      return classes;
+    };
+
+    // Real-time streaming indicator
+    const isStreamingBlock = block.content.length > 0 && (
+      block.content.endsWith('...') || 
+      block.content.includes('◊') || // Streaming marker
+      block.id === 'block-1' // First block is likely streaming
+    );
+
     const commonProps = {
       'data-block-id': block.id,
       contentEditable: block.type !== 'divider',
@@ -493,6 +663,7 @@ function BlockComponent({
       onKeyDown: (e: React.KeyboardEvent) => onKeyDown(e, block.id),
       onFocus,
       children: block.content,
+      className: `${baseClasses} ${getAlignmentClass()} ${getStyleClasses()}`
     };
 
     switch (block.type) {
@@ -514,7 +685,7 @@ function BlockComponent({
         return (
           <div className="flex items-start gap-2">
             <span className={`mt-1 ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
-              {block.style === 'bullet' ? '•' : '1.'}
+              {block.style?.alignment === 'center' ? '•' : block.style?.alignment === 'right' ? '1.' : '•'}
             </span>
             <div className={`${baseClasses} flex-1`} {...commonProps} />
           </div>
@@ -573,31 +744,65 @@ function BlockComponent({
   };
 
   return (
-    <div
-      className={`group relative ${isDragged ? 'opacity-50' : ''}`}
+    <div 
+      className={`group relative transition-all duration-200 ${
+        isDragged ? 'opacity-50' : ''
+      } ${isHovered ? 'bg-opacity-50' : ''}`}
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
+      draggable
+      onDragStart={handleDragStart}
+      onDragEnd={onDragEnd}
       onDragOver={handleDragOver}
       onDrop={handleDrop}
     >
-      {/* Drag Handle */}
+      {/* Enhanced Drag Handle */}
+      <div className={`
+        absolute left-0 top-1/2 transform -translate-y-1/2 -translate-x-8
+        ${isHovered ? 'opacity-100' : 'opacity-0'} transition-opacity cursor-grab
+        ${isDarkMode ? 'text-gray-500 hover:text-gray-300' : 'text-gray-400 hover:text-gray-600'}
+      `}>
+        <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
+          <path d="M9 5h2v2H9zm0 6h2v2H9zm0 6h2v2H9zm6-12h2v2h-2zm0 6h2v2h-2zm0 6h2v2h-2z"/>
+        </svg>
+      </div>
+
+      {/* Real-time Streaming Indicator */}
+      {isStreamingBlock && (
+        <div className={`absolute right-2 top-2 z-10 flex items-center gap-2 px-2 py-1 rounded-full text-xs ${
+          isDarkMode ? 'bg-blue-900/50 text-blue-300' : 'bg-blue-100 text-blue-600'
+        }`}>
+          <div className="flex gap-1">
+            <div className="w-1 h-1 bg-current rounded-full animate-bounce" style={{ animationDelay: '0ms' }} />
+            <div className="w-1 h-1 bg-current rounded-full animate-bounce" style={{ animationDelay: '150ms' }} />
+            <div className="w-1 h-1 bg-current rounded-full animate-bounce" style={{ animationDelay: '300ms' }} />
+          </div>
+          <span>Streaming</span>
+        </div>
+      )}
+
+      {/* Block Actions */}
       {isHovered && (
-        <div className="absolute -left-8 top-1 opacity-0 group-hover:opacity-100 transition-opacity">
+        <div className={`absolute right-2 top-2 flex items-center gap-1 ${
+          isStreamingBlock ? 'top-8' : ''
+        }`}>
           <button
-            draggable
-            onDragStart={handleDragStart}
-            onDragEnd={onDragEnd}
-            className={`p-1 rounded cursor-grab active:cursor-grabbing ${
-              isDarkMode ? 'text-gray-500 hover:text-gray-300' : 'text-gray-400 hover:text-gray-600'
+            onClick={onDelete}
+            className={`p-1 rounded transition-colors ${
+              isDarkMode 
+                ? 'hover:bg-red-900/30 text-red-400 hover:text-red-300' 
+                : 'hover:bg-red-100 text-red-500 hover:text-red-600'
             }`}
+            title="Delete block"
           >
-            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 8h16M4 16h16" />
+            <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
             </svg>
           </button>
         </div>
       )}
-      
+
+      {/* Block Content */}
       {renderBlockContent()}
     </div>
   );

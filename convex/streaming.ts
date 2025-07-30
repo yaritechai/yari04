@@ -326,6 +326,27 @@ Please provide a detailed and informative response based on these search results
 
       console.log(`🤖 Selected model: ${selectedModel} for task type based on prompt:`, message.content);
 
+      // Early detection for document content to open editor during "thinking"
+      const isLikelyDocumentRequest = detectDocumentRequest(message.content);
+      let documentId: string | null = null;
+      
+      if (isLikelyDocumentRequest) {
+        console.log("🗒️ Early detection: Opening document editor for likely document request");
+        
+        // Create initial document content immediately
+        const initialTitle = extractDocumentTitle("", message.content);
+        const initialBlocks = [{ id: 'block-1', type: 'text', content: '' }];
+        
+        await ctx.runMutation(internal.messages.addDocumentContent, {
+          messageId: args.messageId,
+          title: initialTitle,
+          content: JSON.stringify(initialBlocks),
+          shouldOpenRightPanel: true,
+        });
+        
+        documentId = args.messageId;
+      }
+
       const completion = await openrouter.chat.completions.create({
               model: selectedModel,
         messages: messagesWithSystem,
@@ -336,6 +357,7 @@ Please provide a detailed and informative response based on these search results
       });
 
       let streamedContent = "";
+      let accumulatedContent = "";
 
       // Stream the normal response
       for await (const chunk of completion) {
@@ -343,8 +365,21 @@ Please provide a detailed and informative response based on these search results
         
         if (delta?.content) {
           streamedContent += delta.content;
+          accumulatedContent += delta.content;
           
-          // Update message in real-time
+          // If we have a document editor open, stream content into it
+          if (documentId) {
+            // Update document editor in real-time
+            if (accumulatedContent.length > 50) {
+              const updatedBlocks = convertTextToDocumentBlocks(accumulatedContent);
+              await ctx.runMutation(internal.messages.updateDocumentContent, {
+                messageId: documentId,
+                content: JSON.stringify(updatedBlocks),
+              });
+            }
+          }
+          
+          // Also update the regular chat message
           if (streamedContent.length % 50 === 0 || streamedContent.length > 100) {
             await ctx.runMutation(internal.messages.updateStreamingMessage, {
               messageId: args.messageId,
@@ -355,6 +390,33 @@ Please provide a detailed and informative response based on these search results
         }
       }
 
+      // Check if we should trigger document editor for non-early-detected content
+      if (!documentId) {
+        const shouldTriggerDocumentEditor = detectDocumentContent(streamedContent, message.content);
+        
+        if (shouldTriggerDocumentEditor) {
+          console.log("🗒️ Post-detection: Triggering document editor for content");
+          
+          // Convert the AI response to document blocks
+          const documentBlocks = convertTextToDocumentBlocks(streamedContent);
+          
+          // Add document content to the message
+          await ctx.runMutation(internal.messages.addDocumentContent, {
+            messageId: args.messageId,
+            title: extractDocumentTitle(streamedContent, message.content),
+            content: JSON.stringify(documentBlocks),
+            shouldOpenRightPanel: true,
+          });
+        }
+      } else {
+        // Final update for document editor
+        const finalBlocks = convertTextToDocumentBlocks(accumulatedContent);
+        await ctx.runMutation(internal.messages.updateDocumentContent, {
+          messageId: documentId,
+          content: JSON.stringify(finalBlocks),
+        });
+      }
+
       // Finalize normal response
       await ctx.runMutation(internal.messages.finalizeStreamingMessage, {
         messageId: args.messageId,
@@ -362,24 +424,6 @@ Please provide a detailed and informative response based on these search results
       });
 
       console.log("Stream completed, final content length:", streamedContent.length);
-
-      // Check if the response should trigger the document editor
-      const shouldTriggerDocumentEditor = detectDocumentContent(streamedContent, message.content);
-      
-      if (shouldTriggerDocumentEditor) {
-        console.log("🗒️ Triggering document editor for content");
-        
-        // Convert the AI response to document blocks
-        const documentBlocks = convertTextToDocumentBlocks(streamedContent);
-        
-        // Add document content to the message
-        await ctx.runMutation(internal.messages.addDocumentContent, {
-          messageId: args.messageId,
-          title: extractDocumentTitle(streamedContent, message.content),
-          content: JSON.stringify(documentBlocks),
-          shouldOpenRightPanel: true,
-        });
-      }
 
       // Update conversation metadata
       await ctx.runMutation(internal.conversations.updateLastMessage, {
@@ -571,6 +615,24 @@ function detectDocumentContent(content: string, userMessage: string): boolean {
     (hasStructuredContent && contentLength > 200) ||
     contentLength > 1000
   );
+}
+
+// Function to detect if the user is requesting a document (e.g., "write a document", "create a document")
+function detectDocumentRequest(message: string): boolean {
+  const documentKeywords = [
+    'write a', 'write an', 'create a', 'create an', 'draft a', 'draft an',
+    'compose a', 'compose an', 'author a', 'author an', 'make a', 'make an',
+    'generate a', 'generate an', 'produce a', 'produce an',
+    'article', 'blog post', 'blog', 'essay', 'story', 'letter',
+    'email', 'memo', 'report', 'proposal', 'plan', 'document',
+    'guide', 'tutorial', 'documentation', 'content', 'copy',
+    'script', 'speech', 'presentation', 'marketing copy',
+    'creative writing', 'brainstorm', 'outline', 'brief',
+    'white paper', 'case study', 'research paper'
+  ];
+  
+  const lowerMessage = message.toLowerCase();
+  return documentKeywords.some(keyword => lowerMessage.includes(keyword));
 }
 
 // Function to convert text content to document blocks
