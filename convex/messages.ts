@@ -336,3 +336,24 @@ export const addAssistantMessageWithSearch = internalMutation({
     });
   },
 });
+
+export const addLandingPageContent = internalMutation({
+  args: {
+    messageId: v.id("messages"),
+    htmlContent: v.string(),
+    title: v.string(),
+    theme: v.string(),
+  },
+  returns: v.null(),
+  handler: async (ctx, args) => {
+    await ctx.db.patch(args.messageId, {
+      landingPageContent: {
+        htmlContent: args.htmlContent,
+        title: args.title,
+        theme: args.theme,
+        shouldOpenRightPanel: true,
+      },
+    });
+    return null;
+  },
+});

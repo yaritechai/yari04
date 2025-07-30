@@ -49,6 +49,12 @@ const applicationTables = {
     hasWebSearch: v.optional(v.boolean()),
     model: v.optional(v.string()),
     reportData: v.optional(v.any()),
+    landingPageContent: v.optional(v.object({
+      htmlContent: v.string(),
+      title: v.string(),
+      theme: v.string(),
+      shouldOpenRightPanel: v.boolean(),
+    })),
   }).index("by_conversation", ["conversationId"]),
 
   folders: defineTable({

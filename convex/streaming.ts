@@ -470,22 +470,25 @@ ${mcpConnections.length > 0 ? '• **MCP Tools**: Various tools available throug
           // Create content that will display the landing page and auto-open the right panel
           fullContent = `# 🚀 Landing Page Generated: ${params.title}
 
-I've created a complete landing page for you! Here's the HTML:
+I've created a beautiful landing page for you! The page features:
+- **${params.theme || 'Modern'} design** with advanced CSS animations
+- **Responsive layout** optimized for all devices  
+- **Interactive elements** and smooth hover effects
+- **Professional typography** and modern spacing
+- **Hero section** with engaging visuals
+- **Feature sections** with micro-interactions
 
-\`\`\`html
-${html}
-\`\`\`
-
-The landing page features:
-- **Modern ${params.theme} design** with glassmorphic elements
-- **Responsive layout** that works on all devices  
-- **Smooth animations** and hover effects
-- **Professional typography** and spacing
-- **Call-to-action sections** optimized for conversions
-
-You can copy this HTML and save it as an \`.html\` file to use immediately!`;
+Click the "Generated HTML" button below to view your landing page!`;
 
           tokenCount = fullContent.split(/\s+/).length;
+          
+          // Store the HTML content for the right panel
+          await ctx.runMutation(internal.messages.addLandingPageContent, {
+            messageId: args.messageId,
+            htmlContent: html,
+            title: params.title,
+            theme: params.theme || 'modern'
+          });
           
           // Update the message with the generated content
           await ctx.runMutation(internal.messages.updateStreamingMessage, {
@@ -685,47 +688,82 @@ async function performWebSearch(query: string): Promise<any[]> {
 
 // Helper function to generate complete HTML for landing pages
 function generateCompleteHTML(params: any) {
-  const { title, description, content_sections, call_to_action, color_scheme = "modern" } = params;
+  const { 
+    title = "Amazing Landing Page", 
+    subtitle = "Welcome to our innovative solution", 
+    theme = "modern",
+    sections = []
+  } = params;
+  
+  // Choose a random layout variation for variety
+  const layouts = ['hero-first', 'feature-grid', 'split-hero', 'testimonial-focus', 'product-showcase'];
+  const selectedLayout = layouts[Math.floor(Math.random() * layouts.length)];
   
   const colorSchemes = {
     modern: {
-      primary: "#f9c313",
-      secondary: "#1f2937",
+      primary: "linear-gradient(135deg, #667eea 0%, #764ba2 100%)",
+      primarySolid: "#667eea",
+      secondary: "#1a202c",
       background: "#ffffff",
-      text: "#374151",
-      accent: "#eab308"
+      surface: "#f7fafc",
+      text: "#2d3748",
+      textLight: "#718096",
+      accent: "#ed8936",
+      gradient: "linear-gradient(135deg, #667eea 0%, #764ba2 100%)",
+      pattern: "radial-gradient(circle at 20% 80%, #667eea15 0%, transparent 50%), radial-gradient(circle at 80% 20%, #764ba215 0%, transparent 50%)"
+    },
+    glassmorphic: {
+      primary: "linear-gradient(135deg, rgba(255,255,255,0.1), rgba(255,255,255,0.2))",
+      primarySolid: "#8b5cf6",
+      secondary: "#1f2937",
+      background: "linear-gradient(135deg, #667eea 0%, #764ba2 100%)",
+      surface: "rgba(255, 255, 255, 0.1)",
+      text: "#ffffff",
+      textLight: "#e2e8f0",
+      accent: "#f59e0b",
+      gradient: "linear-gradient(135deg, rgba(255,255,255,0.1), rgba(255,255,255,0.2))",
+      pattern: "radial-gradient(circle at 25% 25%, rgba(255,255,255,0.1) 0%, transparent 50%)"
     },
     dark: {
-      primary: "#f9c313",
-      secondary: "#ffffff", 
-      background: "#111827",
-      text: "#f3f4f6",
-      accent: "#eab308"
+      primary: "linear-gradient(135deg, #667eea 0%, #764ba2 100%)",
+      primarySolid: "#667eea", 
+      secondary: "#f7fafc",
+      background: "#0f1419",
+      surface: "#1a2332",
+      text: "#e2e8f0",
+      textLight: "#a0aec0",
+      accent: "#ffd700",
+      gradient: "linear-gradient(135deg, #667eea 0%, #764ba2 100%)",
+      pattern: "radial-gradient(circle at 30% 70%, #667eea15 0%, transparent 50%)"
     },
-    light: {
-      primary: "#f9c313",
-      secondary: "#6b7280",
-      background: "#f9fafb",
-      text: "#374151", 
-      accent: "#eab308"
-    },
-    colorful: {
-      primary: "#f9c313",
-      secondary: "#3b82f6",
+    vibrant: {
+      primary: "linear-gradient(135deg, #ff6b6b 0%, #ee5a24 100%)",
+      primarySolid: "#ff6b6b",
+      secondary: "#2c2c54",
       background: "#ffffff",
-      text: "#1f2937",
-      accent: "#ef4444"
+      surface: "#fff5f5",
+      text: "#2d3748",
+      textLight: "#718096",
+      accent: "#ff9ff3",
+      gradient: "linear-gradient(135deg, #ff6b6b 0%, #ee5a24 100%)",
+      pattern: "radial-gradient(circle at 40% 60%, #ff6b6b15 0%, transparent 50%)"
     },
     minimal: {
-      primary: "#000000",
-      secondary: "#6b7280",
-      background: "#ffffff", 
-      text: "#374151",
-      accent: "#f9c313"
+      primary: "linear-gradient(135deg, #2d3748 0%, #4a5568 100%)",
+      primarySolid: "#2d3748",
+      secondary: "#1a202c", 
+      background: "#ffffff",
+      surface: "#f7fafc",
+      text: "#2d3748",
+      textLight: "#718096",
+      accent: "#3182ce",
+      gradient: "linear-gradient(135deg, #2d3748 0%, #4a5568 100%)",
+      pattern: "radial-gradient(circle at 50% 50%, #2d374815 0%, transparent 50%)"
     }
   };
 
-  const colors = colorSchemes[color_scheme as keyof typeof colorSchemes] || colorSchemes.modern;
+  const colors = colorSchemes[theme as keyof typeof colorSchemes] || colorSchemes.modern;
+  const isGlass = theme === 'glassmorphic';
 
   return `<!DOCTYPE html>
 <html lang="en">
@@ -734,6 +772,18 @@ function generateCompleteHTML(params: any) {
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>${title}</title>
     <style>
+        :root {
+            --primary: ${colors.primarySolid};
+            --primary-gradient: ${colors.primary};
+            --secondary: ${colors.secondary};
+            --background: ${colors.background};
+            --surface: ${colors.surface};
+            --text: ${colors.text};
+            --text-light: ${colors.textLight};
+            --accent: ${colors.accent};
+            --pattern: ${colors.pattern};
+        }
+        
         * {
             margin: 0;
             padding: 0;
@@ -741,165 +791,515 @@ function generateCompleteHTML(params: any) {
         }
         
         body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
-            line-height: 1.6;
-            color: ${colors.text};
-            background-color: ${colors.background};
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            line-height: 1.7;
+            color: var(--text);
+            background: var(--background);
+            ${isGlass ? 'background: var(--background);' : ''}
+            overflow-x: hidden;
+            scroll-behavior: smooth;
         }
         
         .container {
-            max-width: 1200px;
+            max-width: min(1400px, 95vw);
             margin: 0 auto;
-            padding: 0 20px;
+            padding: 0 clamp(1rem, 5vw, 3rem);
         }
         
-        header {
-            background: ${colors.background};
-            padding: 2rem 0;
-            text-align: center;
-            border-bottom: 1px solid ${colors.secondary}20;
+        /* Glassmorphism and Advanced Effects */
+        .glass {
+            background: var(--surface);
+            ${isGlass ? 'backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px);' : ''}
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 20px;
         }
         
-        h1 {
-            font-size: 3rem;
+        .pattern-bg {
+            position: relative;
+        }
+        
+        .pattern-bg::before {
+            content: '';
+            position: absolute;
+            inset: 0;
+            background: var(--pattern);
+            z-index: -1;
+            border-radius: inherit;
+        }
+        
+        /* Navigation */
+        nav {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            z-index: 100;
+            padding: 1rem 0;
+            ${isGlass ? 'backdrop-filter: blur(20px); background: rgba(255,255,255,0.1);' : 'background: var(--surface);'}
+            transition: all 0.3s ease;
+        }
+        
+        .nav-content {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .logo {
+            font-size: 1.5rem;
             font-weight: 800;
-            color: ${colors.secondary};
-            margin-bottom: 1rem;
+            background: var(--primary-gradient);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
         }
         
-        .subtitle {
+        /* Hero Section Variations */
+        .hero {
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+            position: relative;
+            background: var(--background);
+            overflow: hidden;
+        }
+        
+        .hero.pattern-bg::before {
+            animation: float 20s infinite linear;
+        }
+        
+        @keyframes float {
+            0% { transform: translateX(-50px) translateY(-50px); }
+            50% { transform: translateX(50px) translateY(50px); }
+            100% { transform: translateX(-50px) translateY(-50px); }
+        }
+        
+        .hero-content {
+            max-width: 900px;
+            z-index: 2;
+            position: relative;
+        }
+        
+        .hero h1 {
+            font-size: clamp(2.5rem, 8vw, 5rem);
+            font-weight: 900;
+            line-height: 1.1;
+            margin-bottom: 2rem;
+            background: var(--primary-gradient);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            letter-spacing: -0.02em;
+        }
+        
+        .hero .subtitle {
+            font-size: clamp(1.125rem, 3vw, 1.5rem);
+            color: var(--text-light);
+            margin-bottom: 3rem;
+            max-width: 700px;
+            margin-left: auto;
+            margin-right: auto;
+            font-weight: 400;
+        }
+        
+        /* Advanced Button Styles */
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 1rem 2.5rem;
+            font-size: 1.125rem;
+            font-weight: 600;
+            text-decoration: none;
+            border-radius: 50px;
+            transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+            position: relative;
+            overflow: hidden;
+            border: 2px solid transparent;
+            cursor: pointer;
+        }
+        
+        .btn-primary {
+            background: var(--primary-gradient);
+            color: white;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+        }
+        
+        .btn-primary::before {
+            content: '';
+            position: absolute;
+            inset: 0;
+            background: linear-gradient(45deg, transparent, rgba(255,255,255,0.3), transparent);
+            transform: translateX(-100%);
+            transition: transform 0.6s;
+        }
+        
+        .btn-primary:hover::before {
+            transform: translateX(100%);
+        }
+        
+        .btn-primary:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 20px 40px rgba(0,0,0,0.3);
+        }
+        
+        .btn-secondary {
+            background: transparent;
+            color: var(--text);
+            border: 2px solid var(--primary);
+        }
+        
+        .btn-secondary:hover {
+            background: var(--primary);
+            color: white;
+            transform: translateY(-2px);
+        }
+        
+        /* Feature Grid */
+        .features {
+            padding: 8rem 0;
+            background: var(--surface);
+        }
+        
+        .section-header {
+            text-align: center;
+            margin-bottom: 5rem;
+        }
+        
+        .section-title {
+            font-size: clamp(2rem, 5vw, 3.5rem);
+            font-weight: 800;
+            color: var(--secondary);
+            margin-bottom: 1.5rem;
+            letter-spacing: -0.01em;
+        }
+        
+        .section-subtitle {
             font-size: 1.25rem;
-            color: ${colors.text};
+            color: var(--text-light);
             max-width: 600px;
             margin: 0 auto;
         }
         
-        .hero {
-            padding: 4rem 0;
-            text-align: center;
-            background: linear-gradient(135deg, ${colors.primary}10, ${colors.accent}10);
-        }
-        
-        .cta-button {
-            display: inline-block;
-            background: ${colors.primary};
-            color: ${colors.secondary};
-            padding: 1rem 2rem;
-            text-decoration: none;
-            border-radius: 12px;
-            font-weight: 600;
-            font-size: 1.1rem;
-            margin-top: 2rem;
-            transition: all 0.3s ease;
-            border: 2px solid ${colors.primary};
-        }
-        
-        .cta-button:hover {
-            background: ${colors.accent};
-            transform: translateY(-2px);
-            box-shadow: 0 8px 25px ${colors.primary}30;
-        }
-        
-        .content-section {
-            padding: 3rem 0;
-            border-bottom: 1px solid ${colors.secondary}10;
-        }
-        
-        .content-section:last-child {
-            border-bottom: none;
-        }
-        
-        .section-title {
-            font-size: 2rem;
-            font-weight: 700;
-            color: ${colors.secondary};
-            margin-bottom: 1.5rem;
-            text-align: center;
-        }
-        
-        .section-content {
-            font-size: 1.1rem;
-            max-width: 800px;
-            margin: 0 auto;
-            text-align: center;
-        }
-        
-        .grid {
+        .feature-grid {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-            gap: 2rem;
-            margin-top: 3rem;
-        }
-        
-        .card {
-            background: ${colors.background};
-            padding: 2rem;
-            border-radius: 16px;
-            border: 2px solid ${colors.secondary}10;
-            transition: all 0.3s ease;
-        }
-        
-        .card:hover {
-            transform: translateY(-4px);
-            box-shadow: 0 12px 30px ${colors.secondary}15;
-            border-color: ${colors.primary};
-        }
-        
-        footer {
-            background: ${colors.secondary};
-            color: ${colors.background};
-            text-align: center;
-            padding: 2rem 0;
+            grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+            gap: 3rem;
             margin-top: 4rem;
         }
         
+        .feature-card {
+            background: var(--background);
+            padding: 3rem 2.5rem;
+            border-radius: 24px;
+            border: 1px solid rgba(255,255,255,0.1);
+            transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+            position: relative;
+            overflow: hidden;
+            ${isGlass ? 'backdrop-filter: blur(20px);' : ''}
+        }
+        
+        .feature-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 4px;
+            background: var(--primary-gradient);
+            transform: scaleX(0);
+            transition: transform 0.3s ease;
+        }
+        
+        .feature-card:hover::before {
+            transform: scaleX(1);
+        }
+        
+        .feature-card:hover {
+            transform: translateY(-10px);
+            box-shadow: 0 30px 60px rgba(0,0,0,0.15);
+        }
+        
+        .feature-icon {
+            width: 80px;
+            height: 80px;
+            border-radius: 20px;
+            background: var(--primary-gradient);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 2rem;
+            margin-bottom: 2rem;
+            position: relative;
+        }
+        
+        .feature-icon::after {
+            content: '✨';
+            color: white;
+        }
+        
+        .feature-title {
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: var(--secondary);
+            margin-bottom: 1rem;
+        }
+        
+        .feature-description {
+            color: var(--text-light);
+            line-height: 1.6;
+        }
+        
+        /* Stats Section */
+        .stats {
+            padding: 6rem 0;
+            background: var(--background);
+        }
+        
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 3rem;
+            text-align: center;
+        }
+        
+        .stat-number {
+            font-size: 3rem;
+            font-weight: 900;
+            background: var(--primary-gradient);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            margin-bottom: 0.5rem;
+        }
+        
+        .stat-label {
+            color: var(--text-light);
+            font-weight: 500;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+        
+        /* Footer */
+        footer {
+            background: var(--secondary);
+            color: var(--background);
+            padding: 4rem 0 2rem;
+            margin-top: 6rem;
+        }
+        
+        .footer-content {
+            text-align: center;
+        }
+        
+        .footer-logo {
+            font-size: 2rem;
+            font-weight: 800;
+            margin-bottom: 1rem;
+        }
+        
+        .footer-text {
+            opacity: 0.8;
+            margin-bottom: 2rem;
+        }
+        
+        /* Animations */
+        @keyframes fadeInUp {
+            from {
+                opacity: 0;
+                transform: translateY(30px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+        
+        .animate-in {
+            animation: fadeInUp 0.8s ease-out forwards;
+        }
+        
+        /* Responsive */
         @media (max-width: 768px) {
-            h1 {
-                font-size: 2rem;
-            }
-            
-            .container {
-                padding: 0 15px;
-            }
-            
             .hero {
+                min-height: 80vh;
                 padding: 2rem 0;
+            }
+            
+            .features {
+                padding: 4rem 0;
+            }
+            
+            .feature-grid {
+                grid-template-columns: 1fr;
+                gap: 2rem;
+            }
+            
+            .feature-card {
+                padding: 2.5rem 2rem;
+            }
+            
+            nav {
+                padding: 0.75rem 0;
+            }
+        }
+        
+        @media (max-width: 480px) {
+            .container {
+                padding: 0 1rem;
+            }
+            
+            .btn {
+                padding: 0.875rem 2rem;
+                font-size: 1rem;
             }
         }
     </style>
 </head>
 <body>
-    <header>
+    <nav>
         <div class="container">
-            <h1>${title}</h1>
-            <p class="subtitle">${description}</p>
+            <div class="nav-content">
+                <div class="logo">${title}</div>
+            </div>
         </div>
-    </header>
+    </nav>
     
-    <section class="hero">
+    <section class="hero pattern-bg">
         <div class="container">
-            <a href="#" class="cta-button">${call_to_action?.text || 'Get Started'}</a>
+            <div class="hero-content animate-in">
+                <h1>${title}</h1>
+                <p class="subtitle">${subtitle}</p>
+                <div style="display: flex; gap: 1rem; justify-content: center; flex-wrap: wrap;">
+                    <a href="#features" class="btn btn-primary">Get Started →</a>
+                    <a href="#about" class="btn btn-secondary">Learn More</a>
+                </div>
+            </div>
         </div>
     </section>
     
-    <main>
+    <section id="features" class="features">
         <div class="container">
-            ${content_sections?.map((section: any) => `
-                <section class="content-section">
-                    <h2 class="section-title">${section.heading || section.type}</h2>
-                    <div class="section-content">
-                        ${section.content}
+            <div class="section-header">
+                <h2 class="section-title">Amazing Features</h2>
+                <p class="section-subtitle">Discover what makes our solution unique and powerful</p>
+            </div>
+            
+            <div class="feature-grid">
+                ${sections.length > 0 ? sections.slice(0, 6).map((section: any, index: number) => `
+                    <div class="feature-card glass">
+                        <div class="feature-icon"></div>
+                        <h3 class="feature-title">${section.title || `Feature ${index + 1}`}</h3>
+                        <p class="feature-description">${section.content || 'Amazing functionality that will revolutionize your workflow.'}</p>
                     </div>
-                </section>
-            `).join('') || ''}
+                `).join('') : `
+                    <div class="feature-card glass">
+                        <div class="feature-icon"></div>
+                        <h3 class="feature-title">Lightning Fast</h3>
+                        <p class="feature-description">Experience blazing fast performance with our optimized architecture.</p>
+                    </div>
+                    <div class="feature-card glass">
+                        <div class="feature-icon"></div>
+                        <h3 class="feature-title">Secure & Private</h3>
+                        <p class="feature-description">Your data is protected with enterprise-grade security measures.</p>
+                    </div>
+                    <div class="feature-card glass">
+                        <div class="feature-icon"></div>
+                        <h3 class="feature-title">Easy Integration</h3>
+                        <p class="feature-description">Seamlessly integrate with your existing tools and workflows.</p>
+                    </div>
+                `}
+            </div>
         </div>
-    </main>
+    </section>
+    
+    <section class="stats pattern-bg">
+        <div class="container">
+            <div class="stats-grid">
+                <div>
+                    <div class="stat-number">99.9%</div>
+                    <div class="stat-label">Uptime</div>
+                </div>
+                <div>
+                    <div class="stat-number">10K+</div>
+                    <div class="stat-label">Happy Users</div>
+                </div>
+                <div>
+                    <div class="stat-number">500+</div>
+                    <div class="stat-label">Integrations</div>
+                </div>
+                <div>
+                    <div class="stat-number">24/7</div>
+                    <div class="stat-label">Support</div>
+                </div>
+            </div>
+        </div>
+    </section>
     
     <footer>
         <div class="container">
-            <p>&copy; 2024 ${title}. Built with Yari AI.</p>
+            <div class="footer-content">
+                <div class="footer-logo">${title}</div>
+                <p class="footer-text">Built with ❤️ using Yari AI</p>
+                <p style="opacity: 0.6; font-size: 0.875rem;">&copy; 2024 ${title}. All rights reserved.</p>
+            </div>
         </div>
     </footer>
+    
+    <script>
+        // Smooth scrolling for navigation
+        document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+            anchor.addEventListener('click', function (e) {
+                e.preventDefault();
+                const target = document.querySelector(this.getAttribute('href'));
+                if (target) {
+                    target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                }
+            });
+        });
+        
+        // Add scroll effect to navigation
+        let lastScroll = 0;
+        window.addEventListener('scroll', () => {
+            const nav = document.querySelector('nav');
+            const currentScroll = window.pageYOffset;
+            
+            if (currentScroll > 100) {
+                nav.style.background = '${isGlass ? 'rgba(255,255,255,0.15)' : 'var(--surface)'}';
+                nav.style.borderBottom = '1px solid rgba(255,255,255,0.1)';
+            } else {
+                nav.style.background = '${isGlass ? 'rgba(255,255,255,0.1)' : 'var(--surface)'}';
+                nav.style.borderBottom = 'none';
+            }
+            
+            lastScroll = currentScroll;
+        });
+        
+        // Intersection Observer for animations
+        const observerOptions = {
+            threshold: 0.1,
+            rootMargin: '0px 0px -50px 0px'
+        };
+        
+        const observer = new IntersectionObserver((entries) => {
+            entries.forEach(entry => {
+                if (entry.isIntersecting) {
+                    entry.target.style.opacity = '1';
+                    entry.target.style.transform = 'translateY(0)';
+                }
+            });
+        }, observerOptions);
+        
+        // Observe feature cards
+        document.querySelectorAll('.feature-card').forEach((card, index) => {
+            card.style.opacity = '0';
+            card.style.transform = 'translateY(30px)';
+            card.style.transition = \`opacity 0.6s ease \${index * 0.1}s, transform 0.6s ease \${index * 0.1}s\`;
+            observer.observe(card);
+        });
+    </script>
 </body>
 </html>`;
 }
