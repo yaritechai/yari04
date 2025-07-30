@@ -39,6 +39,20 @@ export function Sidebar({
   const { signOut } = useAuthActions();
   const deleteConversation = useMutation(api.conversations.remove);
 
+  // Helper function to clean conversation titles for display
+  const cleanTitleForDisplay = (title: string) => {
+    // Remove search tags like [Search: query] and extract just the query
+    const searchMatch = title.match(/^\[Search:\s*(.+?)\]$/);
+    if (searchMatch) {
+      const query = searchMatch[1];
+      // Truncate to first 3 words for concise display
+      const words = query.trim().split(/\s+/);
+      return words.slice(0, 3).join(' ');
+    }
+    
+    return title; // Return original title if no search tag found
+  };
+
   const handleDelete = async (conversationId: Id<"conversations">) => {
     if (confirm("Are you sure you want to delete this conversation?")) {
       await deleteConversation({ conversationId });
@@ -143,7 +157,7 @@ export function Sidebar({
                         </svg>
                       )}
                       <h3 className={`font-normal ${isDarkMode ? 'text-neutral-200' : 'text-neutral-900'} truncate text-sm leading-5`}>
-                        {conversation.title}
+                        {cleanTitleForDisplay(conversation.title)}
                       </h3>
                     </div>
                   </div>

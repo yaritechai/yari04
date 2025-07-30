@@ -438,6 +438,23 @@ export const generateTitleInternal = internalMutation({
   },
   handler: async (ctx, args) => {
     try {
+      // Helper function to clean and truncate search messages for title generation
+      const cleanMessageForTitle = (content: string) => {
+        // Remove search tags like [Search: query] and extract just the query
+        const searchMatch = content.match(/^\[Search:\s*(.+?)\]$/);
+        if (searchMatch) {
+          const query = searchMatch[1];
+          // Truncate to first 3 words for concise titles
+          const words = query.trim().split(/\s+/);
+          return words.slice(0, 3).join(' ');
+        }
+        
+        // For non-search messages, truncate to first 50 chars for title generation
+        return content.length > 50 ? content.substring(0, 50).trim() : content;
+      };
+
+      const cleanedMessage = cleanMessageForTitle(args.firstMessage);
+
       // Use OpenRouter with GPT-4.1 Nano for fast title generation
       const openai = await import("openai").then(m => m.default);
       const client = new openai({
@@ -472,7 +489,7 @@ Generate a 2-3 word title that captures the essence of this conversation. Be con
           },
           {
             role: "user",
-            content: args.firstMessage
+            content: cleanedMessage
           }
         ],
         max_tokens: 10,
