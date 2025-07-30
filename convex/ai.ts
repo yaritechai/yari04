@@ -4,16 +4,6 @@ import { internal } from "./_generated/api";
 import OpenAI from "openai";
 import { getModelForTask, getModelParameters } from "./modelRouter";
 
-// Using OpenRouter with OpenAI SDK compatibility
-const openai = new OpenAI({
-  baseURL: "https://openrouter.ai/api/v1",
-  apiKey: process.env.OPENROUTER_API_KEY,
-  defaultHeaders: {
-    "HTTP-Referer": process.env.CONVEX_SITE_URL || "http://localhost:3000",
-    "X-Title": "Yari AI Assistant",
-  },
-});
-
 // Tool definitions for function calling
 const tools = [
   {
@@ -101,6 +91,22 @@ The report should be professional, detailed, and well-organized. Include:
 Make sure the HTML is clean and properly formatted for display in a document editor.`;
 
     try {
+      // Check for OpenRouter API key
+      const openrouterApiKey = process.env.OPENROUTER_API_KEY;
+      if (!openrouterApiKey) {
+        throw new Error("OPENROUTER_API_KEY environment variable is not set. Please configure your OpenRouter API key.");
+      }
+
+      // Initialize OpenRouter client
+      const openai = new OpenAI({
+        baseURL: "https://openrouter.ai/api/v1",
+        apiKey: openrouterApiKey,
+        defaultHeaders: {
+          "HTTP-Referer": process.env.CONVEX_SITE_URL || "http://localhost:3000",
+          "X-Title": "Yari AI Assistant",
+        },
+      });
+
       // Use research model for report generation
       const selectedModel = getModelForTask(args.prompt, {
         isReport: true,
@@ -173,6 +179,22 @@ Key requirements:
 Always use the generate_landing_page function when creating landing pages.`;
 
     try {
+      // Check for OpenRouter API key
+      const openrouterApiKey = process.env.OPENROUTER_API_KEY;
+      if (!openrouterApiKey) {
+        throw new Error("OPENROUTER_API_KEY environment variable is not set. Please configure your OpenRouter API key.");
+      }
+
+      // Initialize OpenRouter client
+      const openai = new OpenAI({
+        baseURL: "https://openrouter.ai/api/v1",
+        apiKey: openrouterApiKey,
+        defaultHeaders: {
+          "HTTP-Referer": process.env.CONVEX_SITE_URL || "http://localhost:3000",
+          "X-Title": "Yari AI Assistant",
+        },
+      });
+
       // Use coding/landing page model for web development tasks
       const selectedModel = getModelForTask(args.prompt, {
         isLandingPage: true,
