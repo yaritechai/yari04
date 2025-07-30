@@ -365,32 +365,26 @@ export function DocumentEditor({ initialContent = '', title: initialTitle = 'Unt
   return (
     <div 
       ref={containerRef}
-      className={`h-full flex flex-col ${
-        isDarkMode ? 'bg-gray-900 text-white' : 'bg-white text-gray-900'
-      }`}
+      className="h-full flex flex-col bg-background text-foreground"
     >
       {/* Enhanced Header with Formatting Toolbar */}
-      <div className={`p-6 border-b ${
-        isDarkMode ? 'border-gray-700 bg-gray-800' : 'border-gray-200 bg-gray-50'
-      }`}>
+      <div className="p-6 border-b border-border bg-card">
         <div className="flex items-center justify-between mb-4">
           <input
             type="text"
             value={title}
             onChange={(e) => setTitle(e.target.value)}
-            className={`text-2xl font-bold bg-transparent border-none outline-none flex-1 ${
-              isDarkMode ? 'text-white placeholder-gray-400' : 'text-gray-900 placeholder-gray-500'
-            }`}
+            className="text-2xl font-bold bg-transparent border-none outline-none flex-1 text-foreground placeholder:text-muted-foreground"
             placeholder="Document title..."
           />
           <div className="flex items-center gap-2">
             {/* Save Status */}
             {isSaving ? (
-              <span className={`text-sm ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`}>
+              <span className="text-sm text-muted-foreground">
                 Saving...
               </span>
             ) : lastSaved ? (
-              <span className={`text-sm ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`}>
+              <span className="text-sm text-muted-foreground">
                 Saved {lastSaved.toLocaleTimeString()}
               </span>
             ) : null}
@@ -398,11 +392,7 @@ export function DocumentEditor({ initialContent = '', title: initialTitle = 'Unt
             {/* Action Buttons */}
             <button
               onClick={() => handleSave(true)}
-              className={`p-2 rounded transition-colors ${
-                isDarkMode 
-                  ? 'hover:bg-gray-700 text-gray-300 hover:text-white' 
-                  : 'hover:bg-gray-200 text-gray-600 hover:text-gray-900'
-              }`}
+              className="p-2 rounded transition-colors text-muted-foreground hover:text-foreground hover:bg-muted"
               title="Save document"
             >
               <Save className="w-4 h-4" />
@@ -411,11 +401,7 @@ export function DocumentEditor({ initialContent = '', title: initialTitle = 'Unt
             {onClose && (
               <button
                 onClick={onClose}
-                className={`p-2 rounded transition-colors ${
-                  isDarkMode 
-                    ? 'hover:bg-gray-700 text-gray-300 hover:text-white' 
-                    : 'hover:bg-gray-200 text-gray-600 hover:text-gray-900'
-                }`}
+                className="p-2 rounded transition-colors text-muted-foreground hover:text-foreground hover:bg-muted"
                 title="Close document"
               >
                 <X className="w-4 h-4" />
@@ -425,15 +411,13 @@ export function DocumentEditor({ initialContent = '', title: initialTitle = 'Unt
         </div>
 
         {/* Quick Formatting Toolbar */}
-        <div className={`flex items-center gap-1 p-2 rounded-lg ${
-          isDarkMode ? 'bg-gray-700' : 'bg-white border border-gray-200'
-        }`}>
+        <div className="flex items-center gap-1 p-2 rounded-lg bg-muted border border-border">
           <button
             onClick={() => formatCurrentBlock('bold')}
             className={`p-2 rounded transition-colors ${
               focusedBlockId && blocks.find(b => b.id === focusedBlockId)?.style?.bold
-                ? (isDarkMode ? 'bg-blue-600 text-white' : 'bg-blue-500 text-white')
-                : (isDarkMode ? 'hover:bg-gray-600 text-gray-300' : 'hover:bg-gray-100 text-gray-600')
+                ? 'bg-primary text-primary-foreground'
+                : 'text-muted-foreground hover:text-foreground hover:bg-background'
             }`}
             title="Bold (Ctrl/Cmd + B)"
           >
@@ -444,8 +428,8 @@ export function DocumentEditor({ initialContent = '', title: initialTitle = 'Unt
             onClick={() => formatCurrentBlock('italic')}
             className={`p-2 rounded transition-colors ${
               focusedBlockId && blocks.find(b => b.id === focusedBlockId)?.style?.italic
-                ? (isDarkMode ? 'bg-blue-600 text-white' : 'bg-blue-500 text-white')
-                : (isDarkMode ? 'hover:bg-gray-600 text-gray-300' : 'hover:bg-gray-100 text-gray-600')
+                ? 'bg-primary text-primary-foreground'
+                : 'text-muted-foreground hover:text-foreground hover:bg-background'
             }`}
             title="Italic (Ctrl/Cmd + I)"
           >
@@ -456,22 +440,22 @@ export function DocumentEditor({ initialContent = '', title: initialTitle = 'Unt
             onClick={() => formatCurrentBlock('underline')}
             className={`p-2 rounded transition-colors ${
               focusedBlockId && blocks.find(b => b.id === focusedBlockId)?.style?.underline
-                ? (isDarkMode ? 'bg-blue-600 text-white' : 'bg-blue-500 text-white')
-                : (isDarkMode ? 'hover:bg-gray-600 text-gray-300' : 'hover:bg-gray-100 text-gray-600')
+                ? 'bg-primary text-primary-foreground'
+                : 'text-muted-foreground hover:text-foreground hover:bg-background'
             }`}
             title="Underline (Ctrl/Cmd + U)"
           >
             <Underline className="w-4 h-4" />
           </button>
           
-          <div className={`w-px h-6 mx-2 ${isDarkMode ? 'bg-gray-600' : 'bg-gray-300'}`} />
+          <div className="w-px h-6 mx-2 bg-border" />
           
           <button
             onClick={() => formatCurrentBlock('align', 'left')}
             className={`p-2 rounded transition-colors ${
               focusedBlockId && blocks.find(b => b.id === focusedBlockId)?.style?.alignment === 'left'
-                ? (isDarkMode ? 'bg-blue-600 text-white' : 'bg-blue-500 text-white')
-                : (isDarkMode ? 'hover:bg-gray-600 text-gray-300' : 'hover:bg-gray-100 text-gray-600')
+                ? 'bg-primary text-primary-foreground'
+                : 'text-muted-foreground hover:text-foreground hover:bg-background'
             }`}
             title="Align Left"
           >
@@ -482,8 +466,8 @@ export function DocumentEditor({ initialContent = '', title: initialTitle = 'Unt
             onClick={() => formatCurrentBlock('align', 'center')}
             className={`p-2 rounded transition-colors ${
               focusedBlockId && blocks.find(b => b.id === focusedBlockId)?.style?.alignment === 'center'
-                ? (isDarkMode ? 'bg-blue-600 text-white' : 'bg-blue-500 text-white')
-                : (isDarkMode ? 'hover:bg-gray-600 text-gray-300' : 'hover:bg-gray-100 text-gray-600')
+                ? 'bg-primary text-primary-foreground'
+                : 'text-muted-foreground hover:text-foreground hover:bg-background'
             }`}
             title="Align Center"
           >
@@ -494,8 +478,8 @@ export function DocumentEditor({ initialContent = '', title: initialTitle = 'Unt
             onClick={() => formatCurrentBlock('align', 'right')}
             className={`p-2 rounded transition-colors ${
               focusedBlockId && blocks.find(b => b.id === focusedBlockId)?.style?.alignment === 'right'
-                ? (isDarkMode ? 'bg-blue-600 text-white' : 'bg-blue-500 text-white')
-                : (isDarkMode ? 'hover:bg-gray-600 text-gray-300' : 'hover:bg-gray-100 text-gray-600')
+                ? 'bg-primary text-primary-foreground'
+                : 'text-muted-foreground hover:text-foreground hover:bg-background'
             }`}
             title="Align Right"
           >
@@ -509,15 +493,13 @@ export function DocumentEditor({ initialContent = '', title: initialTitle = 'Unt
         <div className="max-w-4xl mx-auto p-8">
           {/* Help Text */}
           {blocks.length === 1 && blocks[0].content === '' && (
-            <div className={`mb-8 p-6 rounded-lg border-2 border-dashed ${
-              isDarkMode ? 'border-neutral-700 bg-neutral-800/50' : 'border-gray-200 bg-gray-50'
-            }`}>
-              <div className={`text-lg font-medium mb-2 ${isDarkMode ? 'text-gray-200' : 'text-gray-800'}`}>
+            <div className="mb-8 p-6 rounded-lg border-2 border-dashed border-border bg-muted/50">
+              <div className="text-lg font-medium mb-2 text-foreground">
                 Welcome to your document! ✨
               </div>
-              <div className={`text-sm ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
-                <p className="mb-2">Try typing <code className="px-1 bg-gray-200 dark:bg-gray-700 rounded">/</code> to see all available block types</p>
-                <p>Or use keyboard shortcuts: <code className="px-1 bg-gray-200 dark:bg-gray-700 rounded">Cmd+1</code> for H1, <code className="px-1 bg-gray-200 dark:bg-gray-700 rounded">Cmd+2</code> for H2, etc.</p>
+              <div className="text-sm text-muted-foreground">
+                <p className="mb-2">Try typing <code className="px-1 bg-muted rounded">/</code> to see all available block types</p>
+                <p>Or use keyboard shortcuts: <code className="px-1 bg-muted rounded">Cmd+1</code> for H1, <code className="px-1 bg-muted rounded">Cmd+2</code> for H2, etc.</p>
               </div>
             </div>
           )}
@@ -552,9 +534,7 @@ export function DocumentEditor({ initialContent = '', title: initialTitle = 'Unt
             onClick={() => setShowSlashMenu(false)}
           />
           <div 
-            className={`fixed z-20 w-80 max-h-96 overflow-y-auto rounded-lg shadow-lg border ${
-              isDarkMode ? 'bg-neutral-800 border-neutral-700' : 'bg-white border-gray-200'
-            }`}
+            className="fixed z-20 w-80 max-h-96 overflow-y-auto rounded-lg shadow-lg border border-border bg-card"
             style={{
               left: slashMenuPosition.x,
               top: slashMenuPosition.y,
@@ -565,14 +545,12 @@ export function DocumentEditor({ initialContent = '', title: initialTitle = 'Unt
                 <button
                   key={command.key}
                   onClick={() => handleSlashCommand(command.key)}
-                  className={`w-full flex items-center gap-3 p-3 rounded-lg hover:bg-gray-100 dark:hover:bg-neutral-700 transition-colors text-left ${
-                    isDarkMode ? 'text-gray-200' : 'text-gray-800'
-                  }`}
+                  className="w-full flex items-center gap-3 p-3 rounded-lg hover:bg-muted transition-colors text-left text-foreground"
                 >
                   <span className="text-lg">{command.icon}</span>
                   <div>
                     <div className="font-medium">{command.label}</div>
-                    <div className={`text-sm ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`}>
+                    <div className="text-sm text-muted-foreground">
                       {command.description}
                     </div>
                   </div>
@@ -637,9 +615,7 @@ function BlockComponent({
   };
 
   const renderBlockContent = () => {
-    const baseClasses = `outline-none min-h-[1.5rem] ${
-      isDarkMode ? 'text-gray-200' : 'text-gray-800'
-    }`;
+    const baseClasses = "outline-none min-h-[1.5rem] text-foreground";
 
     // Enhanced styling based on block style
     const getAlignmentClass = () => {
@@ -684,7 +660,7 @@ function BlockComponent({
       case 'list':
         return (
           <div className="flex items-start gap-2">
-            <span className={`mt-1 ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
+            <span className="mt-1 text-muted-foreground">
               {block.style?.alignment === 'center' ? '•' : block.style?.alignment === 'right' ? '1.' : '•'}
             </span>
             <div className={`${baseClasses} flex-1`} {...commonProps} />
@@ -696,16 +672,14 @@ function BlockComponent({
           <div className="flex items-start gap-3">
             <button
               onClick={() => onUpdate(block.id, { checked: !block.checked })}
-              className={`mt-1 w-4 h-4 border-2 rounded flex items-center justify-center ${
+              className={`mt-1 w-4 h-4 border-2 rounded flex items-center justify-center transition-colors ${
                 block.checked 
-                  ? 'bg-blue-500 border-blue-500' 
-                  : isDarkMode 
-                    ? 'border-gray-500 hover:border-gray-400' 
-                    : 'border-gray-400 hover:border-gray-500'
+                  ? 'bg-primary border-primary' 
+                  : 'border-muted-foreground hover:border-foreground'
               }`}
             >
               {block.checked && (
-                <svg className="w-3 h-3 text-white" fill="currentColor" viewBox="0 0 20 20">
+                <svg className="w-3 h-3 text-primary-foreground" fill="currentColor" viewBox="0 0 20 20">
                   <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
                 </svg>
               )}
@@ -719,23 +693,21 @@ function BlockComponent({
 
       case 'quote':
         return (
-          <div className={`border-l-4 pl-4 ${isDarkMode ? 'border-gray-600' : 'border-gray-300'}`}>
+          <div className="border-l-4 border-border pl-4">
             <div className={`${baseClasses} italic`} {...commonProps} />
           </div>
         );
 
       case 'code':
         return (
-          <div className={`rounded-lg p-4 font-mono text-sm ${
-            isDarkMode ? 'bg-neutral-800 border border-neutral-700' : 'bg-gray-100 border border-gray-200'
-          }`}>
+          <div className="rounded-lg p-4 font-mono text-sm bg-muted border border-border">
             <div className={baseClasses} {...commonProps} />
           </div>
         );
 
       case 'divider':
         return (
-          <div className={`h-px my-6 ${isDarkMode ? 'bg-gray-700' : 'bg-gray-200'}`} />
+          <div className="h-px my-6 bg-border" />
         );
 
       default:
@@ -760,39 +732,19 @@ function BlockComponent({
       <div className={`
         absolute left-0 top-1/2 transform -translate-y-1/2 -translate-x-8
         ${isHovered ? 'opacity-100' : 'opacity-0'} transition-opacity cursor-grab
-        ${isDarkMode ? 'text-gray-500 hover:text-gray-300' : 'text-gray-400 hover:text-gray-600'}
+        text-muted-foreground hover:text-foreground
       `}>
         <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
           <path d="M9 5h2v2H9zm0 6h2v2H9zm0 6h2v2H9zm6-12h2v2h-2zm0 6h2v2h-2zm0 6h2v2h-2z"/>
         </svg>
       </div>
 
-      {/* Real-time Streaming Indicator */}
-      {/* isStreamingBlock && (
-        <div className={`absolute right-2 top-2 z-10 flex items-center gap-2 px-2 py-1 rounded-full text-xs ${
-          isDarkMode ? 'bg-blue-900/50 text-blue-300' : 'bg-blue-100 text-blue-600'
-        }`}>
-          <div className="flex gap-1">
-            <div className="w-1 h-1 bg-current rounded-full animate-bounce" style={{ animationDelay: '0ms' }} />
-            <div className="w-1 h-1 bg-current rounded-full animate-bounce" style={{ animationDelay: '150ms' }} />
-            <div className="w-1 h-1 bg-current rounded-full animate-bounce" style={{ animationDelay: '300ms' }} />
-          </div>
-          <span>Streaming</span>
-        </div>
-      ) */}
-
       {/* Block Actions */}
       {isHovered && (
-        <div className={`absolute right-2 top-2 flex items-center gap-1 ${
-          /* isStreamingBlock ? 'top-8' : '' */ ''
-        }`}>
+        <div className="absolute right-2 top-2 flex items-center gap-1">
           <button
             onClick={onDelete}
-            className={`p-1 rounded transition-colors ${
-              isDarkMode 
-                ? 'hover:bg-red-900/30 text-red-400 hover:text-red-300' 
-                : 'hover:bg-red-100 text-red-500 hover:text-red-600'
-            }`}
+            className="p-1 rounded transition-colors text-destructive hover:text-destructive-foreground hover:bg-destructive/10"
             title="Delete block"
           >
             <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
