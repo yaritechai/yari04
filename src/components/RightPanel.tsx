@@ -62,7 +62,7 @@ const GeneratingLoadingAnimation = ({ isDarkMode }: { isDarkMode: boolean }) => 
   };
 
   return (
-    <div className="flex-1 flex items-center justify-center p-8">
+    <div className="absolute inset-0 flex items-center justify-center">
       <div style={loaderWrapperStyle}>
         <span style={{...letterStyle, animationDelay: '0s'}}>G</span>
         <span style={{...letterStyle, animationDelay: '0.1s'}}>e</span>
@@ -347,7 +347,7 @@ export function RightPanel({
           </div>
 
           {/* Content */}
-          <div className={`flex-1 overflow-hidden ${isDarkMode ? 'bg-black' : 'bg-white'}`}>
+          <div className={`flex-1 overflow-hidden relative ${isDarkMode ? 'bg-black' : 'bg-white'}`}>
             {renderContent()}
           </div>
         </div>

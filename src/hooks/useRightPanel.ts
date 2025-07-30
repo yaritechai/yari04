@@ -16,32 +16,13 @@ export function useRightPanel() {
       clearTimeout(transitionTimeoutRef.current);
     }
     
-    // Prevent rapid fragment switching conflicts
-    if (isTransitioning) {
-      return;
-    }
-    
-    setIsTransitioning(true);
-    
-    // If switching to a different fragment, give a brief moment for cleanup
-    if (activeFragment && activeFragment !== fragment) {
-      setActiveFragment(null);
-      setFragmentData(null);
-      
-      transitionTimeoutRef.current = setTimeout(() => {
-        setActiveFragment(fragment);
-        setFragmentData(data);
-        setIsOpen(true);
-        setIsTransitioning(false);
-      }, 50);
-    } else {
-      // Same fragment or no previous fragment, switch immediately
-      setActiveFragment(fragment);
-      setFragmentData(data);
-      setIsOpen(true);
-      setIsTransitioning(false);
-    }
-  }, [activeFragment, isTransitioning]);
+    // For immediate responsiveness, especially for search "View all" clicks
+    // Always switch immediately without transition delays
+    setActiveFragment(fragment);
+    setFragmentData(data);
+    setIsOpen(true);
+    setIsTransitioning(false);
+  }, []);
 
   const closePanel = useCallback(() => {
     if (transitionTimeoutRef.current) {
