@@ -17,7 +17,7 @@ export const testOpenRouter = internalAction({
       });
 
       const completion = await openrouter.chat.completions.create({
-        model: "openai/gpt-4o-2024-11-20",
+        model: "switchpoint/router",
         messages: [{ role: "user", content: "Say hello" }],
         max_tokens: 10,
       });

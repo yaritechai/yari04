@@ -2,8 +2,8 @@ import { v } from "convex/values";
 
 // Model configurations with task-specific routing
 export const MODELS = {
-  // General model - fast GPT-4o for most conversations
-  GENERAL_THINKING: "openai/gpt-4o-2024-11-20",
+  // General model - switchpoint/router for most conversations
+  GENERAL_THINKING: "switchpoint/router",
   
   // Research and analysis tasks - use regular GPT-4o 
   RESEARCH: "openai/gpt-4o",
@@ -172,12 +172,12 @@ export function getModelForTask(
 
 // Model metadata for UI display
 export const MODEL_METADATA = {
-  "openai/gpt-4o-2024-11-20": {
-    label: "GPT-4o",
-    description: "Fast & intelligent responses",
+  "switchpoint/router": {
+    label: "Switchpoint Router",
+    description: "Intelligent model routing for optimal responses",
     category: "General",
-    capabilities: ["thinking", "reasoning", "conversation"],
-    icon: "🧠"
+    capabilities: ["thinking", "reasoning", "conversation", "routing"],
+    icon: "🎯"
   },
   "openai/gpt-4o": {
     label: "GPT-4o Research", 
