@@ -33,8 +33,9 @@ export function Sidebar({
   isMobile = false,
   onClose
 }: SidebarProps) {
-  const [searchQuery, setSearchQuery] = useState("");
+  
   const [activeMenu, setActiveMenu] = useState<Id<"conversations"> | null>(null);
+  const [searchQuery, setSearchQuery] = useState("");
   const { isDarkMode, toggleTheme } = useTheme();
   const { signOut } = useAuthActions();
   const deleteConversation = useMutation(api.conversations.remove);
@@ -84,48 +85,88 @@ export function Sidebar({
     }
   };
 
-  return (
-    <div className={`h-full ${isDarkMode ? 'bg-black border-r border-neutral-800' : 'bg-white'} flex flex-col w-full min-w-[280px]`}>
-      {/* Header */}
-      <div className={`p-3 space-y-3`}>
-        {/* Close Button - Always show when onClose is available */}
-        {onClose && (
-          <div className="flex justify-between items-center">
-            <h2 className={`text-sm font-semibold ${isDarkMode ? 'text-white' : 'text-neutral-900'}`}>
-              Chat History
-            </h2>
-            <button
-              onClick={onClose}
-              className={`p-1.5 ${isDarkMode ? 'hover:bg-neutral-800 text-neutral-400' : 'hover:bg-neutral-100 text-neutral-600'} rounded-md transition-colors`}
-              title="Close sidebar"
-            >
-              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
-              </svg>
-            </button>
-          </div>
-        )}
+  const handleConversationClick = (conversationId: Id<"conversations">) => {
+    onSelectConversation(conversationId);
+    if (isMobile && onClose) {
+      onClose(); // Close sidebar on mobile after selection
+    }
+  };
 
+  const handleNewChatClick = () => {
+    onNewChat();
+    if (isMobile && onClose) {
+      onClose(); // Close sidebar on mobile after creating new chat
+    }
+  };
+
+  return (
+    <div className={`h-full flex flex-col ${isMobile ? 'w-full' : ''} ${
+      isDarkMode ? 'bg-neutral-900 border-neutral-800' : 'bg-white border-neutral-200'
+    }`}>
+      {/* Header */}
+      <div className={`flex items-center justify-between ${isMobile ? 'p-4' : 'p-6'} border-b ${
+        isDarkMode ? 'border-neutral-800' : 'border-neutral-200'
+      }`}>
+        <div className="flex items-center gap-3">
+          <div className={`w-8 h-8 ${isDarkMode ? 'bg-primary-900/20 border-gray-700' : 'bg-primary-50 border-primary-200'} rounded-full flex items-center justify-center border`}>
+            <svg className={`w-4 h-4 ${isDarkMode ? 'text-primary-400' : 'text-primary-600'}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+            </svg>
+          </div>
+          <h1 className={`font-semibold ${isMobile ? 'text-lg' : 'text-xl'} ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
+            Yari AI
+          </h1>
+        </div>
+        
+        {/* Mobile close button */}
+        {isMobile && onClose && (
+          <button
+            onClick={onClose}
+            className={`p-2 rounded-md transition-colors ${
+              isDarkMode 
+                ? 'text-gray-400 hover:text-white hover:bg-neutral-800' 
+                : 'text-gray-500 hover:text-gray-700 hover:bg-neutral-100'
+            }`}
+          >
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          </button>
+        )}
+      </div>
+
+      {/* New Chat Button */}
+      <div className={`${isMobile ? 'p-3' : 'p-4'}`}>
         <button
-          onClick={onNewChat}
-          className={`w-full flex items-center justify-center gap-2 px-3 py-2.5 ${isDarkMode ? 'bg-neutral-800 hover:bg-neutral-700 text-white' : 'bg-neutral-100 hover:bg-neutral-200 text-neutral-900'} rounded-lg transition-colors text-sm font-medium`}
+          onClick={handleNewChatClick}
+          className={`w-full flex items-center gap-3 ${isMobile ? 'px-3 py-3' : 'px-4 py-3'} rounded-lg transition-colors ${
+            isDarkMode 
+              ? 'bg-neutral-800 hover:bg-neutral-700 text-white border-neutral-700' 
+              : 'bg-neutral-100 hover:bg-neutral-200 text-gray-900 border-neutral-200'
+          } border`}
         >
-          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
           </svg>
-          New chat
+          <span className="font-medium">New Chat</span>
         </button>
+      </div>
 
-        {/* Search */}
+      {/* Search Bar */}
+      <div className={`${isMobile ? 'px-3 pb-3' : 'px-4 pb-4'}`}>
         <div className="relative">
           <input
             type="text"
-            placeholder="Search..."
+            placeholder="Search conversations..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className={`w-full pl-9 pr-3 py-2 ${isDarkMode ? 'bg-neutral-800 text-white placeholder-neutral-500' : 'bg-neutral-100 text-neutral-900 placeholder-neutral-500'} rounded-lg focus:outline-none text-sm`}
+            className={`w-full ${isMobile ? 'px-3 py-2 text-sm' : 'px-4 py-2'} pl-10 rounded-lg border transition-colors ${
+              isDarkMode 
+                ? 'bg-neutral-800 border-neutral-700 text-white placeholder-gray-400 focus:border-neutral-600' 
+                : 'bg-neutral-50 border-neutral-200 text-gray-900 placeholder-gray-500 focus:border-neutral-300'
+            } focus:outline-none focus:ring-1 focus:ring-primary/20`}
           />
-          <svg className={`w-4 h-4 ${isDarkMode ? 'text-neutral-500' : 'text-neutral-500'} absolute left-3 top-1/2 transform -translate-y-1/2`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <svg className={`absolute left-3 ${isMobile ? 'top-2' : 'top-2.5'} w-4 h-4 ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
           </svg>
         </div>
@@ -139,12 +180,12 @@ export function Sidebar({
             <p className="text-sm mt-1">Start a new chat to begin</p>
           </div>
         ) : (
-          <div className="p-1">
+          <div className={`${isMobile ? 'p-2' : 'p-1'}`}>
             {filteredConversations.map((conversation) => (
               <div
                 key={conversation._id}
-                onClick={() => onSelectConversation(conversation._id)}
-                className={`group relative px-3 py-2.5 rounded-lg cursor-pointer transition-colors mb-0.5 ${
+                onClick={() => handleConversationClick(conversation._id)}
+                className={`group relative ${isMobile ? 'px-3 py-3' : 'px-3 py-2.5'} rounded-lg cursor-pointer transition-colors mb-0.5 ${
                   isDarkMode ? 'hover:bg-neutral-900' : 'hover:bg-neutral-50'
                 }`}
               >
@@ -156,7 +197,7 @@ export function Sidebar({
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 9l3 3-3 3m5 0h3" />
                         </svg>
                       )}
-                      <h3 className={`font-normal ${isDarkMode ? 'text-neutral-200' : 'text-neutral-900'} truncate text-sm leading-5`}>
+                      <h3 className={`font-normal ${isDarkMode ? 'text-neutral-200' : 'text-neutral-900'} truncate ${isMobile ? 'text-base' : 'text-sm'} leading-5`}>
                         {cleanTitleForDisplay(conversation.title)}
                       </h3>
                     </div>
@@ -166,20 +207,30 @@ export function Sidebar({
                   <div className="relative">
                     <button
                       onClick={(e) => toggleMenu(conversation._id, e)}
-                      className={`opacity-0 group-hover:opacity-100 p-1 ${isDarkMode ? 'hover:bg-neutral-700 text-neutral-400' : 'hover:bg-neutral-200 text-neutral-500'} rounded transition-all`}
-                      title="More options"
+                      className={`opacity-0 group-hover:opacity-100 p-1.5 rounded-md transition-all ${
+                        isDarkMode 
+                          ? 'text-gray-400 hover:text-white hover:bg-neutral-800' 
+                          : 'text-gray-500 hover:text-gray-700 hover:bg-neutral-100'
+                      }`}
                     >
-                      <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
-                        <path d="M12 8c1.1 0 2-.9 2-2s-.9-2-2-2-2 .9-2 2 .9 2 2 2zm0 2c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2zm0 6c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2z"/>
+                      <svg className={`${isMobile ? 'w-5 h-5' : 'w-4 h-4'}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 5v.01M12 12v.01M12 19v.01M12 6a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2z" />
                       </svg>
                     </button>
                     
                     {/* Dropdown Menu */}
                     {activeMenu === conversation._id && (
-                      <div className={`absolute right-0 top-full mt-1 ${isDarkMode ? 'bg-neutral-800 border-neutral-700' : 'bg-white border-neutral-200'} border rounded-lg shadow-lg z-10 min-w-[120px]`}>
+                      <div className={`absolute right-0 top-8 ${isMobile ? 'w-40' : 'w-32'} rounded-md shadow-lg border z-10 ${
+                        isDarkMode 
+                          ? 'bg-neutral-800 border-neutral-700' 
+                          : 'bg-white border-neutral-200'
+                      }`}>
                         <button
-                          onClick={() => handleDelete(conversation._id)}
-                          className={`w-full text-left px-3 py-2 text-sm ${isDarkMode ? 'text-red-400 hover:bg-neutral-700' : 'text-red-600 hover:bg-neutral-50'} transition-colors rounded-lg flex items-center gap-2`}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleDelete(conversation._id);
+                          }}
+                          className={`w-full text-left ${isMobile ? 'px-4 py-3' : 'px-3 py-2'} text-sm text-red-600 hover:bg-red-50 hover:text-red-700 transition-colors flex items-center gap-2`}
                         >
                           <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
@@ -196,59 +247,52 @@ export function Sidebar({
         )}
       </div>
 
+      {/* Bottom Actions */}
+      <div className={`border-t ${isDarkMode ? 'border-neutral-800 bg-neutral-900' : 'border-neutral-200 bg-white'} ${isMobile ? 'p-3' : 'p-4'}`}>
+        <div className="flex items-center justify-between">
+          <button
+            onClick={toggleTheme}
+            className={`${isMobile ? 'p-2.5' : 'p-2'} rounded-md transition-colors ${
+              isDarkMode 
+                ? 'text-gray-400 hover:text-white hover:bg-neutral-800' 
+                : 'text-gray-600 hover:text-gray-900 hover:bg-neutral-100'
+            }`}
+            title={isDarkMode ? "Switch to light mode" : "Switch to dark mode"}
+          >
+            {isDarkMode ? (
+              <svg className={`${isMobile ? 'w-5 h-5' : 'w-4 h-4'}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z" />
+              </svg>
+            ) : (
+              <svg className={`${isMobile ? 'w-5 h-5' : 'w-4 h-4'}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z" />
+              </svg>
+            )}
+          </button>
+
+          <button
+            onClick={() => signOut()}
+            className={`${isMobile ? 'p-2.5' : 'p-2'} rounded-md transition-colors ${
+              isDarkMode 
+                ? 'text-gray-400 hover:text-white hover:bg-neutral-800' 
+                : 'text-gray-600 hover:text-gray-900 hover:bg-neutral-100'
+            }`}
+            title="Sign out"
+          >
+            <svg className={`${isMobile ? 'w-5 h-5' : 'w-4 h-4'}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+            </svg>
+          </button>
+        </div>
+      </div>
+
       {/* Click outside to close menu */}
       {activeMenu && (
-        <div 
-          className="fixed inset-0 z-0" 
+        <div
+          className="fixed inset-0 z-0"
           onClick={() => setActiveMenu(null)}
         />
       )}
-
-      {/* Bottom Actions */}
-      <div className={`p-3 space-y-1`}>
-        {/* MCP Integration */}
-        {onOpenMCP && (
-          <button
-            onClick={onOpenMCP}
-            className={`w-full flex items-center gap-3 px-3 py-2 ${isDarkMode ? 'text-neutral-400 hover:text-neutral-200 hover:bg-neutral-800' : 'text-neutral-600 hover:text-neutral-900 hover:bg-neutral-100'} rounded-lg transition-colors`}
-            title="MCP Integration"
-          >
-            <svg className="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
-            </svg>
-            <span className="text-sm">MCP Integration</span>
-          </button>
-        )}
-        {/* Theme Toggle */}
-        <button
-          onClick={toggleTheme}
-          className={`w-full flex items-center gap-3 px-3 py-2 ${isDarkMode ? 'text-neutral-400 hover:text-neutral-200 hover:bg-neutral-800' : 'text-neutral-600 hover:text-neutral-900 hover:bg-neutral-100'} rounded-lg transition-colors`}
-          title={isDarkMode ? "Switch to light mode" : "Switch to dark mode"}
-        >
-          {isDarkMode ? (
-            <svg className="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z" />
-            </svg>
-          ) : (
-            <svg className="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z" />
-            </svg>
-          )}
-          <span className="text-sm">{isDarkMode ? "Light mode" : "Dark mode"}</span>
-        </button>
-
-        {/* Sign Out */}
-        <button
-          onClick={() => void signOut()}
-          className={`w-full flex items-center gap-3 px-3 py-2 ${isDarkMode ? 'text-neutral-400 hover:text-neutral-200 hover:bg-neutral-800' : 'text-neutral-600 hover:text-neutral-900 hover:bg-neutral-100'} rounded-lg transition-colors`}
-          title="Sign out"
-        >
-          <svg className="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
-          </svg>
-          <span className="text-sm">Sign out</span>
-        </button>
-      </div>
     </div>
   );
 }

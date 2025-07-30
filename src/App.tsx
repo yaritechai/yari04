@@ -16,151 +16,135 @@ import { MessageInputModern } from "./components/MessageInputModern";
 function AppContent() {
   const { isDarkMode } = useTheme();
   const [selectedConversationId, setSelectedConversationId] = useState<Id<"conversations"> | null>(null);
-  const [isSidebarOpen, setIsSidebarOpen] = useState(false); // Start collapsed by default
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
-  
+  const [sidebarWidth, setSidebarWidth] = useState(320);
+  const [rightPanelWidth, setRightPanelWidth] = useState(600);
+  const [minChatWidth] = useState(400);
+
   const {
-    isOpen: isRightPanelOpen,
-    width: rightPanelWidth,
+    isRightPanelOpen,
+    toggleRightPanel,
     activeFragment,
     fragmentData,
     isTransitioning,
-    togglePanel: toggleRightPanel,
-    setWidth: setRightPanelWidth,
     openFragment: originalOpenFragment,
-    closePanel: closeFragment
+    closeFragment
   } = useRightPanel();
 
-  // Wrapper for openFragment that closes sidebar when right panel opens
+  // Detect mobile screen size
+  useEffect(() => {
+    const checkMobile = () => {
+      const mobile = window.innerWidth < 768;
+      setIsMobile(mobile);
+      
+      // Auto-close sidebar on mobile when screen gets too small
+      if (mobile && isSidebarOpen) {
+        setIsSidebarOpen(false);
+      }
+    };
+    
+    checkMobile();
+    window.addEventListener('resize', checkMobile);
+    return () => window.removeEventListener('resize', checkMobile);
+  }, [isSidebarOpen]);
+
+  // Wrapper for openFragment that handles mobile behavior
   const openFragment = (fragment: FragmentType, data?: any) => {
-    // Only close sidebar if we're opening a new fragment (not if panel is already open with this fragment)
+    // Only close sidebar when opening a NEW fragment, not when panel is already open
     const isNewFragment = !isRightPanelOpen || activeFragment !== fragment;
     
     originalOpenFragment(fragment, data);
     
-    // Only close sidebar when opening a new fragment, not when panel is already open
-    if (isNewFragment) {
+    // On mobile, always close sidebar when opening right panel
+    // On desktop, only close sidebar when opening a new fragment
+    if (isMobile || isNewFragment) {
       setIsSidebarOpen(false);
     }
   };
 
-  const conversations = useQuery(api.conversations.list, {}) || [];
-  const selectedConversation = useQuery(
-    api.conversations.get, 
-    selectedConversationId ? { conversationId: selectedConversationId } : "skip"
-  );
+  const conversations = useQuery(api.conversations.list, { archived: false }) || [];
 
-
-  // Check if screen is mobile size
-  useEffect(() => {
-    const checkMobile = () => {
-      const mobile = window.innerWidth < 768; // md breakpoint
-      setIsMobile(mobile);
-      
-      // Keep sidebar collapsed by default on both mobile and desktop
-      // Only open it when user explicitly clicks the toggle
-    };
-
-    checkMobile();
-    window.addEventListener('resize', checkMobile);
-    return () => window.removeEventListener('resize', checkMobile);
-  }, []);
+  const createConversation = useMutation(api.conversations.create);
 
   const handleNewChat = async () => {
-    // Close sidebar on mobile after creating new chat
-    if (isMobile) {
+    try {
+      const conversationId = await createConversation({
+        title: "New Conversation",
+        folderId: undefined,
+        type: "chat"
+      });
+      
+      setSelectedConversationId(conversationId);
       setIsSidebarOpen(false);
-    }
-    setSelectedConversationId(null);
-  };
-
-
-
-  const handleSelectConversation = (id: Id<"conversations">) => {
-    setSelectedConversationId(id);
-    // Close sidebar on mobile after selecting conversation
-    if (isMobile) {
-      setIsSidebarOpen(false);
+    } catch (error) {
+      console.error("Failed to create conversation:", error);
     }
   };
 
-  const handleTitleUpdate = (title: string) => {
-    // Title update logic handled in ChatInterface
+  const handleTitleUpdate = () => {
+    // Title updates are handled by the ChatInterface component
   };
 
   const handleOpenFragment = (fragment: FragmentType, data?: any) => {
     openFragment(fragment, data);
   };
 
-
-
-  const handleOpenMCP = () => {
-    openFragment("mcp");
+  const handleSidebarClose = () => {
+    setIsSidebarOpen(false);
   };
 
-  // Calculate chat area constraints
-  const sidebarWidth = isMobile ? 0 : (isSidebarOpen ? 280 : 0);
-  const rightPanelWidthActual = isRightPanelOpen ? rightPanelWidth : 0;
-  const minChatWidth = Math.max(320, sidebarWidth); // Ensure chat is never smaller than sidebar
-  const availableWidth = window.innerWidth - sidebarWidth - rightPanelWidthActual - 32; // 32px for margins
-  const chatWidth = Math.max(minChatWidth, availableWidth);
-
   return (
-    <div className={`h-screen flex ${isDarkMode ? 'bg-neutral-900' : 'bg-neutral-50'} overflow-hidden`}>
-      {/* Mobile Sidebar Overlay */}
-      {isMobile && isSidebarOpen && (
-        <div 
-          className="fixed inset-0 bg-black/50 z-40"
-          onClick={() => setIsSidebarOpen(false)}
-        />
-      )}
-
-      {/* Sidebar - The entire sidebar including bottom actions collapses */}
-      <div className={`
-        ${isMobile 
-          ? `fixed left-0 top-0 h-full z-50 transform transition-transform duration-300 ${
-              isSidebarOpen ? 'translate-x-0' : '-translate-x-full'
-            }`
-          : `relative transition-all duration-300 ${
-              isSidebarOpen ? 'w-80' : 'w-0'
-            }`
-        }
-      `}>
-        {/* Only render sidebar content when it should be visible */}
-        {(isSidebarOpen || (!isMobile && isSidebarOpen)) && (
-          <div className={`h-full ${isMobile ? 'w-80' : 'w-full'} overflow-hidden`}>
+    <div className={`h-screen flex ${isDarkMode ? 'bg-neutral-900' : 'bg-neutral-50'} relative overflow-hidden`}>
+      {/* Sidebar */}
+      <div className={`${isMobile ? 'fixed inset-y-0 left-0 z-50' : 'relative'} flex-shrink-0 ${
+        isSidebarOpen ? 'translate-x-0' : isMobile ? '-translate-x-full' : 'w-0'
+      } transition-all duration-300 ease-in-out`}
+      style={{ 
+        width: isMobile ? '100vw' : (isSidebarOpen ? `${sidebarWidth}px` : '0px'),
+        maxWidth: isMobile ? '400px' : undefined
+      }}>
+        {isSidebarOpen && (
+          <div className={`h-full ${isMobile ? 'w-full max-w-sm' : ''} ${
+            isDarkMode ? 'bg-neutral-900 border-neutral-800' : 'bg-white border-neutral-200'
+          } ${isMobile ? 'border-r shadow-xl' : 'border-r'}`}>
             <Sidebar
               conversations={conversations}
               selectedConversationId={selectedConversationId}
-              onSelectConversation={handleSelectConversation}
+              onSelectConversation={setSelectedConversationId}
               onNewChat={handleNewChat}
-              onOpenMCP={handleOpenMCP}
               isMobile={isMobile}
-              onClose={() => setIsSidebarOpen(false)}
+              onClose={handleSidebarClose}
             />
           </div>
         )}
       </div>
 
+      {/* Mobile Sidebar Overlay */}
+      {isMobile && isSidebarOpen && (
+        <div 
+          className="fixed inset-0 bg-black bg-opacity-50 z-40"
+          onClick={() => setIsSidebarOpen(false)}
+        />
+      )}
+
       {/* Main Chat Area */}
       <div 
         className="flex-1 flex flex-col min-w-0 relative"
         style={{ 
-          minWidth: `${minChatWidth}px`,
-          maxWidth: isRightPanelOpen ? `calc(100vw - ${sidebarWidth}px - ${rightPanelWidth}px - 2rem)` : undefined
+          minWidth: isMobile ? 'auto' : `${minChatWidth}px`,
+          maxWidth: (!isMobile && isRightPanelOpen) ? `calc(100vw - ${isSidebarOpen ? sidebarWidth : 0}px - ${rightPanelWidth}px - 2rem)` : undefined
         }}
       >
-        {/* Sidebar Toggle Button - Only show when sidebar is closed */}
-        {!isSidebarOpen && (
+        {/* Sidebar Toggle Button - Always show on mobile, only when sidebar closed on desktop */}
+        {(isMobile || !isSidebarOpen) && (
           <button
-            onClick={() => {
-              setIsSidebarOpen(!isSidebarOpen);
-            }}
-            className={`absolute top-4 left-4 z-50 p-2 ${
+            onClick={() => setIsSidebarOpen(!isSidebarOpen)}
+            className={`absolute top-4 left-4 z-30 p-2 ${
               isDarkMode 
                 ? 'bg-neutral-800 hover:bg-neutral-700 text-gray-300 hover:text-white' 
                 : 'bg-neutral-100 hover:bg-neutral-200 text-gray-600 hover:text-gray-900'
-            } rounded-lg transition-colors`}
+            } rounded-lg transition-colors shadow-sm`}
             title="Open sidebar"
           >
             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -194,7 +178,7 @@ function AppContent() {
               </div>
 
               {/* Chat Input */}
-              <div className="w-full max-w-3xl">
+              <div className="w-full max-w-3xl px-4">
                 <MessageInputModern
                   conversationId={null}
                   isGenerating={false}
@@ -216,8 +200,8 @@ function AppContent() {
         onToggle={() => {
           const newRightPanelState = !isRightPanelOpen;
           toggleRightPanel();
-          // Close sidebar when right panel opens
-          if (newRightPanelState && isSidebarOpen) {
+          // On mobile, close sidebar when right panel opens
+          if (isMobile && newRightPanelState && isSidebarOpen) {
             setIsSidebarOpen(false);
           }
         }}

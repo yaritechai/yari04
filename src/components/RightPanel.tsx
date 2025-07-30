@@ -33,7 +33,7 @@ const GeneratingLoadingAnimation = ({ isDarkMode }: { isDarkMode: boolean }) => 
     fontFamily: '"Inter", sans-serif',
     fontSize: '1.2em',
     fontWeight: 300,
-    color: isDarkMode ? 'white' : '#374151',
+    color: 'var(--foreground)',
     borderRadius: '50%',
     backgroundColor: 'transparent',
     userSelect: 'none'
@@ -83,38 +83,34 @@ const GeneratingLoadingAnimation = ({ isDarkMode }: { isDarkMode: boolean }) => 
             0% {
               transform: rotate(90deg);
               box-shadow:
-                0 10px 20px 0 ${isDarkMode ? '#fff' : '#6b7280'} inset,
-                0 20px 30px 0 ${isDarkMode ? '#ad5fff' : '#8b5cf6'} inset,
-                0 60px 60px 0 ${isDarkMode ? '#471eec' : '#7c3aed'} inset;
+                0 10px 20px 0 var(--muted-foreground) inset,
+                0 20px 30px 0 var(--primary) inset,
+                0 60px 60px 0 var(--primary) inset;
             }
             50% {
               transform: rotate(270deg);
               box-shadow:
-                0 10px 20px 0 ${isDarkMode ? '#fff' : '#6b7280'} inset,
-                0 20px 10px 0 ${isDarkMode ? '#d60a47' : '#dc2626'} inset,
-                0 40px 60px 0 ${isDarkMode ? '#311e80' : '#6366f1'} inset;
+                0 10px 20px 0 var(--muted-foreground) inset,
+                0 20px 10px 0 var(--destructive) inset,
+                0 40px 60px 0 var(--primary) inset;
             }
             100% {
               transform: rotate(450deg);
               box-shadow:
-                0 10px 20px 0 ${isDarkMode ? '#fff' : '#6b7280'} inset,
-                0 20px 30px 0 ${isDarkMode ? '#ad5fff' : '#8b5cf6'} inset,
-                0 60px 60px 0 ${isDarkMode ? '#471eec' : '#7c3aed'} inset;
+                0 10px 20px 0 var(--muted-foreground) inset,
+                0 20px 30px 0 var(--primary) inset,
+                0 60px 60px 0 var(--primary) inset;
             }
           }
-
+          
           @keyframes loader-letter-anim {
             0%, 100% {
               opacity: 0.4;
               transform: translateY(0);
             }
-            20% {
+            50% {
               opacity: 1;
-              transform: scale(1.15);
-            }
-            40% {
-              opacity: 0.7;
-              transform: translateY(0);
+              transform: translateY(-10px);
             }
           }
         `
@@ -131,20 +127,42 @@ export function RightPanel({
   activeFragment,
   onFragmentChange,
   fragmentData,
-  isTransitioning = false
+  isTransitioning
 }: RightPanelProps) {
   const { isDarkMode } = useTheme();
   const [isResizing, setIsResizing] = useState(false);
+  const [isMobile, setIsMobile] = useState(false);
   const panelRef = useRef<HTMLDivElement>(null);
 
+  // Detect mobile screen size
+  useEffect(() => {
+    const checkMobile = () => {
+      setIsMobile(window.innerWidth < 768);
+    };
+    
+    checkMobile();
+    window.addEventListener('resize', checkMobile);
+    return () => window.removeEventListener('resize', checkMobile);
+  }, []);
+
   const handleMouseDown = (e: React.MouseEvent) => {
+    if (isMobile) return; // Disable resize on mobile
     e.preventDefault();
     setIsResizing(true);
   };
 
+  const handleClose = (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    onToggle();
+  };
+
   useEffect(() => {
+    if (isMobile) return; // Skip resize logic on mobile
+    
     const handleMouseMove = (e: MouseEvent) => {
       if (!isResizing) return;
+      e.preventDefault();
       
       const newWidth = window.innerWidth - e.clientX;
       const minWidth = 400;
@@ -166,7 +184,7 @@ export function RightPanel({
       document.removeEventListener('mousemove', handleMouseMove);
       document.removeEventListener('mouseup', handleMouseUp);
     };
-  }, [isResizing, onWidthChange]);
+  }, [isResizing, onWidthChange, isMobile]);
 
   const renderContent = () => {
     if (!activeFragment || isTransitioning) {
@@ -263,19 +281,19 @@ export function RightPanel({
         );
       case 'search':
         return (
-          <svg className="w-4 h-4" fill="none" stroke="#f9c313" viewBox="0 0 24 24">
+          <svg className="w-4 h-4" fill="none" stroke="#8b5cf6" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
           </svg>
         );
       case 'document':
         return (
-          <svg className="w-4 h-4" fill="none" stroke="#8b5cf6" viewBox="0 0 24 24">
+          <svg className="w-4 h-4" fill="none" stroke="#f59e0b" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
           </svg>
         );
       case 'mcp':
         return (
-          <svg className="w-4 h-4" fill="none" stroke="#f59e0b" viewBox="0 0 24 24">
+          <svg className="w-4 h-4" fill="none" stroke="#06b6d4" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
           </svg>
         );
@@ -302,46 +320,71 @@ export function RightPanel({
 
   if (!isOpen) return null;
 
-  return (
-    <div className="fixed top-0 right-0 h-full flex" style={{ zIndex: 40 }}>
-      {/* Resize handle */}
-      <div
-        className={`w-1 cursor-col-resize hover:bg-[#f9c313]/50 transition-colors bg-transparent ${isResizing ? 'bg-[#f9c313]' : ''}`}
-        onMouseDown={handleMouseDown}
-      />
-      
-      {/* Floating Panel Container */}
-      <div className="h-full p-4 pl-2">
-        <div
-          ref={panelRef}
-          className={`h-full ${
-            isDarkMode ? 'bg-black' : 'bg-white'
-          } rounded-2xl shadow-2xl border ${
-            isDarkMode ? 'border-neutral-800' : 'border-neutral-200'
-          } flex flex-col overflow-hidden`}
-          style={{ width: `${width}px` }}
-        >
-          {/* Header */}
-          <div className={`flex items-center justify-between p-6 border-b relative z-10 ${
-            isDarkMode ? 'border-neutral-800 bg-black' : 'border-neutral-200 bg-white'
+  if (isMobile) {
+    // Mobile: Full screen modal overlay
+    return (
+      <div className="fixed inset-0 z-50 bg-background">
+        <div className="h-full flex flex-col">
+          {/* Mobile Header */}
+          <div className={`flex items-center justify-between p-4 border-b bg-background ${
+            isDarkMode ? 'border-border' : 'border-border'
           }`}>
             <div className="flex items-center gap-3">
-              <div className={`p-2 rounded-xl ${
-                isDarkMode ? 'bg-neutral-800' : 'bg-neutral-100'
-              }`}>
+              <div className={`p-2 rounded-xl bg-muted`}>
                 {getFragmentIcon()}
               </div>
-              <h3 className={`font-semibold text-lg ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
+              <h3 className={`font-semibold text-lg text-foreground`}>
                 {getFragmentTitle()}
               </h3>
             </div>
             <button
-              onClick={onToggle}
-              className={`p-1.5 rounded-md transition-colors ${
-                isDarkMode
-                  ? 'text-gray-400 hover:text-white hover:bg-neutral-800'
-                  : 'text-gray-500 hover:text-gray-700 hover:bg-neutral-100'
-              }`}
+              onClick={handleClose}
+              className={`p-2 rounded-md transition-colors text-muted-foreground hover:text-foreground hover:bg-muted`}
+            >
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            </button>
+          </div>
+
+          {/* Mobile Content */}
+          <div className="flex-1 overflow-hidden bg-background">
+            {renderContent()}
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // Desktop: Floating panel
+  return (
+    <div className="fixed top-0 right-0 h-full flex pointer-events-none" style={{ zIndex: 40 }}>
+      {/* Resize handle */}
+      <div
+        className={`w-1 cursor-col-resize hover:bg-primary/50 transition-colors bg-transparent pointer-events-auto ${isResizing ? 'bg-primary' : ''}`}
+        onMouseDown={handleMouseDown}
+      />
+      
+      {/* Floating Panel Container */}
+      <div className="h-full p-4 pl-2 pointer-events-none">
+        <div
+          ref={panelRef}
+          className={`h-full pointer-events-auto bg-background rounded-2xl shadow-2xl border border-border flex flex-col overflow-hidden`}
+          style={{ width: `${width}px` }}
+        >
+          {/* Header */}
+          <div className={`flex items-center justify-between p-6 border-b border-border bg-background relative z-10`}>
+            <div className="flex items-center gap-3">
+              <div className={`p-2 rounded-xl bg-muted`}>
+                {getFragmentIcon()}
+              </div>
+              <h3 className={`font-semibold text-lg text-foreground`}>
+                {getFragmentTitle()}
+              </h3>
+            </div>
+            <button
+              onClick={handleClose}
+              className={`p-1.5 rounded-md transition-colors text-muted-foreground hover:text-foreground hover:bg-muted`}
             >
               <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
@@ -350,7 +393,7 @@ export function RightPanel({
           </div>
 
           {/* Content */}
-          <div className={`flex-1 overflow-hidden relative ${isDarkMode ? 'bg-black' : 'bg-white'}`}>
+          <div className={`flex-1 overflow-hidden relative bg-background`}>
             {renderContent()}
           </div>
         </div>
