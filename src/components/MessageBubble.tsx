@@ -107,6 +107,18 @@ export function MessageBubble({ message, showTokenCount, onOpenFragment, onMCPCr
     }
   };
 
+  // Auto-open search results panel when search results become available
+  useEffect(() => {
+    if (message.searchResults && message.searchResults.length > 0 && !message.isStreaming) {
+      // Small delay to ensure UI is ready and avoid conflicts
+      const timer = setTimeout(() => {
+        handleOpenInFragment('search', { results: message.searchResults });
+      }, 100);
+      
+      return () => clearTimeout(timer);
+    }
+  }, [message.searchResults, message.isStreaming, handleOpenInFragment]);
+
   const getLanguageIcon = (language: string) => {
     const lang = language.toLowerCase();
     if (lang === 'html' || lang === 'xml') return '🌐';
