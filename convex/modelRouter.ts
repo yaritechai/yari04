@@ -5,14 +5,14 @@ export const MODELS = {
   // General model - switchpoint/router for most conversations
   GENERAL_THINKING: "switchpoint/router",
   
-  // Research and analysis tasks - use regular GPT-4o 
-  RESEARCH: "openai/gpt-4o",
+  // Research and analysis tasks - switchpoint/router handles routing
+  RESEARCH: "switchpoint/router",
   
-  // Landing pages and coding tasks - use latest GPT-4o
-  CODING_LANDING: "openai/gpt-4o-2024-08-06",
+  // Landing pages and coding tasks - switchpoint/router for intelligent routing
+  CODING_LANDING: "switchpoint/router",
   
-  // Summarization and title generation - ultra fast
-  SUMMARIZATION: "openai/gpt-4o-mini",
+  // Summarization and title generation - switchpoint/router for all tasks
+  SUMMARIZATION: "switchpoint/router",
 } as const;
 
 // Task type identification patterns
@@ -174,31 +174,10 @@ export function getModelForTask(
 export const MODEL_METADATA = {
   "switchpoint/router": {
     label: "Switchpoint Router",
-    description: "Intelligent model routing for optimal responses",
-    category: "General",
-    capabilities: ["thinking", "reasoning", "conversation", "routing"],
+    description: "Intelligent model routing for all tasks - research, coding, conversations, and more",
+    category: "Universal",
+    capabilities: ["thinking", "reasoning", "conversation", "routing", "research", "coding", "summarization"],
     icon: "🎯"
-  },
-  "openai/gpt-4o": {
-    label: "GPT-4o Research", 
-    description: "Deep research & analysis",
-    category: "Research",
-    capabilities: ["research", "analysis", "long-context"],
-    icon: "🔬"
-  },
-  "openai/gpt-4o-2024-08-06": {
-    label: "GPT-4o Code",
-    description: "Coding & web development",
-    category: "Development", 
-    capabilities: ["coding", "web-dev", "landing-pages"],
-    icon: "💻"
-  },
-  "openai/gpt-4o-mini": {
-    label: "GPT-4o Mini",
-    description: "Ultra-fast summarization",
-    category: "Efficiency",
-    capabilities: ["summarization", "titles", "speed"],
-    icon: "⚡"
   }
 } as const;
 
