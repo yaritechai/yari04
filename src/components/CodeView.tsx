@@ -129,8 +129,8 @@ export function CodeView({ data, onClose }: CodeViewProps) {
     }
   };
 
-  // Show loading animation if streaming and no/incomplete code
-  if (data?.isStreaming && (!data?.code || data.code.length < 50)) {
+  // Show loading animation while streaming - don't show partial content during generation
+  if (data?.isStreaming) {
     return <GeneratingLoadingAnimation isDarkMode={isDarkMode} />;
   }
 

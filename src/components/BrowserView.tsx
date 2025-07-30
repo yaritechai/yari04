@@ -185,8 +185,8 @@ export function BrowserView({ data, onClose }: BrowserViewProps) {
     }
   };
 
-  // Show loading animation if streaming and no/incomplete HTML content
-  if (data?.isStreaming && (!data?.htmlContent || data.htmlContent.length < 100)) {
+  // Show loading animation while streaming - don't show partial content during generation
+  if (data?.isStreaming) {
     return <GeneratingLoadingAnimation isDarkMode={isDarkMode} />;
   }
 
