@@ -9,6 +9,7 @@ export const list = query({
     archived: v.optional(v.boolean()),
     folderId: v.optional(v.id("folders")),
   },
+  returns: v.array(v.any()),
   handler: async (ctx, args) => {
     const userId = await getAuthUserId(ctx);
     if (!userId) {
@@ -41,6 +42,7 @@ export const list = query({
 
 export const get = query({
   args: { conversationId: v.id("conversations") },
+  returns: v.union(v.any(), v.null()),
   handler: async (ctx, args) => {
     const userId = await getAuthUserId(ctx);
     if (!userId) {
@@ -61,6 +63,7 @@ export const getHistory = query({
     conversationId: v.id("conversations"),
     includeMessages: v.optional(v.boolean()),
   },
+  returns: v.any(),
   handler: async (ctx, args) => {
     const userId = await getAuthUserId(ctx);
     if (!userId) {
@@ -107,6 +110,7 @@ export const create = mutation({
     type: v.optional(v.union(v.literal("chat"), v.literal("agent_builder"))),
     agentId: v.optional(v.id("agents")),
   },
+  returns: v.id("conversations"),
   handler: async (ctx, args) => {
     const userId = await getAuthUserId(ctx);
     if (!userId) {
@@ -145,6 +149,7 @@ export const updateTitle = mutation({
     conversationId: v.id("conversations"),
     title: v.string(),
   },
+  returns: v.null(),
   handler: async (ctx, args) => {
     const userId = await getAuthUserId(ctx);
     if (!userId) {
@@ -167,6 +172,7 @@ export const generateSmartTitle = mutation({
     conversationId: v.id("conversations"),
     firstMessage: v.string(),
   },
+  returns: v.null(),
   handler: async (ctx, args) => {
     const userId = await getAuthUserId(ctx);
     if (!userId) {
