@@ -439,7 +439,7 @@ export function MessageBubble({ message, showTokenCount, onOpenFragment, onMCPCr
 
   return (
     <div className={`flex gap-3 sm:gap-4 ${message.role === 'user' ? 'justify-end' : 'justify-start'} w-full`}>
-      <div className={`max-w-[85%] sm:max-w-3xl w-full min-w-0 ${message.role === 'user' ? 'order-first' : ''}`}>
+      <div className={`max-w-[85%] sm:max-w-3xl ${message.role === 'user' ? '' : 'w-full'} min-w-0 ${message.role === 'user' ? 'order-first' : ''}`}>
         <div className={`rounded-2xl px-3 py-2 sm:px-4 sm:py-3 break-words overflow-hidden ${
           message.role === 'user'
             ? isDarkMode
