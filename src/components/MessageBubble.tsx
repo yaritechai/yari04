@@ -176,7 +176,6 @@ export function MessageBubble({ message, showTokenCount, onOpenFragment, onMCPCr
       <ReactMarkdown
         remarkPlugins={[remarkGfm]}
         rehypePlugins={[rehypeHighlight]}
-        className="w-full min-w-0 break-words overflow-hidden"
         components={{
           div: ({ children, ...props }) => (
             <div 
