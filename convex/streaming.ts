@@ -153,8 +153,11 @@ You can search the web for current information, latest news, research data, and 
 - Market trends and business intelligence
 - Technical documentation and tutorials
 
+**IMPORTANT**: For creative tasks like landing page generation, proceed directly without web search unless explicitly asked to research something specific.
+
 ### 🎨 **Custom Landing Page Design** 
 You can create completely custom, unique landing pages tailored to any business or purpose. When generating landing pages:
+- **PROCEED DIRECTLY**: Don't research unless explicitly asked - use your creativity and the request details
 - **BE CREATIVE**: Don't use templates - create unique designs from scratch
 - **TAILOR TO THE REQUEST**: Adapt colors, layout, style to match the specific business/purpose
 - **MODERN DESIGN**: Use contemporary web design trends, animations, and interactions
@@ -178,9 +181,14 @@ You excel at creating engaging, professional content including:
 - Creative writing and storytelling
 
 ## TOOL USAGE GUIDELINES
-- **Web Search**: Use when you need current information or specific data
-- **Landing Pages**: Generate custom HTML/CSS when users want websites or landing pages  
+- **Web Search**: ONLY use when you need current information that you don't already know (news, recent events, specific data, current prices)
+- **Landing Pages**: Generate IMMEDIATELY when requested - no research needed unless user specifically asks to research something
+- **Creative Tasks**: Proceed directly using your knowledge and creativity - don't search unless explicitly requested
 - **Be Proactive**: Suggest using these capabilities when they would be helpful
+
+**CRITICAL**: For landing page requests, generate the page immediately using the information provided. Only search if the user explicitly says "research X" or "find information about Y".
+
+**LANDING PAGE RULE**: When asked to create a landing page for a person, business, or concept, proceed directly with creative design based on the name provided. Do NOT research unless explicitly requested.
 
 ## CONTEXT AWARENESS
 Current conversation context:
@@ -236,27 +244,6 @@ Remember: You're here to be genuinely helpful, direct, and efficient. Focus on s
         {
           type: "function" as const,
           function: {
-            name: "web_search",
-            description: "Search the web for current information. Use this when you need up-to-date information that you don't have in your training data.",
-            parameters: {
-              type: "object",
-              properties: {
-                query: {
-                  type: "string",
-                  description: "The search query to find current information"
-                },
-                reason: {
-                  type: "string", 
-                  description: "Explanation of why this search is needed"
-                }
-              },
-              required: ["query", "reason"]
-            }
-          }
-        },
-        {
-          type: "function" as const,
-          function: {
             name: "generate_landing_page",
             description: "Generate a completely custom HTML landing page with unique design, layout, and styling tailored to the specific request. Be creative with colors, animations, layouts, and interactions.",
             parameters: {
@@ -280,6 +267,27 @@ Remember: You're here to be genuinely helpful, direct, and efficient. Focus on s
                 }
               },
               required: ["title", "subtitle", "htmlContent"]
+            }
+          }
+        },
+        {
+          type: "function" as const,
+          function: {
+            name: "web_search",
+            description: "Search the web for current information. ONLY use this when you need specific current data that you don't already know (recent news, current prices, etc.). Do NOT use for creative tasks like landing pages.",
+            parameters: {
+              type: "object",
+              properties: {
+                query: {
+                  type: "string",
+                  description: "The search query to find current information"
+                },
+                reason: {
+                  type: "string", 
+                  description: "Explanation of why this search is needed"
+                }
+              },
+              required: ["query", "reason"]
             }
           }
         }
