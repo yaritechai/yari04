@@ -32,7 +32,10 @@ export const list = query({
         .withIndex("by_folder", (q) => q.eq("folderId", args.folderId!))
         .collect();
       
-      const folderConversationIds = new Set(folderConversations.map(fc => fc.conversationId));
+      const folderConversationIds = new Set(
+        folderConversations.map(cf => cf.conversationId)
+      );
+      
       return conversations.filter(c => folderConversationIds.has(c._id));
     }
 

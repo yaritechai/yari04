@@ -176,10 +176,11 @@ export function MessageBubble({ message, showTokenCount, onOpenFragment, onMCPCr
       <ReactMarkdown
         remarkPlugins={[remarkGfm]}
         rehypePlugins={[rehypeHighlight]}
+        className="w-full min-w-0 break-words overflow-hidden"
         components={{
           div: ({ children, ...props }) => (
             <div 
-              className={`prose prose-sm sm:prose-base max-w-none ${
+              className={`prose prose-sm sm:prose-base w-full min-w-0 break-words overflow-hidden ${
                 isDarkMode 
                   ? 'prose-invert prose-headings:text-gray-100 prose-p:text-gray-200 prose-strong:text-gray-100 prose-code:text-gray-200 prose-pre:bg-gray-900 prose-pre:border prose-pre:border-gray-700' 
                   : 'prose-headings:text-gray-900 prose-p:text-gray-800 prose-strong:text-gray-900 prose-code:text-gray-800'
@@ -229,7 +230,7 @@ export function MessageBubble({ message, showTokenCount, onOpenFragment, onMCPCr
               }
 
               return (
-                <div className="my-3 sm:my-4">
+                <div className="my-3 sm:my-4 w-full min-w-0">
                   {/* Code Badge */}
                   <div className="mb-2">
                     <button
@@ -248,7 +249,7 @@ export function MessageBubble({ message, showTokenCount, onOpenFragment, onMCPCr
                           });
                         }
                       }}
-                      className={`inline-flex items-center gap-2 px-3 py-1.5 text-xs rounded-full transition-all duration-200 ${
+                      className={`inline-flex items-center gap-2 px-3 py-1.5 text-xs rounded-full transition-all duration-200 break-words ${
                         isDarkMode 
                           ? 'bg-gray-800/80 text-gray-300 hover:bg-gray-700 border border-gray-700/50' 
                           : message.role === 'user'
@@ -256,18 +257,18 @@ export function MessageBubble({ message, showTokenCount, onOpenFragment, onMCPCr
                           : 'text-gray-700 hover:bg-gray-50 border border-gray-200/50'
                       } backdrop-blur-sm`}
                     >
-                      <span className="text-sm">{getLanguageIcon(language)}</span>
-                      <span className="font-medium">
+                      <span className="text-sm flex-shrink-0">{getLanguageIcon(language)}</span>
+                      <span className="font-medium truncate">
                         {isHTML ? 'Generated HTML' : `${language.toUpperCase()} Code`}
                       </span>
-                      <svg className="w-3 h-3 opacity-60" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <svg className="w-3 h-3 opacity-60 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
                       </svg>
                     </button>
                   </div>
 
                   {/* Code Block */}
-                  <div className={`rounded-lg overflow-hidden ${
+                  <div className={`rounded-lg overflow-hidden w-full min-w-0 ${
                     isDarkMode 
                       ? 'bg-gray-950 border border-gray-800' 
                       : message.role === 'user'
@@ -288,7 +289,7 @@ export function MessageBubble({ message, showTokenCount, onOpenFragment, onMCPCr
             // Inline code
             return (
               <code 
-                className={`px-1.5 py-0.5 rounded text-sm font-mono ${
+                className={`px-1.5 py-0.5 rounded text-sm font-mono break-words ${
                   message.role === 'user'
                     ? isDarkMode
                       ? 'bg-neutral-700 text-gray-100'
@@ -304,55 +305,55 @@ export function MessageBubble({ message, showTokenCount, onOpenFragment, onMCPCr
             );
           },
           pre: ({ children }) => {
-            return <div>{children}</div>;
+            return <div className="w-full min-w-0 overflow-hidden">{children}</div>;
           },
           h1: ({ children }) => (
-            <h1 className={`text-xl sm:text-2xl font-bold mb-3 ${
+            <h1 className={`text-xl sm:text-2xl font-bold mb-3 break-words ${
               message.role === 'user' ? (isDarkMode ? 'text-gray-100' : 'text-gray-900') : isDarkMode ? 'text-gray-100' : 'text-gray-900'
             }`}>
               {children}
             </h1>
           ),
           h2: ({ children }) => (
-            <h2 className={`text-lg sm:text-xl font-bold mb-2 ${
+            <h2 className={`text-lg sm:text-xl font-bold mb-2 break-words ${
               message.role === 'user' ? (isDarkMode ? 'text-gray-100' : 'text-gray-900') : isDarkMode ? 'text-gray-100' : 'text-gray-900'
             }`}>
               {children}
             </h2>
           ),
           h3: ({ children }) => (
-            <h3 className={`text-base sm:text-lg font-bold mb-2 ${
+            <h3 className={`text-base sm:text-lg font-bold mb-2 break-words ${
               message.role === 'user' ? (isDarkMode ? 'text-gray-100' : 'text-gray-900') : isDarkMode ? 'text-gray-100' : 'text-gray-900'
             }`}>
               {children}
             </h3>
           ),
           p: ({ children }) => (
-            <p className={`mb-2 leading-relaxed ${
+            <p className={`mb-2 leading-relaxed break-words ${
               message.role === 'user' ? (isDarkMode ? 'text-gray-100' : 'text-gray-900') : isDarkMode ? 'text-gray-200' : 'text-gray-800'
             }`}>
               {children}
             </p>
           ),
           ul: ({ children }) => (
-            <ul className={`list-disc list-inside mb-2 space-y-1 ${
+            <ul className={`list-disc list-inside mb-2 space-y-1 break-words ${
               message.role === 'user' ? (isDarkMode ? 'text-gray-100' : 'text-gray-900') : isDarkMode ? 'text-gray-200' : 'text-gray-800'
             }`}>
               {children}
             </ul>
           ),
           ol: ({ children }) => (
-            <ol className={`list-decimal list-inside mb-2 space-y-1 ${
+            <ol className={`list-decimal list-inside mb-2 space-y-1 break-words ${
               message.role === 'user' ? (isDarkMode ? 'text-gray-100' : 'text-gray-900') : isDarkMode ? 'text-gray-200' : 'text-gray-800'
             }`}>
               {children}
             </ol>
           ),
           li: ({ children }) => (
-            <li className="leading-relaxed">{children}</li>
+            <li className="leading-relaxed break-words">{children}</li>
           ),
           blockquote: ({ children }) => (
-            <blockquote className={`border-l-4 pl-4 py-2 my-2 italic ${
+            <blockquote className={`border-l-4 pl-4 py-2 my-2 italic break-words ${
               message.role === 'user' 
                 ? isDarkMode
                   ? 'border-neutral-400 text-gray-200' 
@@ -365,7 +366,7 @@ export function MessageBubble({ message, showTokenCount, onOpenFragment, onMCPCr
             </blockquote>
           ),
           table: ({ children }) => (
-            <div className="overflow-x-auto my-2">
+            <div className="overflow-x-auto my-2 w-full">
               <table className={`min-w-full border-collapse ${
                 isDarkMode ? 'border-gray-700' : 'border-gray-300'
               }`}>
@@ -374,7 +375,7 @@ export function MessageBubble({ message, showTokenCount, onOpenFragment, onMCPCr
             </div>
           ),
           th: ({ children }) => (
-            <th className={`border px-3 py-2 text-left font-semibold ${
+            <th className={`border px-3 py-2 text-left font-semibold break-words ${
               isDarkMode 
                 ? 'border-gray-700 bg-gray-800' 
                 : message.role === 'user'
@@ -385,7 +386,7 @@ export function MessageBubble({ message, showTokenCount, onOpenFragment, onMCPCr
             </th>
           ),
           td: ({ children }) => (
-            <td className={`border px-3 py-2 ${
+            <td className={`border px-3 py-2 break-words ${
               isDarkMode 
                 ? 'border-gray-700' 
                 : message.role === 'user'
@@ -396,14 +397,14 @@ export function MessageBubble({ message, showTokenCount, onOpenFragment, onMCPCr
             </td>
           ),
           strong: ({ children }) => (
-            <strong className={`font-semibold ${
+            <strong className={`font-semibold break-words ${
               message.role === 'user' ? (isDarkMode ? 'text-gray-100' : 'text-gray-900') : isDarkMode ? 'text-gray-100' : 'text-gray-900'
             }`}>
               {children}
             </strong>
           ),
           em: ({ children }) => (
-            <em className={`italic ${
+            <em className={`italic break-words ${
               message.role === 'user' ? (isDarkMode ? 'text-gray-100' : 'text-gray-900') : isDarkMode ? 'text-gray-200' : 'text-gray-800'
             }`}>
               {children}
@@ -414,7 +415,7 @@ export function MessageBubble({ message, showTokenCount, onOpenFragment, onMCPCr
               href={href} 
               target="_blank" 
               rel="noopener noreferrer"
-              className={`underline hover:no-underline transition-colors ${
+              className={`underline hover:no-underline transition-colors break-words ${
                 message.role === 'user' 
                   ? 'text-white hover:text-primary-200' 
                   : isDarkMode 
@@ -438,9 +439,9 @@ export function MessageBubble({ message, showTokenCount, onOpenFragment, onMCPCr
   }
 
   return (
-    <div className={`flex gap-3 sm:gap-4 ${message.role === 'user' ? 'justify-end' : 'justify-start'}`}>
-      <div className={`max-w-[85%] sm:max-w-3xl ${message.role === 'user' ? 'order-first' : ''}`}>
-        <div className={`rounded-2xl px-3 py-2 sm:px-4 sm:py-3 ${
+    <div className={`flex gap-3 sm:gap-4 ${message.role === 'user' ? 'justify-end' : 'justify-start'} w-full`}>
+      <div className={`max-w-[85%] sm:max-w-3xl w-full min-w-0 ${message.role === 'user' ? 'order-first' : ''}`}>
+        <div className={`rounded-2xl px-3 py-2 sm:px-4 sm:py-3 break-words overflow-hidden ${
           message.role === 'user'
             ? isDarkMode
               ? 'bg-neutral-800 text-gray-100 ml-auto border border-neutral-700'
@@ -453,7 +454,7 @@ export function MessageBubble({ message, showTokenCount, onOpenFragment, onMCPCr
           {message.attachments && message.attachments.length > 0 && (
             <div className="mb-2 sm:mb-3 space-y-2">
               {message.attachments.map((attachment, index) => (
-                <div key={index} className={`flex items-center gap-2 p-2 rounded-lg text-sm ${
+                <div key={index} className={`flex items-center gap-2 p-2 rounded-lg text-sm break-words min-w-0 ${
                   message.role === 'user' 
                     ? isDarkMode 
                       ? 'bg-neutral-700/70' 
@@ -463,7 +464,7 @@ export function MessageBubble({ message, showTokenCount, onOpenFragment, onMCPCr
                   <svg className="w-3 h-3 sm:w-4 sm:h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13" />
                   </svg>
-                  <span className="font-medium truncate">{attachment.fileName}</span>
+                  <span className="font-medium truncate min-w-0">{attachment.fileName}</span>
                   <span className="text-xs opacity-75 flex-shrink-0">
                     ({Math.round(attachment.fileSize / 1024)}KB)
                   </span>
@@ -489,7 +490,7 @@ export function MessageBubble({ message, showTokenCount, onOpenFragment, onMCPCr
           )}
 
           {/* Content */}
-          <div className="leading-relaxed">
+          <div className="leading-relaxed break-words overflow-hidden min-w-0 w-full">
             {renderContent()}
           </div>
 
@@ -521,7 +522,7 @@ export function MessageBubble({ message, showTokenCount, onOpenFragment, onMCPCr
                 <svg className={`w-3 h-3 ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
                 </svg>
-                <span className={`text-xs ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`}>
+                <span className={`text-xs break-words ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`}>
                   Researched from {message.searchResults.length} sources:
                 </span>
               </div>
@@ -536,7 +537,7 @@ export function MessageBubble({ message, showTokenCount, onOpenFragment, onMCPCr
                   <button
                     key={index}
                     onClick={handleSearchResultsClick}
-                    className={`inline-flex items-center gap-1.5 px-2 py-1 text-xs rounded-full transition-colors ${
+                    className={`inline-flex items-center gap-1.5 px-2 py-1 text-xs rounded-full transition-colors min-w-0 max-w-[120px] ${
                       isDarkMode 
                         ? 'bg-gray-700 text-gray-300 hover:bg-gray-600 border border-gray-600' 
                         : 'text-gray-600 hover:bg-gray-50 border border-gray-200'
@@ -551,7 +552,7 @@ export function MessageBubble({ message, showTokenCount, onOpenFragment, onMCPCr
                         e.currentTarget.style.display = 'none';
                       }}
                     />
-                    <span className="truncate max-w-[80px]">{truncatedUrl}</span>
+                    <span className="truncate">{truncatedUrl}</span>
                   </button>
                 );
               })}
@@ -559,7 +560,7 @@ export function MessageBubble({ message, showTokenCount, onOpenFragment, onMCPCr
               {message.searchResults.length > 3 && (
                 <button
                   onClick={handleSearchResultsClick}
-                  className={`inline-flex items-center gap-1 px-2 py-1 text-xs rounded-full transition-colors ${
+                  className={`inline-flex items-center gap-1 px-2 py-1 text-xs rounded-full transition-colors flex-shrink-0 ${
                     isDarkMode 
                       ? 'bg-gray-700 text-gray-300 hover:bg-gray-600 border border-gray-600' 
                       : 'text-gray-600 hover:bg-gray-50 border border-gray-200'
@@ -571,14 +572,14 @@ export function MessageBubble({ message, showTokenCount, onOpenFragment, onMCPCr
               
               <button
                 onClick={handleSearchResultsClick}
-                className={`inline-flex items-center gap-1 px-2 py-1 text-xs rounded-full transition-colors ${
+                className={`inline-flex items-center gap-1 px-2 py-1 text-xs rounded-full transition-colors flex-shrink-0 ${
                   isDarkMode 
                     ? 'bg-primary-900/30 text-primary-400 hover:bg-primary-900/50 border border-primary-700/50' 
                     : 'bg-primary-100 text-primary-600 hover:bg-primary-200 border border-primary-200'
                 }`}
                 title="View all sources in panel"
               >
-                <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <svg className="w-3 h-3 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
                 </svg>
                 View all
@@ -593,14 +594,14 @@ export function MessageBubble({ message, showTokenCount, onOpenFragment, onMCPCr
             <div className="flex items-center gap-2">
               <button
                 onClick={handleViewInCanvas}
-                className={`inline-flex items-center gap-1.5 px-3 py-1.5 text-xs rounded-full transition-colors ${
+                className={`inline-flex items-center gap-1.5 px-3 py-1.5 text-xs rounded-full transition-colors flex-shrink-0 ${
                   isDarkMode 
                     ? 'bg-purple-900/30 text-purple-300 hover:bg-purple-900/50 border border-purple-700/50' 
                     : 'bg-purple-50 text-purple-600 hover:bg-purple-100 border border-purple-200'
                 }`}
                 title="Open in document editor"
               >
-                <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <svg className="w-3 h-3 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
                 </svg>
                 View in Canvas
@@ -610,7 +611,7 @@ export function MessageBubble({ message, showTokenCount, onOpenFragment, onMCPCr
         )}
 
         {/* Message metadata */}
-        <div className={`flex items-center gap-2 mt-2 text-xs ${
+        <div className={`flex items-center gap-2 mt-2 text-xs break-words ${
           isDarkMode ? 'text-gray-400' : 'text-gray-500'
         } ${message.role === 'user' ? 'justify-end' : 'justify-start'}`}>
           <span>{formatTime(message._creationTime)}</span>
