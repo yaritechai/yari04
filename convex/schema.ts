@@ -45,16 +45,7 @@ const applicationTables = {
     isEdited: v.optional(v.boolean()),
     originalContent: v.optional(v.string()),
     tokens: v.optional(v.number()),
-    searchResults: v.optional(v.object({
-      query: v.string(),
-      results: v.array(v.object({
-        title: v.string(),
-        url: v.string(),
-        snippet: v.string(),
-        content: v.optional(v.string()),
-      })),
-      shouldOpenRightPanel: v.boolean(),
-    })),
+    searchResults: v.optional(v.any()),
     hasWebSearch: v.optional(v.boolean()),
     model: v.optional(v.string()),
     reportData: v.optional(v.any()),

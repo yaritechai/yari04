@@ -177,6 +177,7 @@ The search results include full webpage content retrieved using Jina Reader for 
       await ctx.runMutation(internal.messages.addAssistantMessageWithSearch, {
         conversationId: args.conversationId,
         content: assistantMessage,
+        searchResults: searchResults,
       });
     } catch (error) {
       console.error("Error in generateResponseWithSearch:", error);

@@ -98,19 +98,12 @@ export const generateStreamingResponse = internalAction({
       const urlRegex = /https?:\/\/[^\s]+/g;
       const urls = message.content.match(urlRegex) || [];
 
-      // Auto-enable web search for landing page requests and research queries
+      // Auto-enable web search for landing page requests
       let shouldPerformSearch = args.includeWebSearch || false;
       const isLandingPageRequest = /\b(landing page|website|webpage|create.*page|build.*page|design.*page)\b/i.test(message.content);
       
-      // Auto-detect research queries
-      const researchKeywords = /\b(research|search|find information|look up|investigate|tell me about|who is|what is|current|latest|recent|news about)\b/i;
-      const isResearchRequest = researchKeywords.test(message.content);
-      
       if (isLandingPageRequest) {
         console.log("Auto-enabling web search for landing page request:", message.content);
-        shouldPerformSearch = true;
-      } else if (isResearchRequest) {
-        console.log("Auto-enabling web search for research request:", message.content);
         shouldPerformSearch = true;
       }
 
@@ -237,12 +230,6 @@ Remember: You're here to be genuinely helpful, direct, and efficient. Focus on s
         },
       });
 
-      let autonomousSearchResults: any[] = [];
-      let fullContent = "";
-      let tokenCount = 0;
-
-      console.log("Creating OpenRouter streaming completion...");
-
       // Add tools for autonomous web search and landing page generation
       const tools = [
         {
@@ -299,6 +286,9 @@ Remember: You're here to be genuinely helpful, direct, and efficient. Focus on s
 
       // First API call to potentially trigger tool usage
       let toolCallData: any = null;
+      let autonomousSearchResults: any[] = [];
+      let fullContent = "";
+      let tokenCount = 0;
       
       const messagesWithSystem = [
         { role: "system" as const, content: systemPrompt },
@@ -321,7 +311,7 @@ Remember: You're here to be genuinely helpful, direct, and efficient. Focus on s
 
       let streamedContent = "";
       let responseMessage: any = null;
-      let toolCalls: any = null;
+      let capturedToolCalls: any = null;
 
       // Process streaming chunks
       for await (const chunk of completion) {
@@ -342,7 +332,7 @@ Remember: You're here to be genuinely helpful, direct, and efficient. Focus on s
         
         // Capture tool calls during streaming
         if (delta?.tool_calls) {
-          toolCalls = delta.tool_calls;
+          capturedToolCalls = delta.tool_calls;
         }
         
         // Mark as complete when streaming finishes
@@ -356,9 +346,9 @@ Remember: You're here to be genuinely helpful, direct, and efficient. Focus on s
         responseMessage = { content: streamedContent };
       }
 
-      if (toolCalls && toolCalls.length > 0) {
+      if (capturedToolCalls && capturedToolCalls.length > 0) {
         // Handle the first tool call
-        const toolCall = toolCalls[0];
+        const toolCall = capturedToolCalls[0];
         toolCallData = {
           name: toolCall.function.name,
           arguments: toolCall.function.arguments
@@ -375,21 +365,6 @@ Remember: You're here to be genuinely helpful, direct, and efficient. Focus on s
           autonomousSearchResults = await performWebSearch(params.query);
           
           if (autonomousSearchResults.length > 0) {
-            // Store search results for sidebar display
-            const searchResultsForSidebar = autonomousSearchResults.slice(0, 5).map(result => ({
-              title: result.title,
-              url: result.link,
-              snippet: result.snippet,
-              content: result.snippet, // We'll use snippet as content for sidebar
-            }));
-
-            // Save search results to trigger sidebar
-            await ctx.runMutation(internal.messages.addSearchResults, {
-              messageId: args.messageId,
-              query: params.query,
-              results: searchResultsForSidebar,
-            });
-
             // Enhanced search context with full content from top results
             const enhancedResults = [];
             
@@ -558,6 +533,7 @@ Click the "Generated HTML" button below to view your custom landing page!`;
         await ctx.runMutation(internal.messages.finalizeStreamingMessage, {
           messageId: args.messageId,
           content: fullContent,
+          searchResults: autonomousSearchResults.slice(0, 5), // Limit to 5 results for UI
           hasWebSearch: true,
         });
       } else {

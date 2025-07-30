@@ -88,25 +88,6 @@ export function MessageBubble({ message, showTokenCount, onOpenFragment, onMCPCr
     checkForReportRequest();
   }, [message.content, message.role, message.reportData, isGeneratingReport, detectReportRequest, generateReport, onOpenFragment]);
 
-  // Check if this message has search results and auto-open search panel
-  useEffect(() => {
-    if (message.searchResults && message.searchResults.shouldOpenRightPanel && onOpenFragment) {
-      // Auto-open the search panel with the search results
-      setTimeout(() => {
-        onOpenFragment('search', {
-          query: message.searchResults.query,
-          results: message.searchResults.results.map(result => ({
-            title: result.title,
-            url: result.url,
-            snippet: result.snippet,
-            content: result.content
-          })),
-          isLoading: false
-        });
-      }, 500); // Small delay to ensure message is fully rendered
-    }
-  }, [message.searchResults, onOpenFragment]);
-
   const formatTime = (timestamp: number) => {
     return new Date(timestamp).toLocaleTimeString([], { 
       hour: '2-digit', 
