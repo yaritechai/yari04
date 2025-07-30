@@ -131,9 +131,7 @@ export function Sidebar({
                 key={conversation._id}
                 onClick={() => onSelectConversation(conversation._id)}
                 className={`group relative px-3 py-2.5 rounded-lg cursor-pointer transition-colors mb-0.5 ${
-                  selectedConversationId === conversation._id
-                    ? isDarkMode ? 'bg-neutral-800' : 'bg-neutral-200'
-                    : isDarkMode ? 'hover:bg-neutral-900' : 'hover:bg-neutral-50'
+                  isDarkMode ? 'hover:bg-neutral-900' : 'hover:bg-neutral-50'
                 }`}
               >
                 <div className="flex items-center justify-between">
