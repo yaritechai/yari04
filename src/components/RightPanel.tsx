@@ -62,7 +62,7 @@ const GeneratingLoadingAnimation = ({ isDarkMode }: { isDarkMode: boolean }) => 
   };
 
   return (
-    <div className="absolute inset-0 flex items-center justify-center">
+    <div className="absolute inset-0 flex items-center justify-center" style={{ paddingTop: '60px' }}>
       <div style={loaderWrapperStyle}>
         <span style={{...letterStyle, animationDelay: '0s'}}>G</span>
         <span style={{...letterStyle, animationDelay: '0.1s'}}>e</span>
