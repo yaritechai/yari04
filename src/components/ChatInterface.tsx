@@ -112,6 +112,7 @@ export function ChatInterface({ conversationId, onTitleUpdate, onOpenFragment }:
           onTitleUpdate={onTitleUpdate}
           defaultWebSearch={(preferences as any).enableWebSearch}
           isFirstMessage={isFirstMessage}
+          onOpenFragment={onOpenFragment}
         />
       </div>
     </div>

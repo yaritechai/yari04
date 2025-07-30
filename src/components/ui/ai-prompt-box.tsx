@@ -551,6 +551,7 @@ interface PromptInputBoxProps {
   className?: string;
   webSearchEnabled?: boolean;
   onWebSearchToggle?: (enabled: boolean) => void;
+  onOpenFragment?: (fragment: string, data?: any) => void; // Add this prop for opening fragments
 }
 export const PromptInputBox = React.forwardRef<HTMLDivElement, PromptInputBoxProps>((props, ref) => {
   const { 
@@ -559,7 +560,8 @@ export const PromptInputBox = React.forwardRef<HTMLDivElement, PromptInputBoxPro
     placeholder = "Type your message here...", 
     className,
     webSearchEnabled = false,
-    onWebSearchToggle
+    onWebSearchToggle,
+    onOpenFragment
   } = props;
   
   const { isDarkMode } = useTheme();
@@ -575,8 +577,104 @@ export const PromptInputBox = React.forwardRef<HTMLDivElement, PromptInputBoxPro
   const [isListening, setIsListening] = React.useState(false);
   const [speechSupported, setSpeechSupported] = React.useState(false);
   const [speechError, setSpeechError] = React.useState<string | null>(null);
+  
+  // Slash command states
+  const [showSlashMenu, setShowSlashMenu] = React.useState(false);
+  const [slashMenuPosition, setSlashMenuPosition] = React.useState({ x: 0, y: 0 });
+  
   const uploadInputRef = React.useRef<HTMLInputElement>(null);
   const promptBoxRef = React.useRef<HTMLDivElement>(null);
+  const textareaRef = React.useRef<HTMLTextAreaElement>(null);
+
+  // Slash commands for quick actions
+  const slashCommands = [
+    { 
+      key: 'document', 
+      label: 'New Document', 
+      icon: '📝', 
+      description: 'Create a new document with blocks' 
+    },
+    { 
+      key: 'search', 
+      label: 'Web Search', 
+      icon: '🔍', 
+      description: 'Search the web for information' 
+    },
+    { 
+      key: 'code', 
+      label: 'Generate Code', 
+      icon: '💻', 
+      description: 'Ask AI to generate code' 
+    },
+    { 
+      key: 'landing', 
+      label: 'Landing Page', 
+      icon: '🎨', 
+      description: 'Create a beautiful landing page' 
+    },
+    { 
+      key: 'analyze', 
+      label: 'Analyze Data', 
+      icon: '📊', 
+      description: 'Analyze data or information' 
+    },
+    { 
+      key: 'write', 
+      label: 'Write Content', 
+      icon: '✍️', 
+      description: 'Write articles, emails, or content' 
+    }
+  ];
+
+  // Handle keyboard events for slash commands
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
+    if (e.key === '/' && input === '') {
+      e.preventDefault();
+      setShowSlashMenu(true);
+      
+      // Position menu near the textarea
+      if (textareaRef.current) {
+        const rect = textareaRef.current.getBoundingClientRect();
+        setSlashMenuPosition({ x: rect.left, y: rect.top - 10 });
+      }
+    }
+    
+    if (e.key === 'Escape') {
+      setShowSlashMenu(false);
+    }
+  };
+
+  // Handle slash command selection
+  const handleSlashCommand = (command: string) => {
+    setShowSlashMenu(false);
+    
+    switch (command) {
+      case 'document':
+        onOpenFragment?.('document', { title: 'Untitled Document', content: '' });
+        break;
+      case 'search':
+        onWebSearchToggle?.(true);
+        setInput('[Search: ');
+        textareaRef.current?.focus();
+        break;
+      case 'code':
+        setInput('Generate code for: ');
+        textareaRef.current?.focus();
+        break;
+      case 'landing':
+        setInput('Create a landing page for: ');
+        textareaRef.current?.focus();
+        break;
+      case 'analyze':
+        setInput('Analyze this data: ');
+        textareaRef.current?.focus();
+        break;
+      case 'write':
+        setInput('Write content about: ');
+        textareaRef.current?.focus();
+        break;
+    }
+  };
 
   // Initialize speech recognition
   React.useEffect(() => {
@@ -853,6 +951,8 @@ export const PromptInputBox = React.forwardRef<HTMLDivElement, PromptInputBoxPro
                 : placeholder
             }
             className="text-base"
+            onKeyDown={handleKeyDown}
+            ref={textareaRef}
           />
         </div>
 
@@ -1069,6 +1169,48 @@ export const PromptInputBox = React.forwardRef<HTMLDivElement, PromptInputBoxPro
       </PromptInput>
 
       <ImageViewDialog imageUrl={selectedImage} onClose={() => setSelectedImage(null)} />
+
+      {/* Slash Commands Menu */}
+      {showSlashMenu && (
+        <>
+          <div 
+            className="fixed inset-0 z-40" 
+            onClick={() => setShowSlashMenu(false)}
+          />
+          <div 
+            className={`fixed z-50 w-80 max-h-96 overflow-y-auto rounded-lg shadow-lg border ${
+              isDarkMode ? 'bg-neutral-800 border-neutral-700' : 'bg-white border-gray-200'
+            }`}
+            style={{
+              left: slashMenuPosition.x,
+              top: slashMenuPosition.y - 300, // Position above the input
+            }}
+          >
+            <div className="p-2">
+              <div className={`px-3 py-2 text-sm font-medium ${isDarkMode ? 'text-gray-300' : 'text-gray-600'}`}>
+                Quick Actions
+              </div>
+              {slashCommands.map((command) => (
+                <button
+                  key={command.key}
+                  onClick={() => handleSlashCommand(command.key)}
+                  className={`w-full flex items-center gap-3 p-3 rounded-lg hover:bg-gray-100 dark:hover:bg-neutral-700 transition-colors text-left ${
+                    isDarkMode ? 'text-gray-200' : 'text-gray-800'
+                  }`}
+                >
+                  <span className="text-lg">{command.icon}</span>
+                  <div>
+                    <div className="font-medium">{command.label}</div>
+                    <div className={`text-sm ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`}>
+                      {command.description}
+                    </div>
+                  </div>
+                </button>
+              ))}
+            </div>
+          </div>
+        </>
+      )}
     </>
   );
 });

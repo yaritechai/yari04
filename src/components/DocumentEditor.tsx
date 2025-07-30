@@ -36,6 +36,34 @@ export function DocumentEditor({ initialContent = '', title: initialTitle = 'Unt
   const saveDocument = useMutation(api.files.saveDocument);
   const containerRef = useRef<HTMLDivElement>(null);
 
+  // Global keyboard event listener for shortcuts
+  useEffect(() => {
+    const handleGlobalKeyDown = (e: KeyboardEvent) => {
+      // Only handle if focus is within the document editor
+      if (!containerRef.current?.contains(e.target as Node)) return;
+      
+      if (e.metaKey || e.ctrlKey) {
+        switch (e.key) {
+          case 's':
+            e.preventDefault();
+            handleSave();
+            break;
+          case '1':
+          case '2':
+          case '3':
+            if (focusedBlockId) {
+              e.preventDefault();
+              updateBlock(focusedBlockId, { type: 'heading', level: parseInt(e.key) });
+            }
+            break;
+        }
+      }
+    };
+
+    document.addEventListener('keydown', handleGlobalKeyDown);
+    return () => document.removeEventListener('keydown', handleGlobalKeyDown);
+  }, [focusedBlockId]);
+
   // Auto-save functionality
   useEffect(() => {
     const timer = setTimeout(async () => {
@@ -152,20 +180,9 @@ export function DocumentEditor({ initialContent = '', title: initialTitle = 'Unt
       setSlashMenuPosition({ x: rect.left, y: rect.bottom });
     }
 
-    // Handle keyboard shortcuts
-    if (e.metaKey || e.ctrlKey) {
-      switch (e.key) {
-        case 's':
-          e.preventDefault();
-          handleSave();
-          break;
-        case '1':
-        case '2':
-        case '3':
-          e.preventDefault();
-          updateBlock(blockId, { type: 'heading', level: parseInt(e.key) });
-          break;
-      }
+    // Handle Escape to close slash menu
+    if (e.key === 'Escape') {
+      setShowSlashMenu(false);
     }
   };
 
@@ -173,13 +190,20 @@ export function DocumentEditor({ initialContent = '', title: initialTitle = 'Unt
     const element = document.querySelector(`[data-block-id="${blockId}"]`) as HTMLElement;
     if (element) {
       element.focus();
+      setFocusedBlockId(blockId);
       // Move cursor to end
-      const range = document.createRange();
-      const sel = window.getSelection();
-      range.selectNodeContents(element);
-      range.collapse(false);
-      sel?.removeAllRanges();
-      sel?.addRange(range);
+      setTimeout(() => {
+        const range = document.createRange();
+        const sel = window.getSelection();
+        if (element.firstChild) {
+          range.setStart(element.firstChild, element.textContent?.length || 0);
+        } else {
+          range.setStart(element, 0);
+        }
+        range.collapse(true);
+        sel?.removeAllRanges();
+        sel?.addRange(range);
+      }, 0);
     }
   };
 

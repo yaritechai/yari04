@@ -12,6 +12,7 @@ interface MessageInputModernProps {
   defaultWebSearch?: boolean;
   isFirstMessage?: boolean;
   onConversationCreated?: (conversationId: Id<"conversations">) => void;
+  onOpenFragment?: (fragment: string, data?: any) => void;
 }
 
 export function MessageInputModern({ 
@@ -20,7 +21,8 @@ export function MessageInputModern({
   onTitleUpdate, 
   defaultWebSearch = false,
   isFirstMessage = false,
-  onConversationCreated
+  onConversationCreated,
+  onOpenFragment
 }: MessageInputModernProps) {
   const [webSearchEnabled, setWebSearchEnabled] = useState(defaultWebSearch);
   const { isDarkMode } = useTheme();
@@ -121,6 +123,7 @@ export function MessageInputModern({
           placeholder={conversationId ? "Type your message..." : "Start a new conversation..."}
           webSearchEnabled={webSearchEnabled}
           onWebSearchToggle={handleWebSearchToggle}
+          onOpenFragment={onOpenFragment}
           className="w-full"
         />
       </div>

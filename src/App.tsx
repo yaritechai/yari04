@@ -230,6 +230,7 @@ function AppContent() {
                   defaultWebSearch={false}
                   isFirstMessage={true}
                   onConversationCreated={setSelectedConversationId}
+                  onOpenFragment={handleOpenFragment}
                 />
               </div>
             </div>

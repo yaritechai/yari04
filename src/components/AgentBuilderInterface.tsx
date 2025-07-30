@@ -174,6 +174,7 @@ export function AgentBuilderInterface({ conversationId, onTitleUpdate }: AgentBu
           isGenerating={false}
           onTitleUpdate={onTitleUpdate || (() => {})}
           defaultWebSearch={false}
+          onOpenFragment={() => {}} // Placeholder for now
         />
       </div>
 
