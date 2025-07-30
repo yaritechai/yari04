@@ -267,13 +267,23 @@ ${searchContext}
 
 Please provide a detailed and informative response based on these search results.`;
 
-              // Call LLM with search context
+              // Call LLM with search context AND conversation history
+              const searchMessagesWithHistory = [
+                { role: "system" as const, content: systemPrompt },
+                ...openaiMessages.slice(0, -1), // Include all previous conversation history except the current message
+                { 
+                  role: "system" as const, 
+                  content: `CURRENT WEB SEARCH RESULTS for "${latestUserMessage.content}":\n\n${searchContext}\n\nPlease use these search results to provide a comprehensive and up-to-date response to the user's question, while maintaining context from the previous conversation.`
+                },
+                { 
+                  role: "user" as const, 
+                  content: latestUserMessage.content // Keep the original user message unchanged
+                }
+              ];
+
               const completion = await openrouter.chat.completions.create({
         model: selectedModel,
-                messages: [
-                  { role: "system", content: systemPrompt },
-                  { role: "user", content: searchPrompt }
-                ],
+                messages: searchMessagesWithHistory,
         max_tokens: modelParams.max_tokens,
         temperature: modelParams.temperature,
                 stream: true
