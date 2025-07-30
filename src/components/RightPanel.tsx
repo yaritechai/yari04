@@ -303,7 +303,7 @@ export function RightPanel({
   if (!isOpen) return null;
 
   return (
-    <div className="fixed top-0 right-0 h-full flex" style={{ zIndex: 1000 }}>
+    <div className="fixed top-0 right-0 h-full flex" style={{ zIndex: 40 }}>
       {/* Resize handle */}
       <div
         className={`w-1 cursor-col-resize hover:bg-[#f9c313]/50 transition-colors bg-transparent ${isResizing ? 'bg-[#f9c313]' : ''}`}

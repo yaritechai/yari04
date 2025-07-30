@@ -52,7 +52,7 @@ const GeneratingLoadingAnimation = ({ isDarkMode }: { isDarkMode: boolean }) => 
   };
 
   return (
-    <div className="flex-1 flex items-center justify-center p-8">
+    <div className="absolute inset-0 flex items-center justify-center bg-inherit">
       <div style={loaderWrapperStyle}>
         <span style={{...letterStyle, animationDelay: '0s'}}>G</span>
         <span style={{...letterStyle, animationDelay: '0.1s'}}>e</span>
@@ -140,12 +140,15 @@ export function CodeView({ data, onClose }: CodeViewProps) {
     setIsPreviewMode(!isPreviewMode);
   };
 
-  // Show loading animation while streaming - don't show partial content during generation
-  if (data?.isStreaming) {
-    return <GeneratingLoadingAnimation isDarkMode={isDarkMode} />;
-  }
+  const handleClose = (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (onClose) {
+      onClose();
+    }
+  };
 
-  if (!data?.code) {
+  if (!data?.code && !data?.isStreaming) {
     return (
       <div className={`flex-1 flex items-center justify-center ${isDarkMode ? 'text-gray-400' : 'text-gray-500'} p-8`}>
         <div className="text-center">
@@ -157,76 +160,89 @@ export function CodeView({ data, onClose }: CodeViewProps) {
   }
 
   return (
-    <div className="h-full flex flex-col">
+    <div className="h-full flex flex-col relative">
+      {/* Show loading animation while streaming - don't show partial content during generation */}
+      {data?.isStreaming && <GeneratingLoadingAnimation isDarkMode={isDarkMode} />}
+      
       {/* Code Actions */}
-      <div className={`flex items-center justify-between p-3 ${isDarkMode ? 'border-neutral-700 border-b' : 'border-gray-200 border-b'}`}>
-        <div className="flex items-center gap-2">
-          {data.filename && (
-            <span className={`text-sm font-mono ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>
+      <div className={`flex items-center justify-between p-4 border-b ${
+        isDarkMode 
+          ? 'bg-neutral-800 border-neutral-700' 
+          : 'bg-gray-50 border-gray-200'
+      } flex-shrink-0`}>
+        <div className="flex items-center gap-3">
+          <div className={`px-2 py-1 text-xs font-mono rounded ${
+            isDarkMode 
+              ? 'bg-neutral-700 text-gray-300' 
+              : 'bg-gray-200 text-gray-700'
+          }`}>
+            {data?.language || 'text'}
+          </div>
+          {data?.filename && (
+            <span className={`text-sm ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>
               {data.filename}
             </span>
           )}
-          {data.language && (
-            <span className={`text-xs px-2 py-1 rounded ${isDarkMode ? 'bg-neutral-700 text-gray-300' : 'bg-gray-100 text-gray-600'}`}>
-              {data.language}
-            </span>
-          )}
         </div>
+        
         <div className="flex items-center gap-2">
           {canPreview() && (
             <button
               onClick={handleTogglePreview}
-              className={`flex items-center gap-2 px-3 py-1.5 text-sm ${isDarkMode ? 'hover:bg-neutral-800 text-gray-300 hover:text-white' : 'hover:bg-gray-100 text-gray-600 hover:text-gray-900'} rounded transition-colors`}
-              title={isPreviewMode ? "Show Code" : "Show Preview"}
+              className={`px-3 py-1.5 text-xs rounded transition-colors ${
+                isPreviewMode
+                  ? isDarkMode 
+                    ? 'bg-green-600 text-white' 
+                    : 'bg-green-500 text-white'
+                  : isDarkMode 
+                    ? 'bg-neutral-700 hover:bg-neutral-600 text-gray-300' 
+                    : 'bg-gray-200 hover:bg-gray-300 text-gray-700'
+              }`}
+              title={isPreviewMode ? "Show code" : "Preview HTML"}
             >
               {isPreviewMode ? (
-                <>
-                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4" />
-                  </svg>
-                  Code
-                </>
+                <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4" />
+                </svg>
               ) : (
-                <>
-                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
-                  </svg>
-                  Preview
-                </>
+                <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                </svg>
               )}
             </button>
           )}
+          
           <button
             onClick={handleCopy}
-            className={`flex items-center gap-2 px-3 py-1.5 text-sm ${isDarkMode ? 'hover:bg-neutral-800 text-gray-300 hover:text-white' : 'hover:bg-gray-100 text-gray-600 hover:text-gray-900'} rounded transition-colors`}
+            className={`px-3 py-1.5 text-xs rounded transition-colors ${
+              copied
+                ? isDarkMode 
+                  ? 'bg-green-600 text-white' 
+                  : 'bg-green-500 text-white'
+                : isDarkMode 
+                  ? 'bg-neutral-700 hover:bg-neutral-600 text-gray-300' 
+                  : 'bg-gray-200 hover:bg-gray-300 text-gray-700'
+            }`}
+            title="Copy code"
           >
             {copied ? (
-              <>
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                </svg>
-                Copied!
-              </>
+              <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+              </svg>
             ) : (
-              <>
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
-                </svg>
-                Copy
-              </>
+              <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
+              </svg>
             )}
           </button>
           {onClose && (
             <button
-              onClick={(e) => {
-                e.stopPropagation();
-                onClose();
-              }}
-              className={`relative z-50 p-1.5 rounded transition-colors ${
+              onClick={handleClose}
+              className={`p-1.5 rounded transition-colors ${
                 isDarkMode 
-                  ? 'hover:bg-neutral-800 text-gray-400 hover:text-white' 
-                  : 'hover:bg-gray-100 text-gray-500 hover:text-gray-700'
+                  ? 'hover:bg-neutral-700 text-gray-400 hover:text-white' 
+                  : 'hover:bg-gray-200 text-gray-500 hover:text-gray-700'
               }`}
               title="Close code view"
             >
@@ -239,24 +255,26 @@ export function CodeView({ data, onClose }: CodeViewProps) {
       </div>
 
       {/* Code Content */}
-      <div className="flex-1 overflow-auto scrollbar-thin">
-        {isPreviewMode && canPreview() ? (
-          // Preview Mode - render as HTML
-          <div className="h-full">
-            <iframe
-              srcDoc={data.code}
-              className="w-full h-full border-0"
-              sandbox="allow-scripts allow-same-origin"
-              title="Code Preview"
-            />
-          </div>
-        ) : (
-          // Code Mode - show syntax highlighted code
-          <pre className={`p-4 text-sm font-mono leading-relaxed ${isDarkMode ? 'text-gray-300' : 'text-gray-800'}`}>
-            <code>{data.code}</code>
-          </pre>
-        )}
-      </div>
+      {!data?.isStreaming && data?.code && (
+        <div className="flex-1 overflow-auto scrollbar-thin">
+          {isPreviewMode && canPreview() ? (
+            // Preview Mode - render as HTML
+            <div className="h-full">
+              <iframe
+                srcDoc={data.code}
+                className="w-full h-full border-0"
+                sandbox="allow-scripts allow-same-origin"
+                title="Code Preview"
+              />
+            </div>
+          ) : (
+            // Code Mode - show syntax highlighted code
+            <pre className={`p-4 text-sm font-mono leading-relaxed ${isDarkMode ? 'text-gray-300' : 'text-gray-800'}`}>
+              <code>{data.code}</code>
+            </pre>
+          )}
+        </div>
+      )}
     </div>
   );
 }
