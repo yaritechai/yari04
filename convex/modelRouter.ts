@@ -172,28 +172,28 @@ export function getModelForTask(
 
 // Model metadata for UI display
 export const MODEL_METADATA = {
-  [MODELS.GENERAL_THINKING]: {
+  "openai/gpt-4o-2024-11-20": {
     label: "GPT-4o",
     description: "Fast & intelligent responses",
     category: "General",
     capabilities: ["thinking", "reasoning", "conversation"],
     icon: "🧠"
   },
-  [MODELS.RESEARCH]: {
+  "openai/gpt-4o": {
     label: "GPT-4o Research", 
     description: "Deep research & analysis",
     category: "Research",
     capabilities: ["research", "analysis", "long-context"],
     icon: "🔬"
   },
-  [MODELS.CODING_LANDING]: {
+  "openai/gpt-4o-2024-08-06": {
     label: "GPT-4o Code",
     description: "Coding & web development",
     category: "Development", 
     capabilities: ["coding", "web-dev", "landing-pages"],
     icon: "💻"
   },
-  [MODELS.SUMMARIZATION]: {
+  "openai/gpt-4o-mini": {
     label: "GPT-4o Mini",
     description: "Ultra-fast summarization",
     category: "Efficiency",
