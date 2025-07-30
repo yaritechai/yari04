@@ -64,12 +64,12 @@ export const generateStreamingResponse = internalAction({
         userId: conversation.userId,
       });
 
-      const mcpConnections = await ctx.runQuery(api.smithery.getUserMCPConnections, {
+      const mcpConnections = await ctx.runQuery(internal.smithery.getUserMCPConnectionsInternal, {
         conversationId: args.conversationId,
       });
 
-      // Get available capabilities for context
-      const availableCapabilities = await ctx.runQuery(api.agentBuilder.getAvailableCapabilities, {});
+      // Get available capabilities for context  
+      const availableCapabilities = await ctx.runQuery(internal.agentBuilder.getAvailableCapabilitiesInternal, {});
 
       // Get current date and time for comprehensive context
       const currentDateTime = new Date().toLocaleString('en-US', {
@@ -149,19 +149,25 @@ ${userIntegrations.length > 0 ? userIntegrations.map(int =>
 • **generate_landing_page**: Create complete HTML landing pages with modern design.
 ${mcpConnections.length > 0 ? '• **MCP Tools**: Various tools available through connected integrations' : ''}
 
-⚡ **INSTRUCTIONS**:
-- Use web_search tool for any queries requiring current information
-- Always provide comprehensive, helpful responses
-- Cite sources when using web search results
-- Be proactive in suggesting relevant integrations or capabilities
-- Use the current date/time context when relevant
-- Leverage available integrations when appropriate for the user's request
+⚡ **CORE INSTRUCTIONS**:
+- **BE DIRECT & CONVERSATIONAL**: Use natural, flowing speech like talking to a friend
+- **KEEP IT CONCISE**: For basic questions, give short, clear answers. Don't over-explain unless asked
+- **BE HELPFUL**: Always aim to be genuinely useful and solve the user's actual need
+- **USE TOOLS PROACTIVELY**: Search web for current info, generate content, leverage integrations
+- **CITE SOURCES**: When using search results, mention where info came from
+- **ASK FOLLOW-UP QUESTIONS**: Based on context, ask 1-2 relevant questions to be more helpful
 
-🎯 **RESPONSE GUIDELINES**:
-- Be conversational and helpful
-- Provide specific, actionable information
-- Use the available tools and integrations to enhance your responses
-- When searching, explain what you're looking for and why`;
+🎯 **RESPONSE STYLE**:
+- **Casual & Direct**: "Here's what I found..." rather than "I would be happy to assist you with..."
+- **Natural Flow**: Write like you're having a conversation, not writing a formal report
+- **Appropriate Length**: Match response length to question complexity - simple questions deserve simple answers
+- **Engage & Explore**: End with a follow-up question when it would be genuinely helpful
+- **Be Human-like**: Use contractions, natural phrasing, show personality while staying professional
+
+🚀 **SMART TOOL USAGE**:
+- Search immediately for current events, recent info, or facts you're uncertain about
+- Use integrations and MCP tools when they can add real value
+- Explain briefly what you're searching for, but don't over-announce every action`;
 
       // Determine model selection based on request type and length
       const requestLength = message.content.length;

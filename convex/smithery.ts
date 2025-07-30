@@ -446,6 +446,28 @@ export const getUserMCPConnections = query({
   },
 });
 
+// Internal version for use in streaming
+export const getUserMCPConnectionsInternal = internalQuery({
+  args: { conversationId: v.optional(v.id("conversations")) },
+  returns: v.array(v.any()),
+  handler: async (ctx, args) => {
+    // For internal calls, we need to get the user from the conversation
+    if (!args.conversationId) {
+      return [];
+    }
+    
+    const conversation = await ctx.db.get(args.conversationId);
+    if (!conversation) {
+      return [];
+    }
+
+    return await ctx.db
+      .query("mcpConnections")
+      .withIndex("by_user", (q) => q.eq("userId", conversation.userId))
+      .collect();
+  },
+});
+
 // Update MCP connection
 export const updateMCPConnection = mutation({
   args: {

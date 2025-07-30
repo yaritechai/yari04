@@ -85,7 +85,6 @@ export const send = mutation({
       conversationId: args.conversationId,
       messageId: assistantMessageId,
       includeWebSearch: args.requiresWebSearch,
-      
     });
 
     return { userMessageId, assistantMessageId };

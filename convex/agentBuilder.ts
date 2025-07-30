@@ -208,6 +208,60 @@ export const getAvailableCapabilities = query({
   },
 });
 
+// Internal version for use in streaming
+export const getAvailableCapabilitiesInternal = internalQuery({
+  args: {},
+  returns: v.array(v.any()),
+  handler: async (ctx) => {
+    const capabilities: AgentCapability[] = [
+      {
+        id: "web_search",
+        name: "Web Search",
+        description: "Search the internet for information and research",
+        category: "core",
+        required: false,
+      },
+      {
+        id: "file_management",
+        name: "File Management",
+        description: "Create, read, edit, and organize files and documents",
+        category: "core",
+        required: false,
+      },
+      {
+        id: "code_execution",
+        name: "Code Execution",
+        description: "Execute code, run scripts, and perform system operations",
+        category: "core",
+        required: false,
+      },
+      {
+        id: "web_browsing",
+        name: "Web Browsing",
+        description: "Navigate websites, scrape content, and interact with web applications",
+        category: "core",
+        required: false,
+      },
+      {
+        id: "image_processing",
+        name: "Image Processing",
+        description: "Analyze images, extract text, and process visual content",
+        category: "core",
+        required: false,
+      },
+      {
+        id: "data_analysis",
+        name: "Data Analysis",
+        description: "Process data, create reports, and generate insights",
+        category: "core",
+        required: false,
+      },
+    ];
+
+    return capabilities;
+  },
+});
+
 // Create workflow
 export const createWorkflow = mutation({
   args: {
