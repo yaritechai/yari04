@@ -55,7 +55,7 @@ export const generateStreamingResponse = internalAction({
       const conversation = await ctx.runQuery(internal.conversations.getInternal, {
         conversationId: args.conversationId,
       });
-
+      
       if (!conversation) {
         throw new Error("Conversation not found");
       }
@@ -268,13 +268,13 @@ Please provide a detailed and informative response based on these search results
 
               // Call LLM with search context
               const completion = await openrouter.chat.completions.create({
-                model: selectedModel,
+        model: selectedModel,
                 messages: [
                   { role: "system", content: systemPrompt },
                   { role: "user", content: searchPrompt }
                 ],
-                max_tokens: modelParams.max_tokens,
-                temperature: modelParams.temperature,
+        max_tokens: modelParams.max_tokens,
+        temperature: modelParams.temperature,
                 stream: true
               });
 
@@ -282,19 +282,19 @@ Please provide a detailed and informative response based on these search results
               
               // Stream the response
               for await (const chunk of completion) {
-                const delta = chunk.choices[0]?.delta;
-                if (delta?.content) {
+        const delta = chunk.choices[0]?.delta;
+        if (delta?.content) {
                   responseContent += delta.content;
-                  
+          
                   // Update streaming message
                   if (responseContent.length % 50 === 0) {
-                    await ctx.runMutation(internal.messages.updateStreamingMessage, {
-                      messageId: args.messageId,
+            await ctx.runMutation(internal.messages.updateStreamingMessage, {
+              messageId: args.messageId,
                       content: responseContent,
-                      isComplete: false,
-                    });
-                  }
-                }
+              isComplete: false,
+            });
+          }
+        }
               }
 
               // Finalize with search results - this will show the badges and enable right panel
@@ -327,11 +327,11 @@ Please provide a detailed and informative response based on these search results
       console.log(`🤖 Selected model: ${selectedModel} for task type based on prompt:`, message.content);
 
       const completion = await openrouter.chat.completions.create({
-        model: selectedModel,
+              model: selectedModel,
         messages: messagesWithSystem,
-        max_tokens: modelParams.max_tokens,
-        temperature: modelParams.temperature,
-        top_p: modelParams.top_p,
+              max_tokens: modelParams.max_tokens,
+              temperature: modelParams.temperature,
+              top_p: modelParams.top_p,
         stream: true
       });
 
@@ -376,14 +376,14 @@ Please provide a detailed and informative response based on these search results
         conversationId: args.conversationId,
         messageId: args.messageId,
       });
-
+      
       try {
         // Save error message
-        await ctx.runMutation(internal.messages.updateStreamingMessage, {
-          messageId: args.messageId,
+      await ctx.runMutation(internal.messages.updateStreamingMessage, {
+        messageId: args.messageId,
           content: "I apologize, but I encountered an error while generating a response. Error: " + (error instanceof Error ? error.message : String(error)) + ". Please try again.",
-          isComplete: true,
-        });
+        isComplete: true,
+      });
       } catch (saveError) {
         console.error("Failed to save error message:", saveError);
       }

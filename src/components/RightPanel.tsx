@@ -62,7 +62,7 @@ const GeneratingLoadingAnimation = ({ isDarkMode }: { isDarkMode: boolean }) => 
   };
 
   return (
-    <div className="absolute inset-0 flex items-center justify-center" style={{ paddingTop: '60px' }}>
+    <div className="absolute inset-0 flex items-center justify-center" style={{ paddingTop: '60px', pointerEvents: 'none' }}>
       <div style={loaderWrapperStyle}>
         <span style={{...letterStyle, animationDelay: '0s'}}>G</span>
         <span style={{...letterStyle, animationDelay: '0.1s'}}>e</span>
@@ -321,7 +321,7 @@ export function RightPanel({
           style={{ width: `${width}px` }}
         >
           {/* Header */}
-          <div className={`flex items-center justify-between p-6 border-b ${
+          <div className={`flex items-center justify-between p-6 border-b relative z-10 ${
             isDarkMode ? 'border-neutral-800 bg-black' : 'border-neutral-200 bg-white'
           }`}>
             <div className="flex items-center gap-3">
