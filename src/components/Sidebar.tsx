@@ -34,28 +34,21 @@ export function Sidebar({
   onClose
 }: SidebarProps) {
   const [searchQuery, setSearchQuery] = useState("");
+  const [activeMenu, setActiveMenu] = useState<Id<"conversations"> | null>(null);
   const { isDarkMode, toggleTheme } = useTheme();
   const { signOut } = useAuthActions();
   const deleteConversation = useMutation(api.conversations.remove);
-  const starConversation = useMutation(api.conversations.star);
-  const duplicateConversation = useMutation(api.conversations.duplicate);
 
-  const handleDelete = async (conversationId: Id<"conversations">, e: React.MouseEvent) => {
-    e.stopPropagation();
+  const handleDelete = async (conversationId: Id<"conversations">) => {
     if (confirm("Are you sure you want to delete this conversation?")) {
       await deleteConversation({ conversationId });
+      setActiveMenu(null);
     }
   };
 
-  const handleStar = async (conversationId: Id<"conversations">, e: React.MouseEvent) => {
+  const toggleMenu = (conversationId: Id<"conversations">, e: React.MouseEvent) => {
     e.stopPropagation();
-    await starConversation({ conversationId });
-  };
-
-  const handleDuplicate = async (conversationId: Id<"conversations">, e: React.MouseEvent) => {
-    e.stopPropagation();
-    const newId = await duplicateConversation({ conversationId });
-    onSelectConversation(newId);
+    setActiveMenu(activeMenu === conversationId ? null : conversationId);
   };
 
   // Filter out archived conversations and apply search filter
@@ -132,85 +125,57 @@ export function Sidebar({
             <p className="text-sm mt-1">Start a new chat to begin</p>
           </div>
         ) : (
-          <div className="p-2">
+          <div className="p-1">
             {filteredConversations.map((conversation) => (
               <div
                 key={conversation._id}
                 onClick={() => onSelectConversation(conversation._id)}
-                className={`group relative p-3 rounded-lg cursor-pointer transition-colors mb-1 ${
+                className={`group relative px-3 py-2.5 rounded-lg cursor-pointer transition-colors mb-0.5 ${
                   selectedConversationId === conversation._id
                     ? isDarkMode ? 'bg-neutral-800' : 'bg-neutral-200'
-                    : isDarkMode ? 'hover:bg-neutral-800' : 'hover:bg-neutral-100'
+                    : isDarkMode ? 'hover:bg-neutral-900' : 'hover:bg-neutral-50'
                 }`}
               >
-                <div className="flex items-start justify-between">
-                  <div className="flex-1 min-w-0">
+                <div className="flex items-center justify-between">
+                  <div className="flex-1 min-w-0 pr-2">
                     <div className="flex items-center gap-2">
                       {conversation.type === "agent_builder" && (
                         <svg className="w-3 h-3 text-purple-500 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 9l3 3-3 3m5 0h3" />
                         </svg>
                       )}
-                      {conversation.starred && (
-                        <svg className="w-3 h-3 text-primary flex-shrink-0" fill="currentColor" viewBox="0 0 24 24">
-                          <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" />
-                        </svg>
-                      )}
-                      <h3 className={`font-medium ${isDarkMode ? 'text-neutral-200' : 'text-neutral-900'} truncate text-sm`}>
+                      <h3 className={`font-normal ${isDarkMode ? 'text-neutral-200' : 'text-neutral-900'} truncate text-sm leading-5`}>
                         {conversation.title}
                       </h3>
                     </div>
-                    <p className={`text-xs ${isDarkMode ? 'text-neutral-500' : 'text-neutral-500'} mt-1`}>
-                      {formatDate(conversation.lastMessageAt || conversation._creationTime)}
-                    </p>
                   </div>
                   
-                  {/* Action Menu */}
-                  <div className="opacity-0 group-hover:opacity-100 flex flex-col gap-1 ml-2 flex-shrink-0">
+                  {/* Ellipsis Menu */}
+                  <div className="relative">
                     <button
-                      onClick={(e) => handleStar(conversation._id, e)}
-                      className={`flex items-center gap-2 px-2 py-1 text-xs rounded transition-all ${
-                        isDarkMode 
-                          ? 'text-neutral-500 hover:text-neutral-400 hover:bg-neutral-700' 
-                          : 'text-neutral-500 hover:text-neutral-700 hover:bg-neutral-100'
-                      }`}
-                      title={conversation.starred ? "Unstar" : "Star"}
+                      onClick={(e) => toggleMenu(conversation._id, e)}
+                      className={`opacity-0 group-hover:opacity-100 p-1 ${isDarkMode ? 'hover:bg-neutral-700 text-neutral-400' : 'hover:bg-neutral-200 text-neutral-500'} rounded transition-all`}
+                      title="More options"
                     >
-                      <svg className={`w-3 h-3 ${conversation.starred ? 'text-primary' : 'currentColor'}`} fill="currentColor" viewBox="0 0 24 24">
-                        <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" />
+                      <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
+                        <path d="M12 8c1.1 0 2-.9 2-2s-.9-2-2-2-2 .9-2 2 .9 2 2 2zm0 2c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2zm0 6c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2z"/>
                       </svg>
-                      <span>{conversation.starred ? "Unstar" : "Star"}</span>
                     </button>
                     
-                    <button
-                      onClick={(e) => handleDuplicate(conversation._id, e)}
-                      className={`flex items-center gap-2 px-2 py-1 text-xs rounded transition-all ${
-                        isDarkMode 
-                          ? 'text-neutral-500 hover:text-neutral-400 hover:bg-neutral-700' 
-                          : 'text-neutral-500 hover:text-neutral-700 hover:bg-neutral-100'
-                      }`}
-                      title="Duplicate"
-                    >
-                      <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
-                      </svg>
-                      <span>Duplicate</span>
-                    </button>
-                    
-                    <button
-                      onClick={(e) => handleDelete(conversation._id, e)}
-                      className={`flex items-center gap-2 px-2 py-1 text-xs rounded transition-all ${
-                        isDarkMode 
-                          ? 'text-neutral-500 hover:text-neutral-400 hover:bg-neutral-700' 
-                          : 'text-neutral-500 hover:text-neutral-700 hover:bg-neutral-100'
-                      }`}
-                      title="Delete"
-                    >
-                      <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                      </svg>
-                      <span>Delete</span>
-                    </button>
+                    {/* Dropdown Menu */}
+                    {activeMenu === conversation._id && (
+                      <div className={`absolute right-0 top-full mt-1 ${isDarkMode ? 'bg-neutral-800 border-neutral-700' : 'bg-white border-neutral-200'} border rounded-lg shadow-lg z-10 min-w-[120px]`}>
+                        <button
+                          onClick={() => handleDelete(conversation._id)}
+                          className={`w-full text-left px-3 py-2 text-sm ${isDarkMode ? 'text-red-400 hover:bg-neutral-700' : 'text-red-600 hover:bg-neutral-50'} transition-colors rounded-lg flex items-center gap-2`}
+                        >
+                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                          </svg>
+                          Delete
+                        </button>
+                      </div>
+                    )}
                   </div>
                 </div>
               </div>
@@ -219,7 +184,15 @@ export function Sidebar({
         )}
       </div>
 
-      {/* Bottom Actions - These are now part of the collapsing sidebar */}
+      {/* Click outside to close menu */}
+      {activeMenu && (
+        <div 
+          className="fixed inset-0 z-0" 
+          onClick={() => setActiveMenu(null)}
+        />
+      )}
+
+      {/* Bottom Actions */}
       <div className={`p-3 space-y-1`}>
         {/* MCP Integration */}
         {onOpenMCP && (
