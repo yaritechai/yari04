@@ -1,10 +1,10 @@
 "use node";
 
 import { v } from "convex/values";
-import { internalAction, internalMutation } from "./_generated/server";
-import { internal, api } from "./_generated/api";
+import { internalAction } from "./_generated/server";
+import { internal } from "./_generated/api";
 import OpenAI from "openai";
-import { getModelForTask, getModelParameters, supportsThinking } from "./modelRouter";
+import { getModelForTask, getModelParameters } from "./modelRouter";
 
 // Test action to verify OpenRouter connection
 export const testOpenRouter = internalAction({
@@ -17,7 +17,7 @@ export const testOpenRouter = internalAction({
       });
 
       const completion = await openrouter.chat.completions.create({
-        model: "openai/gpt-4o-mini",
+        model: "openai/gpt-4o-2024-11-20",
         messages: [{ role: "user", content: "Say hello" }],
         max_tokens: 10,
       });
@@ -198,26 +198,18 @@ Current conversation context:
 
 Remember: You're here to be genuinely helpful, direct, and efficient. Focus on solving problems and providing value!`;
 
-      // Determine model selection based on request type and length
-      const requestLength = message.content.length;
-      const complexity = requestLength > 200 || isLandingPageRequest ? "complex" : "simple";
+      // Use model router for intelligent model selection
+      const selectedModel = getModelForTask(message.content, {
+        isLandingPage: isLandingPageRequest,
+        isCodeGeneration: message.content.toLowerCase().includes('code') || message.content.toLowerCase().includes('html'),
+        isResearchTask: shouldPerformSearch
+      });
       
-      // Simple model selection logic
-      let selectedModel = "z-ai/glm-4.5-air"; // Default fast model
-      let modelParams = {
-        max_tokens: 2000,
-        temperature: 0.7,
-        top_p: 0.95,
-      };
-
-      if (complexity === "complex" || isLandingPageRequest) {
-        selectedModel = "z-ai/glm-4.5"; // More capable model for complex tasks
-        modelParams.max_tokens = 4000;
-      }
+      const modelParams = getModelParameters(selectedModel);
 
       console.log("Prepared OpenRouter messages:", {
         messageCount: openaiMessages.length + 1, // +1 for system prompt
-        model: "gpt-4o-mini",
+        model: selectedModel,
         temperature: modelParams.temperature,
         hasApiKey: !!process.env.OPENROUTER_API_KEY,
         isLandingPageRequest,

@@ -2,17 +2,17 @@ import { v } from "convex/values";
 
 // Model configurations with task-specific routing
 export const MODELS = {
-  // General model with thinking capabilities
-  GENERAL_THINKING: "z-ai/glm-4.5-air",
+  // General model - fast GPT-4o for most conversations
+  GENERAL_THINKING: "openai/gpt-4o-2024-11-20",
   
-  // Research and analysis tasks
-  RESEARCH: "z-ai/glm-4-32b",
+  // Research and analysis tasks - use regular GPT-4o 
+  RESEARCH: "openai/gpt-4o",
   
-  // Landing pages and coding tasks
-  CODING_LANDING: "z-ai/glm-4.5",
+  // Landing pages and coding tasks - use latest GPT-4o
+  CODING_LANDING: "openai/gpt-4o-2024-08-06",
   
-  // Summarization and title generation
-  SUMMARIZATION: "openai/gpt-4.1-nano",
+  // Summarization and title generation - ultra fast
+  SUMMARIZATION: "openai/gpt-4o-mini",
 } as const;
 
 // Task type identification patterns
@@ -173,29 +173,29 @@ export function getModelForTask(
 // Model metadata for UI display
 export const MODEL_METADATA = {
   [MODELS.GENERAL_THINKING]: {
-    label: "GLM-4.5 Air",
-    description: "Advanced thinking & reasoning",
+    label: "GPT-4o",
+    description: "Fast & intelligent responses",
     category: "General",
     capabilities: ["thinking", "reasoning", "conversation"],
     icon: "🧠"
   },
   [MODELS.RESEARCH]: {
-    label: "GLM-4 32B", 
+    label: "GPT-4o Research", 
     description: "Deep research & analysis",
     category: "Research",
     capabilities: ["research", "analysis", "long-context"],
     icon: "🔬"
   },
   [MODELS.CODING_LANDING]: {
-    label: "GLM-4.5",
+    label: "GPT-4o Code",
     description: "Coding & web development",
     category: "Development", 
     capabilities: ["coding", "web-dev", "landing-pages"],
     icon: "💻"
   },
   [MODELS.SUMMARIZATION]: {
-    label: "GPT-4.1 Nano",
-    description: "Fast summarization & titles",
+    label: "GPT-4o Mini",
+    description: "Ultra-fast summarization",
     category: "Efficiency",
     capabilities: ["summarization", "titles", "speed"],
     icon: "⚡"

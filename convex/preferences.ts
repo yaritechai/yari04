@@ -16,7 +16,7 @@ export const get = query({
       .first();
 
     return preferences || {
-      defaultModel: "gpt-4o-mini",
+      defaultModel: "openai/gpt-4o-2024-11-20",
       defaultTemperature: 0.7,
       theme: "light",
       codeTheme: "github",
