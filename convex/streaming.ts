@@ -311,8 +311,8 @@ Please provide a detailed and informative response based on these search results
               
             } else {
               console.log("No search results found, falling back to normal response");
-            }
-          } catch (error) {
+                }
+              } catch (error) {
             console.error("Search failed:", error);
             // Fall through to normal response
           }
