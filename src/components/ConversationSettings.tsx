@@ -17,7 +17,7 @@ interface ConversationSettingsProps {
 
 export function ConversationSettings({ conversation, onClose }: ConversationSettingsProps) {
   const [title, setTitle] = useState(conversation.title);
-  const [model, setModel] = useState(conversation.model || "openai/gpt-4o-mini");
+  const [model, setModel] = useState(conversation.model || "z-ai/glm-4.5-air");
   const [systemPrompt, setSystemPrompt] = useState(conversation.systemPrompt || "");
   const [temperature, setTemperature] = useState(conversation.temperature || 0.7);
   const [isLoading, setIsLoading] = useState(false);
@@ -25,16 +25,15 @@ export function ConversationSettings({ conversation, onClose }: ConversationSett
 
   const updateConversation = useMutation(api.conversations.update);
 
-  // Updated model options
+  // Updated model options - Task-based intelligent routing
   const modelOptions = [
-    { value: "openai/gpt-4o", label: "GPT-4o", description: "Most capable model" },
-    { value: "openai/gpt-4o-mini", label: "GPT-4o Mini", description: "Fast and efficient" },
-    { value: "openai/gpt-4-turbo", label: "GPT-4 Turbo", description: "Advanced reasoning" },
-    { value: "anthropic/claude-3.5-sonnet", label: "Claude 3.5 Sonnet", description: "Excellent for analysis" },
-    { value: "anthropic/claude-3-haiku", label: "Claude 3 Haiku", description: "Fast and affordable" },
-    { value: "moonshot/moonshot-v1-8k", label: "Kimi 2", description: "Advanced Chinese model" },
-    { value: "deepseek/deepseek-chat", label: "DeepSeek Chat", description: "Reasoning specialist" },
-    { value: "zhipuai/glm-4-plus", label: "GLM 4.5", description: "Multimodal capabilities" },
+    { value: "z-ai/glm-4.5-air", label: "GLM-4.5 Air", description: "Advanced thinking & reasoning" },
+    { value: "z-ai/glm-4-32b", label: "GLM-4 32B", description: "Deep research & analysis" },
+    { value: "z-ai/glm-4.5", label: "GLM-4.5", description: "Coding & web development" },
+    { value: "openai/gpt-4.1-nano", label: "GPT-4.1 Nano", description: "Fast summarization & titles" },
+    // Legacy options
+    { value: "openai/gpt-4o", label: "GPT-4o", description: "Most capable model (legacy)" },
+    { value: "openai/gpt-4o-mini", label: "GPT-4o Mini", description: "Fast and efficient (legacy)" },
   ];
 
   const handleSave = async () => {

@@ -1,4 +1,4 @@
-import React, { useState, useRef } from "react";
+import React, { useState, useRef, useEffect } from "react";
 import { useTheme } from "../contexts/ThemeContext";
 
 interface BrowserViewProps {
@@ -14,10 +14,18 @@ export function BrowserView({ data }: BrowserViewProps) {
   const { isDarkMode } = useTheme();
   const [isLoading, setIsLoading] = useState(false);
   const [isFullscreen, setIsFullscreen] = useState(false);
+  const [hasError, setHasError] = useState(false);
   const iframeRef = useRef<HTMLIFrameElement>(null);
+
+  // Reset error state when data changes
+  useEffect(() => {
+    setHasError(false);
+    setIsLoading(false);
+  }, [data]);
 
   const handleRefresh = () => {
     setIsLoading(true);
+    setHasError(false);
     if (iframeRef.current) {
       // Force iframe reload
       const currentSrc = iframeRef.current.src;
@@ -32,6 +40,11 @@ export function BrowserView({ data }: BrowserViewProps) {
       // Simulate loading for srcDoc
       setTimeout(() => setIsLoading(false), 1000);
     }
+  };
+
+  const handleIframeError = () => {
+    setIsLoading(false);
+    setHasError(true);
   };
 
   const handleOpenExternal = () => {
@@ -85,7 +98,7 @@ export function BrowserView({ data }: BrowserViewProps) {
   return (
     <div className={`h-full flex flex-col ${isFullscreen ? 'fixed inset-0 z-50 bg-white dark:bg-neutral-900' : ''}`}>
       {/* Browser Controls */}
-      <div className={`flex items-center gap-2 p-3 ${isDarkMode ? 'bg-neutral-800' : 'bg-gray-50'} flex-shrink-0`}>
+      <div className={`flex items-center gap-2 p-3 ${isDarkMode ? 'bg-neutral-800' : 'bg-neutral-50'} flex-shrink-0`}>
         {/* Traffic Light Buttons */}
         <div className="flex items-center gap-2 mr-3">
           <div className="w-3 h-3 rounded-full bg-red-500"></div>
@@ -166,10 +179,30 @@ export function BrowserView({ data }: BrowserViewProps) {
       {/* Browser Content */}
       <div className="flex-1 overflow-hidden relative">
         {isLoading ? (
-          <div className={`flex items-center justify-center h-full ${isDarkMode ? 'text-gray-400 bg-neutral-900' : 'text-gray-500 bg-gray-50'}`}>
+          <div className={`flex items-center justify-center h-full ${isDarkMode ? 'text-gray-400 bg-neutral-900' : 'text-gray-500 bg-neutral-50'}`}>
             <div className="text-center">
               <div className="animate-spin w-8 h-8 border-2 border-gray-500 border-t-transparent rounded-full mx-auto mb-4"></div>
               <p>Loading...</p>
+            </div>
+          </div>
+        ) : hasError ? (
+          <div className={`flex items-center justify-center h-full ${isDarkMode ? 'text-gray-400 bg-neutral-900' : 'text-gray-500 bg-neutral-50'}`}>
+            <div className="text-center">
+              <div className="text-4xl mb-4">⚠️</div>
+              <p className="font-medium">Failed to load content</p>
+              <p className="text-sm mt-2 opacity-75">
+                There was an error loading the content
+              </p>
+              <button
+                onClick={handleRefresh}
+                className={`mt-4 px-4 py-2 rounded-lg ${
+                  isDarkMode 
+                    ? 'bg-neutral-800 hover:bg-neutral-700 text-gray-300' 
+                    : 'bg-gray-100 hover:bg-gray-200 text-gray-700'
+                } transition-colors`}
+              >
+                Try Again
+              </button>
             </div>
           </div>
         ) : data.htmlContent ? (
@@ -178,8 +211,9 @@ export function BrowserView({ data }: BrowserViewProps) {
             srcDoc={data.htmlContent}
             className="w-full h-full border-0"
             title={data.title || "HTML Document"}
-            sandbox="allow-scripts allow-same-origin allow-forms allow-popups allow-modals"
+            sandbox="allow-scripts allow-forms allow-popups allow-modals"
             onLoad={() => setIsLoading(false)}
+            onError={handleIframeError}
           />
         ) : data.url ? (
           <iframe
@@ -187,8 +221,10 @@ export function BrowserView({ data }: BrowserViewProps) {
             src={data.url}
             className="w-full h-full border-0"
             title={data.title || "Browser View"}
-            sandbox="allow-scripts allow-same-origin allow-forms allow-popups allow-modals"
+            sandbox="allow-scripts allow-forms allow-popups allow-modals allow-same-origin"
             onLoad={() => setIsLoading(false)}
+            onError={handleIframeError}
+            referrerPolicy="no-referrer"
           />
         ) : null}
         

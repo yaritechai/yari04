@@ -63,7 +63,7 @@ export function Agent() {
     : null;
 
   return (
-    <div className={`flex h-screen ${isDarkMode ? 'bg-gray-900' : 'bg-gray-50'} relative`}>
+    <div className={`flex h-screen ${isDarkMode ? 'bg-neutral-900' : 'bg-neutral-50'} relative`}>
       {/* Mobile Overlay */}
       {isMobile && sidebarOpen && (
         <div 
@@ -137,7 +137,7 @@ export function Agent() {
               onOpenFragment={rightPanel.openFragment}
             />
           ) : (
-            <div className={`flex-1 flex items-center justify-center ${isDarkMode ? 'bg-gray-900' : 'bg-gray-50'} p-4`}>
+            <div className={`flex-1 flex items-center justify-center ${isDarkMode ? 'bg-neutral-900' : 'bg-neutral-50'} p-4`}>
               <div className="text-center max-w-md">
                 <div className={`w-20 h-20 ${isDarkMode ? 'bg-gradient-to-br from-blue-900/50 to-purple-900/50 border-gray-700' : 'bg-gradient-to-br from-blue-100 to-purple-100 border-gray-300'} rounded-2xl flex items-center justify-center mx-auto mb-6 border`}>
                   <svg className={`w-10 h-10 ${isDarkMode ? 'text-blue-400' : 'text-blue-600'}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">

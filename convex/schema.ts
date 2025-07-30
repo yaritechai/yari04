@@ -140,6 +140,24 @@ const applicationTables = {
     updatedAt: v.number(),
   }).index("by_user", ["userId"]),
 
+  // Pending MCP integrations awaiting user credentials
+  pendingMCPIntegrations: defineTable({
+    userId: v.id("users"),
+    serverId: v.string(),
+    serverName: v.string(),
+    connectionUrl: v.string(),
+    requiredCredentials: v.array(v.object({
+      name: v.string(),
+      type: v.string(),
+      description: v.string(),
+      required: v.boolean(),
+    })),
+    suggestedTools: v.array(v.string()),
+    status: v.union(v.literal("awaiting_credentials"), v.literal("completed"), v.literal("cancelled")),
+    createdAt: v.number(),
+  }).index("by_user", ["userId"])
+    .index("by_user_and_status", ["userId", "status"]),
+
   // New MCP OAuth tables
   mcpSessions: defineTable({
     sessionId: v.string(),

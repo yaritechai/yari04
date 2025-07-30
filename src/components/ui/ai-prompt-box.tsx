@@ -368,10 +368,10 @@ const PromptInput = React.forwardRef<HTMLDivElement, PromptInputProps>(
           <div
             ref={ref}
             className={cn(
-              "rounded-3xl border p-2 shadow-[0_8px_30px_rgba(0,0,0,0.24)] transition-all duration-300",
+              "rounded-3xl border p-2 shadow-[0_8px_30px_rgba(0,0,0,0.12)] transition-all duration-300",
               isDarkMode 
-                ? "border-transparent bg-neutral-900"
-                : "border-gray-300 bg-white",
+                ? "border-neutral-700/50 bg-neutral-800/20 backdrop-blur-sm"
+                : "border-neutral-300/50 bg-white/20 backdrop-blur-sm",
               isLoading && "border-red-500/70",
               className
             )}
@@ -491,15 +491,15 @@ const StatusBadge: React.FC<StatusBadgeProps> = ({ type, isActive }) => {
   const getConfig = () => {
     switch (type) {
       case 'search':
-        return { icon: '🔍', label: 'Searching web', color: 'blue' };
+        return { label: 'Searching', color: 'blue' };
       case 'think':
-        return { icon: '🧠', label: 'Deep thinking', color: 'purple' };
+        return { label: 'Thinking', color: 'purple' };
       case 'canvas':
-        return { icon: '🎨', label: 'Creating on canvas', color: 'green' };
+        return { label: 'Creating', color: 'green' };
       case 'code':
-        return { icon: '💻', label: 'Writing code', color: 'orange' };
+        return { label: 'Coding', color: 'orange' };
       default:
-        return { icon: '⚡', label: 'Processing', color: 'gray' };
+        return { label: 'Processing', color: 'gray' };
     }
   };
 
@@ -509,35 +509,36 @@ const StatusBadge: React.FC<StatusBadgeProps> = ({ type, isActive }) => {
 
   return (
     <motion.div
-      initial={{ opacity: 0, scale: 0.8, y: 10 }}
-      animate={{ opacity: 1, scale: 1, y: 0 }}
-      exit={{ opacity: 0, scale: 0.8, y: -10 }}
-      className={`inline-flex items-center gap-2 px-3 py-1.5 text-xs rounded-full transition-all duration-200 ${
+      initial={{ opacity: 0, y: 4, scale: 0.95 }}
+      animate={{ opacity: 1, y: 0, scale: 1 }}
+      exit={{ opacity: 0, y: -4, scale: 0.95 }}
+      className={`inline-flex items-center gap-3 px-4 py-2 text-sm rounded-xl transition-all duration-300 ${
         isDarkMode 
-          ? 'bg-gray-700/80 text-gray-300 border border-gray-600/50' 
-          : 'bg-gray-100/80 text-gray-700 border border-gray-200/50'
-      } backdrop-blur-sm`}
+          ? 'bg-neutral-800/80 text-gray-300 border border-neutral-700/30 backdrop-blur-sm' 
+          : 'bg-white/80 text-gray-700 border border-neutral-200/50 backdrop-blur-sm'
+      } shadow-lg`}
     >
-      <motion.span
-        animate={{ rotate: [0, 360] }}
-        transition={{ duration: 2, repeat: Infinity, ease: "linear" }}
-        className="text-sm"
-      >
-        {config.icon}
-      </motion.span>
-      <span className="font-medium">{config.label}</span>
-      <div className="flex gap-1">
+      <div className="flex items-center gap-1">
         {[0, 1, 2].map((i) => (
           <motion.div
             key={i}
-            animate={{ opacity: [0.3, 1, 0.3] }}
-            transition={{ duration: 1.5, repeat: Infinity, delay: i * 0.2 }}
-            className={`w-1 h-1 rounded-full ${
-              isDarkMode ? 'bg-gray-400' : 'bg-gray-600'
+            className={`w-2 h-2 rounded-full ${
+              isDarkMode ? 'bg-blue-400' : 'bg-blue-500'
             }`}
+            animate={{
+              scale: [0.8, 1.2, 0.8],
+              opacity: [0.3, 1, 0.3],
+            }}
+            transition={{
+              duration: 1.2,
+              repeat: Infinity,
+              delay: i * 0.15,
+              ease: "easeInOut"
+            }}
           />
         ))}
       </div>
+      <span className="font-medium">{config.label}</span>
     </motion.div>
   );
 };
@@ -795,10 +796,7 @@ export const PromptInputBox = React.forwardRef<HTMLDivElement, PromptInputBoxPro
         isLoading={isLoading}
         onSubmit={handleSubmit}
         className={cn(
-          "w-full shadow-[0_8px_30px_rgba(0,0,0,0.24)] transition-all duration-300 ease-in-out",
-          isDarkMode 
-            ? "bg-neutral-900 border-transparent"
-            : "bg-white border-gray-300",
+          "w-full shadow-[0_8px_30px_rgba(0,0,0,0.12)] transition-all duration-300 ease-in-out",
           isRecording && "border-red-500/70",
           className
         )}

@@ -128,9 +128,27 @@ export const generateResponseWithSearch = internalAction({
           .join('\n\n');
       }
 
+      // Get current date and time for system prompt
+      const currentDateTime = new Date().toLocaleString('en-US', {
+        weekday: 'long',
+        year: 'numeric',
+        month: 'long',
+        day: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit',
+        second: '2-digit',
+        timeZoneName: 'short'
+      });
+
       const systemMessage = {
         role: "system" as const,
-        content: `You are a helpful AI assistant. The user has asked a question that required web search. Here are the current search results for "${args.query}":\n\n${searchContext}\n\nThe search results include full webpage content retrieved using Jina Reader for comprehensive analysis. Use this information to provide a comprehensive and accurate response. Always cite your sources using the provided links when available.`
+        content: `📅 **CURRENT DATE & TIME**: ${currentDateTime}
+
+You are a helpful AI assistant. The user has asked a question that required web search. Here are the current search results for "${args.query}":
+
+${searchContext}
+
+The search results include full webpage content retrieved using Jina Reader for comprehensive analysis. Use this information to provide a comprehensive and accurate response. Always cite your sources using the provided links when available.`
       };
 
       // Call OpenRouter with search context

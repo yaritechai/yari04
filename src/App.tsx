@@ -24,6 +24,7 @@ function AppContent() {
     width: rightPanelWidth,
     activeFragment,
     fragmentData,
+    isTransitioning,
     togglePanel: toggleRightPanel,
     setWidth: setRightPanelWidth,
     openFragment: originalOpenFragment,
@@ -98,7 +99,7 @@ function AppContent() {
   const chatWidth = Math.max(minChatWidth, availableWidth);
 
   return (
-    <div className={`h-screen flex ${isDarkMode ? 'bg-black' : 'bg-gray-50'} overflow-hidden`}>
+    <div className={`h-screen flex ${isDarkMode ? 'bg-neutral-900' : 'bg-neutral-50'} overflow-hidden`}>
       {/* Mobile Sidebar Overlay */}
       {isMobile && isSidebarOpen && (
         <div 
@@ -142,27 +143,29 @@ function AppContent() {
           maxWidth: isRightPanelOpen ? `calc(100vw - ${sidebarWidth}px - ${rightPanelWidth}px - 2rem)` : undefined
         }}
       >
-        {/* Sidebar Toggle Button - Now inside main container */}
-        <button
-          onClick={() => {
-            const newSidebarState = !isSidebarOpen;
-            setIsSidebarOpen(newSidebarState);
-            // Close right panel when sidebar opens
-            if (newSidebarState && isRightPanelOpen) {
-              closeFragment();
-            }
-          }}
-          className={`absolute top-4 left-4 z-50 p-2 ${
-            isDarkMode 
-              ? 'bg-gray-900 border-gray-700 text-gray-300 hover:text-white hover:bg-gray-800' 
-              : 'bg-white border-gray-300 text-gray-600 hover:text-gray-900 hover:bg-gray-50'
-          } border rounded-lg shadow-sm hover:shadow-md transition-all duration-200 hover-lift`}
-          title="Toggle menu"
-        >
-          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
-          </svg>
-        </button>
+        {/* Sidebar Toggle Button - Only show when sidebar is closed */}
+        {!isSidebarOpen && (
+          <button
+            onClick={() => {
+              const newSidebarState = !isSidebarOpen;
+              setIsSidebarOpen(newSidebarState);
+              // Close right panel when sidebar opens
+              if (newSidebarState && isRightPanelOpen) {
+                closeFragment();
+              }
+            }}
+            className={`absolute top-4 left-4 z-50 p-2 ${
+              isDarkMode 
+                ? 'bg-neutral-800 hover:bg-neutral-700 text-gray-300 hover:text-white' 
+                : 'bg-neutral-100 hover:bg-neutral-200 text-gray-600 hover:text-gray-900'
+            } rounded-lg transition-colors`}
+            title="Open sidebar"
+          >
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
+            </svg>
+          </button>
+        )}
 
         {selectedConversationId ? (
           <ChatInterface
@@ -171,7 +174,7 @@ function AppContent() {
             onOpenFragment={handleOpenFragment}
           />
         ) : (
-          <div className={`flex-1 flex flex-col items-center justify-center ${isDarkMode ? 'bg-black' : 'bg-gray-50'} px-4`}>
+          <div className={`flex-1 flex flex-col items-center justify-center ${isDarkMode ? 'bg-neutral-900' : 'bg-neutral-50'} px-4`}>
             <div className="w-full max-w-4xl flex flex-col items-center justify-center min-h-[60vh]">
               {/* Welcome Message */}
               <div className="text-center mb-8">
@@ -220,6 +223,7 @@ function AppContent() {
         activeFragment={activeFragment}
         onFragmentChange={openFragment}
         fragmentData={fragmentData}
+        isTransitioning={isTransitioning}
       />
     </div>
   );

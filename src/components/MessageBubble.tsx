@@ -139,7 +139,7 @@ export function MessageBubble({ message, showTokenCount, onOpenFragment, onMCPCr
                 isDarkMode 
                   ? 'prose-invert prose-headings:text-gray-100 prose-p:text-gray-200 prose-strong:text-gray-100 prose-code:text-gray-200 prose-pre:bg-gray-900 prose-pre:border prose-pre:border-gray-700' 
                   : 'prose-headings:text-gray-900 prose-p:text-gray-800 prose-strong:text-gray-900 prose-code:text-gray-800'
-              } ${message.role === 'user' ? 'prose-headings:text-white prose-p:text-white prose-strong:text-white prose-code:text-white prose-pre:bg-primary-800 prose-pre:text-white' : ''}`}
+              } ${message.role === 'user' ? (isDarkMode ? 'prose-headings:text-gray-100 prose-p:text-gray-100 prose-strong:text-gray-100 prose-code:text-gray-100 prose-pre:bg-neutral-700 prose-pre:text-gray-100' : 'prose-headings:text-gray-900 prose-p:text-gray-900 prose-strong:text-gray-900 prose-code:text-gray-900 prose-pre:bg-neutral-200 prose-pre:text-gray-900') : ''}`}
               {...props}
             >
               {children}
@@ -148,7 +148,22 @@ export function MessageBubble({ message, showTokenCount, onOpenFragment, onMCPCr
           code: ({ node, inline, className, children, ...props }: any) => {
             const match = /language-(\w+)/.exec(className || '');
             const language = match ? match[1] : '';
-            const codeContent = String(children).replace(/\n$/, '');
+            
+            // Properly extract text content from children
+            const extractTextContent = (children: any): string => {
+              if (typeof children === 'string') {
+                return children;
+              }
+              if (Array.isArray(children)) {
+                return children.map(extractTextContent).join('');
+              }
+              if (children && typeof children === 'object' && children.props && children.props.children) {
+                return extractTextContent(children.props.children);
+              }
+              return '';
+            };
+            
+            const codeContent = extractTextContent(children).replace(/\n$/, '');
             
             if (!inline && language) {
               // Check if this is HTML content
@@ -157,14 +172,15 @@ export function MessageBubble({ message, showTokenCount, onOpenFragment, onMCPCr
                            codeContent.includes('<html') ||
                            (codeContent.includes('<head>') && codeContent.includes('<body>'));
 
-              // Auto-open right panel for HTML content
+              // Auto-open right panel for HTML content (only if not already open)
               if (isHTML && onOpenFragment) {
-                setTimeout(() => {
+                // Use requestAnimationFrame for better timing and avoid conflicts
+                requestAnimationFrame(() => {
                   handleOpenInFragment('browser', {
                     htmlContent: codeContent,
                     title: extractTitleFromHTML(codeContent) || 'Generated HTML Document'
                   });
-                }, 500);
+                });
               }
 
               return (
@@ -208,7 +224,7 @@ export function MessageBubble({ message, showTokenCount, onOpenFragment, onMCPCr
                     isDarkMode 
                       ? 'bg-gray-950 border border-gray-800' 
                       : message.role === 'user'
-                      ? 'bg-primary-800/20 border border-primary-600/30'
+                      ? 'bg-neutral-200/50 border border-neutral-300'
                       : 'border border-gray-200'
                   }`}>
                     <CodeBlock
@@ -226,10 +242,12 @@ export function MessageBubble({ message, showTokenCount, onOpenFragment, onMCPCr
             return (
               <code 
                 className={`px-1.5 py-0.5 rounded text-sm font-mono ${
-                  isDarkMode 
+                  message.role === 'user'
+                    ? isDarkMode
+                      ? 'bg-neutral-700 text-gray-100'
+                      : 'bg-neutral-200 text-gray-900'
+                    : isDarkMode 
                     ? 'bg-gray-800 text-gray-200' 
-                    : message.role === 'user'
-                    ? 'bg-primary-700/30 text-white'
                     : 'bg-gray-100 text-gray-800'
                 }`} 
                 {...props}
@@ -243,42 +261,42 @@ export function MessageBubble({ message, showTokenCount, onOpenFragment, onMCPCr
           },
           h1: ({ children }) => (
             <h1 className={`text-xl sm:text-2xl font-bold mb-3 ${
-              message.role === 'user' ? 'text-white' : isDarkMode ? 'text-gray-100' : 'text-gray-900'
+              message.role === 'user' ? (isDarkMode ? 'text-gray-100' : 'text-gray-900') : isDarkMode ? 'text-gray-100' : 'text-gray-900'
             }`}>
               {children}
             </h1>
           ),
           h2: ({ children }) => (
             <h2 className={`text-lg sm:text-xl font-bold mb-2 ${
-              message.role === 'user' ? 'text-white' : isDarkMode ? 'text-gray-100' : 'text-gray-900'
+              message.role === 'user' ? (isDarkMode ? 'text-gray-100' : 'text-gray-900') : isDarkMode ? 'text-gray-100' : 'text-gray-900'
             }`}>
               {children}
             </h2>
           ),
           h3: ({ children }) => (
             <h3 className={`text-base sm:text-lg font-bold mb-2 ${
-              message.role === 'user' ? 'text-white' : isDarkMode ? 'text-gray-100' : 'text-gray-900'
+              message.role === 'user' ? (isDarkMode ? 'text-gray-100' : 'text-gray-900') : isDarkMode ? 'text-gray-100' : 'text-gray-900'
             }`}>
               {children}
             </h3>
           ),
           p: ({ children }) => (
             <p className={`mb-2 leading-relaxed ${
-              message.role === 'user' ? 'text-white' : isDarkMode ? 'text-gray-200' : 'text-gray-800'
+              message.role === 'user' ? (isDarkMode ? 'text-gray-100' : 'text-gray-900') : isDarkMode ? 'text-gray-200' : 'text-gray-800'
             }`}>
               {children}
             </p>
           ),
           ul: ({ children }) => (
             <ul className={`list-disc list-inside mb-2 space-y-1 ${
-              message.role === 'user' ? 'text-white' : isDarkMode ? 'text-gray-200' : 'text-gray-800'
+              message.role === 'user' ? (isDarkMode ? 'text-gray-100' : 'text-gray-900') : isDarkMode ? 'text-gray-200' : 'text-gray-800'
             }`}>
               {children}
             </ul>
           ),
           ol: ({ children }) => (
             <ol className={`list-decimal list-inside mb-2 space-y-1 ${
-              message.role === 'user' ? 'text-white' : isDarkMode ? 'text-gray-200' : 'text-gray-800'
+              message.role === 'user' ? (isDarkMode ? 'text-gray-100' : 'text-gray-900') : isDarkMode ? 'text-gray-200' : 'text-gray-800'
             }`}>
               {children}
             </ol>
@@ -289,7 +307,9 @@ export function MessageBubble({ message, showTokenCount, onOpenFragment, onMCPCr
           blockquote: ({ children }) => (
             <blockquote className={`border-l-4 pl-4 py-2 my-2 italic ${
               message.role === 'user' 
-                ? 'border-primary-300 text-white/90' 
+                ? isDarkMode
+                  ? 'border-neutral-400 text-gray-200' 
+                  : 'border-neutral-400 text-gray-700'
                 : isDarkMode 
                 ? 'border-gray-600 text-gray-300' 
                 : 'border-gray-300 text-gray-600'
@@ -330,14 +350,14 @@ export function MessageBubble({ message, showTokenCount, onOpenFragment, onMCPCr
           ),
           strong: ({ children }) => (
             <strong className={`font-semibold ${
-              message.role === 'user' ? 'text-white' : isDarkMode ? 'text-gray-100' : 'text-gray-900'
+              message.role === 'user' ? (isDarkMode ? 'text-gray-100' : 'text-gray-900') : isDarkMode ? 'text-gray-100' : 'text-gray-900'
             }`}>
               {children}
             </strong>
           ),
           em: ({ children }) => (
             <em className={`italic ${
-              message.role === 'user' ? 'text-white' : isDarkMode ? 'text-gray-200' : 'text-gray-800'
+              message.role === 'user' ? (isDarkMode ? 'text-gray-100' : 'text-gray-900') : isDarkMode ? 'text-gray-200' : 'text-gray-800'
             }`}>
               {children}
             </em>
@@ -375,7 +395,9 @@ export function MessageBubble({ message, showTokenCount, onOpenFragment, onMCPCr
       <div className={`max-w-[85%] sm:max-w-3xl ${message.role === 'user' ? 'order-first' : ''}`}>
         <div className={`rounded-2xl px-3 py-2 sm:px-4 sm:py-3 ${
           message.role === 'user'
-            ? 'bg-primary text-white ml-auto'
+            ? isDarkMode
+              ? 'bg-neutral-800 text-gray-100 ml-auto border border-neutral-700'
+              : 'bg-neutral-100 text-gray-900 ml-auto border border-neutral-200'
             : isDarkMode
             ? 'text-gray-100'
             : 'text-gray-900'
@@ -386,7 +408,9 @@ export function MessageBubble({ message, showTokenCount, onOpenFragment, onMCPCr
               {message.attachments.map((attachment, index) => (
                 <div key={index} className={`flex items-center gap-2 p-2 rounded-lg text-sm ${
                   message.role === 'user' 
-                    ? 'bg-primary-700/50' 
+                    ? isDarkMode 
+                      ? 'bg-neutral-700/70' 
+                      : 'bg-neutral-200/70'
                     : isDarkMode ? 'bg-gray-700' : 'bg-gray-50'
                 }`}>
                   <svg className="w-3 h-3 sm:w-4 sm:h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -403,10 +427,16 @@ export function MessageBubble({ message, showTokenCount, onOpenFragment, onMCPCr
 
           {/* Report Generation Indicator */}
           {isGeneratingReport && (
-            <div className="mb-3 p-3 rounded-lg bg-primary-100 dark:bg-primary-900/30 border border-primary-200 dark:border-primary-700/50">
-              <div className="flex items-center gap-2 text-primary-700 dark:text-primary-400">
-                <div className="w-4 h-4 border-2 border-primary-600 border-t-transparent rounded-full animate-spin" />
-                <span className="text-sm font-medium">Generating report...</span>
+            <div className={`mb-3 p-3 rounded-lg border ${
+              isDarkMode 
+                ? 'bg-neutral-800/50 border-neutral-700' 
+                : 'bg-neutral-50 border-neutral-200'
+            }`}>
+              <div className={`flex items-center gap-2 ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>
+                <div className={`w-4 h-4 border-2 border-t-transparent rounded-full animate-spin ${
+                  isDarkMode ? 'border-gray-400' : 'border-gray-500'
+                }`} />
+                <span className="text-sm font-medium">Generating report</span>
               </div>
             </div>
           )}
@@ -416,11 +446,22 @@ export function MessageBubble({ message, showTokenCount, onOpenFragment, onMCPCr
             {renderContent()}
           </div>
 
-          {/* Streaming indicator */}
+          {/* Streaming indicator - OpenAI-style thinking animation */}
           {message.isStreaming && (
-            <div className="flex items-center gap-2 mt-2 text-sm opacity-75">
-              <div className="w-2 h-2 bg-current rounded-full animate-pulse" />
-              <span>Thinking...</span>
+            <div className={`inline-flex items-center gap-3 mt-3 px-4 py-2 text-sm rounded-xl transition-all ${
+              isDarkMode 
+                ? 'bg-neutral-800/80 text-gray-300 border border-neutral-700/30' 
+                : 'bg-white/80 text-gray-700 border border-neutral-200/50'
+            } shadow-lg backdrop-blur-sm`}>
+              <div className="flex items-center gap-1">
+                {[0, 1, 2].map((i) => (
+                  <div 
+                    key={i}
+                    className={`w-2 h-2 rounded-full thinking-dot ${isDarkMode ? 'bg-blue-400' : 'bg-blue-500'}`}
+                  />
+                ))}
+              </div>
+              <span className="font-medium">Thinking</span>
             </div>
           )}
         </div>

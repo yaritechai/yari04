@@ -637,7 +637,7 @@ export function AgentBuilder() {
 
   return (
     <div className={`min-h-screen ${
-      isDarkMode ? 'bg-gray-900' : 'bg-gray-50'
+                isDarkMode ? 'bg-neutral-900' : 'bg-neutral-50'
     }`}>
       <div className="max-w-4xl mx-auto px-4 py-8">
         {/* Header */}

@@ -18,6 +18,7 @@ interface RightPanelProps {
   activeFragment: FragmentType | null;
   onFragmentChange: (fragment: FragmentType, data?: any) => void;
   fragmentData?: any;
+  isTransitioning?: boolean;
 }
 
 export function RightPanel({
@@ -27,7 +28,8 @@ export function RightPanel({
   onWidthChange,
   activeFragment,
   onFragmentChange,
-  fragmentData
+  fragmentData,
+  isTransitioning = false
 }: RightPanelProps) {
   const { isDarkMode } = useTheme();
   const [isResizing, setIsResizing] = useState(false);
@@ -43,8 +45,8 @@ export function RightPanel({
       if (!isResizing) return;
       
       const newWidth = window.innerWidth - e.clientX;
-      const minWidth = 320;
-      const maxWidth = Math.min(800, window.innerWidth * 0.6);
+      const minWidth = 400;
+      const maxWidth = Math.min(1400, window.innerWidth * 0.8);
       
       onWidthChange(Math.max(minWidth, Math.min(maxWidth, newWidth)));
     };
@@ -65,7 +67,16 @@ export function RightPanel({
   }, [isResizing, onWidthChange]);
 
   const renderContent = () => {
-    if (!activeFragment) return null;
+    if (!activeFragment || isTransitioning) {
+      return (
+        <div className={`flex items-center justify-center h-full ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`}>
+          <div className="text-center">
+            <div className="animate-spin w-6 h-6 border-2 border-gray-300 border-t-blue-500 rounded-full mx-auto mb-3"></div>
+            <p className="text-sm">Loading...</p>
+          </div>
+        </div>
+      );
+    }
 
     switch (activeFragment) {
       case 'code':
@@ -152,7 +163,7 @@ export function RightPanel({
         );
       case 'search':
         return (
-          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <svg className="w-4 h-4" fill="none" stroke="#f9c313" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
           </svg>
         );
@@ -200,19 +211,19 @@ export function RightPanel({
         <div
           ref={panelRef}
           className={`h-full ${
-            isDarkMode ? 'bg-neutral-900' : 'bg-white'
+            isDarkMode ? 'bg-black' : 'bg-white'
           } rounded-2xl shadow-2xl border ${
-            isDarkMode ? 'border-neutral-800' : 'border-gray-200'
+            isDarkMode ? 'border-neutral-800' : 'border-neutral-200'
           } flex flex-col overflow-hidden`}
           style={{ width: `${width}px` }}
         >
           {/* Header */}
           <div className={`flex items-center justify-between p-6 border-b ${
-            isDarkMode ? 'border-neutral-800 bg-neutral-900' : 'border-gray-200 bg-white'
+            isDarkMode ? 'border-neutral-800 bg-black' : 'border-neutral-200 bg-white'
           }`}>
             <div className="flex items-center gap-3">
               <div className={`p-2 rounded-xl ${
-                isDarkMode ? 'bg-neutral-800' : 'bg-gray-100'
+                isDarkMode ? 'bg-neutral-800' : 'bg-neutral-100'
               }`}>
                 {getFragmentIcon()}
               </div>
@@ -222,20 +233,20 @@ export function RightPanel({
             </div>
             <button
               onClick={onToggle}
-              className={`p-2 rounded-xl transition-all hover:scale-105 ${
+              className={`p-1.5 rounded-md transition-colors ${
                 isDarkMode
                   ? 'text-gray-400 hover:text-white hover:bg-neutral-800'
-                  : 'text-gray-500 hover:text-gray-700 hover:bg-gray-100'
+                  : 'text-gray-500 hover:text-gray-700 hover:bg-neutral-100'
               }`}
             >
-              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
               </svg>
             </button>
           </div>
 
           {/* Content */}
-          <div className={`flex-1 overflow-hidden ${isDarkMode ? 'bg-neutral-900' : 'bg-white'}`}>
+          <div className={`flex-1 overflow-hidden ${isDarkMode ? 'bg-black' : 'bg-white'}`}>
             {renderContent()}
           </div>
         </div>

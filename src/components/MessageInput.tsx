@@ -2,6 +2,8 @@ import { useState, useRef, useEffect } from "react";
 import { useMutation, useQuery } from "convex/react";
 import { api } from "../../convex/_generated/api";
 import { Id } from "../../convex/_generated/dataModel";
+import { ModelRoutingInfo } from './ModelRoutingInfo';
+import { useTheme } from "../contexts/ThemeContext";
 
 interface MessageInputProps {
   conversationId: Id<"conversations">;
@@ -18,6 +20,7 @@ export function MessageInput({
   defaultWebSearch = false,
   isFirstMessage = false
 }: MessageInputProps) {
+  const { isDarkMode } = useTheme();
   const [input, setInput] = useState("");
   const [webSearchEnabled, setWebSearchEnabled] = useState(defaultWebSearch);
   const [attachments, setAttachments] = useState<Array<{
@@ -28,6 +31,7 @@ export function MessageInput({
   }>>([]);
   const [showOptions, setShowOptions] = useState(false);
   const [showModelSelector, setShowModelSelector] = useState(false);
+  const [showModelRoutingInfo, setShowModelRoutingInfo] = useState(false);
   
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -40,20 +44,19 @@ export function MessageInput({
   const generateUploadUrl = useMutation(api.files.generateUploadUrl);
   const updateConversationSettings = useMutation(api.conversations.updateSettings);
 
-  // Updated model options
+  // Updated model options - Now using intelligent task-based routing
   const modelOptions = [
-    { value: "openai/gpt-4o", label: "GPT-4o", description: "Most capable", category: "OpenAI" },
-    { value: "openai/gpt-4o-mini", label: "GPT-4o Mini", description: "Fast & efficient", category: "OpenAI" },
-    { value: "openai/gpt-4-turbo", label: "GPT-4 Turbo", description: "Advanced reasoning", category: "OpenAI" },
-    { value: "anthropic/claude-3.5-sonnet", label: "Claude 3.5 Sonnet", description: "Excellent analysis", category: "Claude" },
-    { value: "anthropic/claude-3-haiku", label: "Claude 3 Haiku", description: "Fast & affordable", category: "Claude" },
-    { value: "moonshot/moonshot-v1-8k", label: "Kimi 2", description: "Advanced Chinese model", category: "Kimi" },
-    { value: "deepseek/deepseek-chat", label: "DeepSeek Chat", description: "Reasoning specialist", category: "DeepSeek" },
-    { value: "zhipuai/glm-4-plus", label: "GLM 4.5", description: "Multimodal capabilities", category: "GLM" },
+    { value: "z-ai/glm-4.5-air", label: "GLM-4.5 Air", description: "Advanced thinking & reasoning", category: "General" },
+    { value: "z-ai/glm-4-32b", label: "GLM-4 32B", description: "Deep research & analysis", category: "Research" },
+    { value: "z-ai/glm-4.5", label: "GLM-4.5", description: "Coding & web development", category: "Development" },
+    { value: "openai/gpt-4.1-nano", label: "GPT-4.1 Nano", description: "Fast summarization & titles", category: "Efficiency" },
+    // Legacy options for manual selection
+    { value: "openai/gpt-4o", label: "GPT-4o", description: "Most capable (legacy)", category: "Legacy" },
+    { value: "openai/gpt-4o-mini", label: "GPT-4o Mini", description: "Fast & efficient (legacy)", category: "Legacy" },
   ];
 
-  const currentModel = conversation?.model || "openai/gpt-4o-mini";
-  const currentModelInfo = modelOptions.find(m => m.value === currentModel) || modelOptions[1];
+  const currentModel = conversation?.model || "z-ai/glm-4.5-air";
+  const currentModelInfo = modelOptions.find(m => m.value === currentModel) || modelOptions[0];
 
   // Auto-resize textarea
   useEffect(() => {
@@ -221,13 +224,13 @@ export function MessageInput({
         {/* Main Input Container */}
         <div 
           ref={containerRef}
-          className={`relative bg-white border border-gray-300 rounded-2xl shadow-sm transition-all duration-200 ${
-            input.trim() || showOptions ? 'border-gray-400 shadow-md' : 'hover:border-gray-400'
+          className={`relative ${isDarkMode ? 'bg-neutral-800/20' : 'bg-white/20'} border border-neutral-300/50 rounded-2xl shadow-sm transition-all duration-200 backdrop-blur-sm ${
+            input.trim() || showOptions ? 'border-neutral-400/70 shadow-md' : 'hover:border-neutral-400/50'
           }`}
         >
           {/* Options Bar */}
           {showOptions && (
-            <div className="flex items-center justify-between px-4 py-2 border-b border-gray-200 bg-gray-50 rounded-t-2xl">
+            <div className={`flex items-center justify-between px-4 py-2 border-b ${isDarkMode ? 'border-neutral-700/50 bg-neutral-800/10' : 'border-neutral-200/50 bg-neutral-50/30'} rounded-t-2xl`}>
               <div className="flex items-center gap-3">
                 <label className="flex items-center gap-2 text-sm text-gray-600 cursor-pointer">
                   <input
@@ -383,8 +386,14 @@ export function MessageInput({
         </div>
 
         {/* Footer Text */}
-        <div className="text-center text-xs text-gray-500 mt-2">
-          ChatGPT can make mistakes. Check important info.
+        <div className="text-center text-xs text-gray-500 mt-2 flex items-center justify-center gap-2">
+          <span>Intelligent model routing enabled.</span>
+          <button
+            onClick={() => setShowModelRoutingInfo(true)}
+            className="text-blue-500 hover:text-blue-600 underline"
+          >
+            Learn more
+          </button>
         </div>
 
         {/* Hidden File Input */}
@@ -395,6 +404,12 @@ export function MessageInput({
           onChange={handleFileUpload}
           className="hidden"
           accept="image/*,text/*,.pdf,.doc,.docx"
+        />
+
+        {/* Model Routing Info Modal */}
+        <ModelRoutingInfo 
+          isOpen={showModelRoutingInfo} 
+          onClose={() => setShowModelRoutingInfo(false)} 
         />
       </div>
     </div>

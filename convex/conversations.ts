@@ -426,19 +426,37 @@ export const generateTitleInternal = internalMutation({
   },
   handler: async (ctx, args) => {
     try {
-      // Use OpenAI to generate a 2-3 word title
+      // Use OpenRouter with GPT-4.1 Nano for fast title generation
       const openai = await import("openai").then(m => m.default);
       const client = new openai({
-        baseURL: process.env.CONVEX_OPENAI_BASE_URL,
-        apiKey: process.env.CONVEX_OPENAI_API_KEY,
+        baseURL: "https://openrouter.ai/api/v1",
+        apiKey: process.env.OPENROUTER_API_KEY,
+        defaultHeaders: {
+          "HTTP-Referer": process.env.CONVEX_SITE_URL || "http://localhost:3000",
+          "X-Title": "Yari AI Assistant",
+        },
+      });
+
+      // Get current date and time for system prompt
+      const currentDateTime = new Date().toLocaleString('en-US', {
+        weekday: 'long',
+        year: 'numeric',
+        month: 'long',
+        day: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit',
+        second: '2-digit',
+        timeZoneName: 'short'
       });
 
       const completion = await client.chat.completions.create({
-        model: "gpt-4.1-nano",
+        model: "openai/gpt-4.1-nano", // Using the fast summarization model
         messages: [
           {
             role: "system",
-            content: "Generate a 2-3 word title that captures the essence of this conversation. Be concise and descriptive. Examples: 'Recipe Help', 'Code Debug', 'Travel Planning', 'Math Problem', 'Writing Tips'."
+            content: `📅 **CURRENT DATE & TIME**: ${currentDateTime}
+
+Generate a 2-3 word title that captures the essence of this conversation. Be concise and descriptive. Examples: 'Recipe Help', 'Code Debug', 'Travel Planning', 'Math Problem', 'Writing Tips'.`
           },
           {
             role: "user",
@@ -446,7 +464,7 @@ export const generateTitleInternal = internalMutation({
           }
         ],
         max_tokens: 10,
-        temperature: 0.3,
+        temperature: 0.1,
       });
 
       const title = completion.choices[0]?.message?.content?.trim();

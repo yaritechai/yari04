@@ -53,144 +53,242 @@ function transformSmitheryServer(server: any): SmitheryServer {
   };
 }
 
-// Search MCP servers from Smithery registry
+// Update the searchMCPServers function to include quality filters
 export const searchMCPServers = action({
   args: {
-    query: v.optional(v.string()),
-    profile: v.optional(v.string()),
-    page: v.optional(v.number()),
-    pageSize: v.optional(v.number()),
+    query: v.string(),
+    limit: v.optional(v.number()),
   },
-  handler: async (ctx, args): Promise<SmitherySearchResponse> => {
+  handler: async (ctx, args) => {
     const userId = await getAuthUserId(ctx);
     if (!userId) {
       throw new Error("Authentication required");
     }
 
     try {
-      const searchParams = new URLSearchParams();
+      // Enhanced query with quality filters for verified, deployed, and secure servers
+      const qualityQuery = `${args.query} is:verified is:deployed`;
       
-      if (args.query) searchParams.append('q', args.query);
-      if (args.profile) searchParams.append('profile', args.profile);
-      if (args.page) searchParams.append('page', String(args.page));
-      if (args.pageSize) searchParams.append('pageSize', String(args.pageSize));
-
-      const headers: Record<string, string> = {
-        'Accept': 'application/json',
-        'User-Agent': 'Convex-AI-Agent/1.0',
-      };
-
-      if (process.env.SMITHERY_API_KEY) {
-        headers['Authorization'] = `Bearer ${process.env.SMITHERY_API_KEY}`;
-      }
-
-      const response = await fetch(`https://registry.smithery.ai/servers?${searchParams}`, {
-        headers,
-      });
+      const response = await fetch(
+        `https://registry.smithery.ai/servers?q=${encodeURIComponent(qualityQuery)}&pageSize=${args.limit || 10}`,
+        {
+          headers: {
+            'Authorization': `Bearer ${process.env.SMITHERY_API_KEY}`,
+            'Accept': 'application/json'
+          }
+        }
+      );
 
       if (!response.ok) {
         throw new Error(`Smithery API error: ${response.status}`);
       }
 
-      const data: any = await response.json();
+      const data = await response.json();
       
-      // Transform the response to match expected format
-      const transformedServers = (data.servers || []).map(transformSmitheryServer);
-      
+      // Filter and sort by quality indicators
+      const qualityServers = data.servers
+        .filter((server: any) => {
+          // Only include servers that meet our quality standards
+          return (
+            server.isDeployed === true &&
+            server.useCount > 0 && // Must have some usage history
+            server.qualifiedName && // Must have proper qualified name
+            server.displayName && // Must have proper display name
+            server.description // Must have description
+          );
+        })
+        .sort((a: any, b: any) => {
+          // Sort by quality score: use count + deployment status
+          const scoreA = (a.useCount || 0) + (a.isDeployed ? 100 : 0);
+          const scoreB = (b.useCount || 0) + (b.isDeployed ? 100 : 0);
+          return scoreB - scoreA;
+        })
+        .map((server: any) => ({
+          qualifiedName: server.qualifiedName,
+          displayName: server.displayName,
+          description: server.description,
+          homepage: server.homepage,
+          iconUrl: server.iconUrl,
+          useCount: server.useCount,
+          isDeployed: server.isDeployed,
+          isVerified: true, // Since we filtered for is:verified
+          createdAt: server.createdAt,
+          qualityScore: (server.useCount || 0) + (server.isDeployed ? 100 : 0)
+        }));
+
       return {
-        servers: transformedServers,
-        pagination: data.pagination || {
-          currentPage: 1,
-          pageSize: args.pageSize || 10,
-          totalPages: 1,
-          totalCount: transformedServers.length,
-        },
+        servers: qualityServers,
+        totalFound: qualityServers.length,
+        qualityFiltersApplied: ['verified', 'deployed', 'minimum_usage'],
+        searchQuery: qualityQuery
       };
     } catch (error) {
-      console.error("Smithery search error:", error);
-      throw new Error("Failed to search MCP servers");
+      console.error('Error searching MCP servers:', error);
+      throw new Error(`Failed to search MCP servers: ${error.message}`);
     }
   },
 });
 
-// Get popular MCP servers
+// Add a new function to get popular verified servers
 export const getPopularMCPServers = action({
   args: {
-    pageSize: v.optional(v.number()),
+    limit: v.optional(v.number()),
   },
-  handler: async (ctx, args): Promise<SmitherySearchResponse> => {
+  handler: async (ctx, args) => {
     const userId = await getAuthUserId(ctx);
     if (!userId) {
       throw new Error("Authentication required");
     }
 
     try {
-      const searchParams = new URLSearchParams();
-      searchParams.append('pageSize', String(args.pageSize || 10));
-
-      const response = await fetch(`https://registry.smithery.ai/servers?${searchParams}`, {
-        headers: {
-          'Accept': 'application/json',
-          'User-Agent': 'Convex-AI-Agent/1.0',
-          ...(process.env.SMITHERY_API_KEY && { 'Authorization': `Bearer ${process.env.SMITHERY_API_KEY}` }),
-        },
-      });
+      // Get popular verified servers with quality filters
+      const qualityQuery = "is:verified is:deployed";
+      
+      const response = await fetch(
+        `https://registry.smithery.ai/servers?q=${encodeURIComponent(qualityQuery)}&pageSize=${args.limit || 20}`,
+        {
+          headers: {
+            'Authorization': `Bearer ${process.env.SMITHERY_API_KEY}`,
+            'Accept': 'application/json'
+          }
+        }
+      );
 
       if (!response.ok) {
         throw new Error(`Smithery API error: ${response.status}`);
       }
 
-      const data: any = await response.json();
+      const data = await response.json();
       
-      // Transform the response to match expected format
-      const transformedServers = (data.servers || []).map(transformSmitheryServer);
-      
+      // Get detailed info for top servers to check security status
+      const topServers = data.servers
+        .filter((server: any) => server.isDeployed && server.useCount > 5) // Only well-used servers
+        .sort((a: any, b: any) => (b.useCount || 0) - (a.useCount || 0))
+        .slice(0, args.limit || 20);
+
+      // Get detailed security info for each server
+      const serversWithSecurity = await Promise.all(
+        topServers.map(async (server: any) => {
+          try {
+            const detailResponse = await fetch(
+              `https://registry.smithery.ai/servers/${server.qualifiedName}`,
+              {
+                headers: {
+                  'Authorization': `Bearer ${process.env.SMITHERY_API_KEY}`,
+                  'Accept': 'application/json'
+                }
+              }
+            );
+
+            if (detailResponse.ok) {
+              const detail = await detailResponse.json();
+              return {
+                ...server,
+                security: detail.security,
+                tools: detail.tools,
+                isSecure: detail.security?.scanPassed === true
+              };
+            }
+            return server;
+          } catch (error) {
+            console.warn(`Failed to get security info for ${server.qualifiedName}:`, error);
+            return server;
+          }
+        })
+      );
+
+      // Prioritize secure servers
+      const secureServers = serversWithSecurity
+        .filter(server => {
+          // Only include servers that are either confirmed secure or haven't been scanned yet
+          return server.security?.scanPassed !== false;
+        })
+        .sort((a: any, b: any) => {
+          // Prioritize: secure > high usage > deployed
+          const secureScoreA = (a.isSecure ? 1000 : 0) + (a.useCount || 0);
+          const secureScoreB = (b.isSecure ? 1000 : 0) + (b.useCount || 0);
+          return secureScoreB - secureScoreA;
+        });
+
       return {
-        servers: transformedServers,
-        pagination: data.pagination || {
-          currentPage: 1,
-          pageSize: args.pageSize || 10,
-          totalPages: 1,
-          totalCount: transformedServers.length,
-        },
+        servers: secureServers.map(server => ({
+          qualifiedName: server.qualifiedName,
+          displayName: server.displayName,
+          description: server.description,
+          homepage: server.homepage,
+          iconUrl: server.iconUrl,
+          useCount: server.useCount,
+          isDeployed: server.isDeployed,
+          isVerified: true,
+          isSecure: server.isSecure,
+          securityStatus: server.security?.scanPassed,
+          toolCount: server.tools?.length || 0,
+          qualityScore: (server.isSecure ? 1000 : 0) + (server.useCount || 0)
+        })),
+        totalFound: secureServers.length,
+        qualityFiltersApplied: ['verified', 'deployed', 'security_scanned', 'minimum_usage']
       };
     } catch (error) {
-      console.error("Smithery popular servers error:", error);
-      throw new Error("Failed to get popular MCP servers");
+      console.error('Error getting popular MCP servers:', error);
+      throw new Error(`Failed to get popular MCP servers: ${error.message}`);
     }
   },
 });
 
-// Get detailed information about a specific MCP server
+// Enhanced getMCPServerDetails with security validation
 export const getMCPServerDetails = action({
   args: {
     qualifiedName: v.string(),
   },
-  handler: async (ctx, args): Promise<SmitheryServer | null> => {
+  handler: async (ctx, args) => {
     const userId = await getAuthUserId(ctx);
     if (!userId) {
       throw new Error("Authentication required");
     }
 
     try {
-      const response = await fetch(`https://registry.smithery.ai/servers?q=${args.qualifiedName}&pageSize=1`, {
-        headers: {
-          'Accept': 'application/json',
-          'User-Agent': 'Convex-AI-Agent/1.0',
-          ...(process.env.SMITHERY_API_KEY && { 'Authorization': `Bearer ${process.env.SMITHERY_API_KEY}` }),
-        },
-      });
+      const response = await fetch(
+        `https://registry.smithery.ai/servers/${args.qualifiedName}`,
+        {
+          headers: {
+            'Authorization': `Bearer ${process.env.SMITHERY_API_KEY}`,
+            'Accept': 'application/json'
+          }
+        }
+      );
 
       if (!response.ok) {
-        throw new Error(`Smithery API error: ${response.status}`);
+        throw new Error(`Server not found: ${response.status}`);
       }
 
-      const data: SmitherySearchResponse = await response.json();
-      const server = data.servers.find(s => s.qualifiedName === args.qualifiedName);
-      return server ? transformSmitheryServer(server) : null;
+      const server = await response.json();
+      
+      // Validate server quality
+      const qualityChecks = {
+        isDeployed: server.isDeployed === true,
+        hasTools: server.tools && server.tools.length > 0,
+        isSecure: server.security?.scanPassed === true,
+        hasUsage: (server.useCount || 0) > 0,
+        hasValidConfig: server.connections && server.connections.length > 0
+      };
+
+      const qualityScore = Object.values(qualityChecks).filter(Boolean).length;
+      
+      // Only recommend servers with high quality scores
+      const isRecommended = qualityScore >= 3 && qualityChecks.isDeployed;
+
+      return {
+        ...server,
+        qualityChecks,
+        qualityScore,
+        isRecommended,
+        securityStatus: server.security?.scanPassed,
+        riskLevel: server.security?.scanPassed === false ? 'high' : 
+                  server.security?.scanPassed === true ? 'low' : 'unknown'
+      };
     } catch (error) {
-      console.error("Smithery server details error:", error);
-      throw new Error("Failed to get MCP server details");
+      console.error('Error getting MCP server details:', error);
+      throw new Error(`Failed to get server details: ${error.message}`);
     }
   },
 });
@@ -550,5 +648,161 @@ export const completeOAuthFlow = mutation({
     });
 
     return args.connectionId;
+  },
+});
+
+// AI-initiated MCP integration suggestion with tool preview
+export const suggestMCPIntegration = action({
+  args: {
+    query: v.string(), // What the user wants to accomplish
+    suggestedServers: v.optional(v.array(v.string())), // Specific server IDs to suggest
+  },
+  handler: async (ctx, args) => {
+    const userId = await getAuthUserId(ctx);
+    if (!userId) {
+      throw new Error("Authentication required");
+    }
+
+    try {
+      // Search for relevant verified MCP servers if not provided
+      let servers = [];
+      if (args.suggestedServers && args.suggestedServers.length > 0) {
+        // Get details for specific suggested servers (already quality-filtered)
+        for (const serverId of args.suggestedServers) {
+          const server = await ctx.runAction(internal.smithery.getMCPServerDetails, {
+            qualifiedName: serverId
+          });
+          if (server && server.isRecommended) {
+            servers.push(server);
+          }
+        }
+      } else {
+        // Search for verified, secure servers based on the query
+        const searchResult = await ctx.runAction(internal.smithery.searchMCPServers, {
+          query: args.query,
+          limit: 3 // Limit to top 3 most relevant verified servers
+        });
+        servers = searchResult.servers;
+      }
+
+      // Get tools for each server
+      const serversWithTools = await Promise.all(
+        servers.map(async (server) => {
+          try {
+            const tools = await ctx.runAction(internal.smithery.getMCPServerTools, {
+              serverId: server.qualifiedName
+            });
+            return {
+              ...server,
+              tools: tools || [],
+              toolCount: tools?.length || 0
+            };
+          } catch (error) {
+            console.error(`Failed to get tools for ${server.qualifiedName}:`, error);
+            return {
+              ...server,
+              tools: [],
+              toolCount: 0
+            };
+          }
+        })
+      );
+
+      return {
+        query: args.query,
+        suggestedServers: serversWithTools,
+        requiresUserConsent: true,
+        nextStep: "collect_credentials"
+      };
+    } catch (error) {
+      console.error("MCP integration suggestion error:", error);
+      throw new Error("Failed to suggest MCP integration");
+    }
+  },
+});
+
+// Function to create a pending MCP integration that awaits user credentials
+export const createPendingMCPIntegration = mutation({
+  args: {
+    serverId: v.string(),
+    serverName: v.string(),
+    connectionUrl: v.string(),
+    requiredCredentials: v.array(v.object({
+      name: v.string(),
+      type: v.string(), // "text", "password", "token", "oauth"
+      description: v.string(),
+      required: v.boolean(),
+    })),
+    suggestedTools: v.array(v.string()),
+  },
+  handler: async (ctx, args) => {
+    const userId = await getAuthUserId(ctx);
+    if (!userId) {
+      throw new Error("Authentication required");
+    }
+
+    // Create a pending integration record
+    const pendingId = await ctx.db.insert("pendingMCPIntegrations", {
+      userId,
+      serverId: args.serverId,
+      serverName: args.serverName,
+      connectionUrl: args.connectionUrl,
+      requiredCredentials: args.requiredCredentials,
+      suggestedTools: args.suggestedTools,
+      status: "awaiting_credentials",
+      createdAt: Date.now(),
+    });
+
+    return {
+      pendingId,
+      credentialModalData: {
+        serverName: args.serverName,
+        description: `Connect to ${args.serverName} to enable these tools: ${args.suggestedTools.join(', ')}`,
+        credentials: args.requiredCredentials,
+      }
+    };
+  },
+});
+
+// Complete the pending integration with user-provided credentials
+export const completePendingMCPIntegration = mutation({
+  args: {
+    pendingId: v.id("pendingMCPIntegrations"),
+    credentials: v.any(),
+    selectedTools: v.array(v.string()),
+  },
+  handler: async (ctx, args) => {
+    const userId = await getAuthUserId(ctx);
+    if (!userId) {
+      throw new Error("Authentication required");
+    }
+
+    const pending = await ctx.db.get(args.pendingId);
+    if (!pending || pending.userId !== userId) {
+      throw new Error("Pending integration not found");
+    }
+
+    // Create the actual MCP connection
+    const connectionId = await ctx.runMutation(internal.smithery.createMCPConnection, {
+      serverId: pending.serverId,
+      serverName: pending.serverName,
+      connectionUrl: pending.connectionUrl,
+      credentials: args.credentials,
+      enabledTools: args.selectedTools,
+    });
+
+    // Clean up the pending record
+    await ctx.db.delete(args.pendingId);
+
+    // Test the connection
+    const testResult = await ctx.runAction(internal.smithery.testMCPConnection, {
+      connectionId,
+    });
+
+    return {
+      connectionId,
+      isConnected: testResult.isConnected,
+      message: testResult.message,
+    };
   },
 });

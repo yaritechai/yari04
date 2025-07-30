@@ -2,6 +2,7 @@ import { v } from "convex/values";
 import { action, internalAction } from "./_generated/server";
 import { internal } from "./_generated/api";
 import OpenAI from "openai";
+import { getModelForTask, getModelParameters } from "./modelRouter";
 
 // Using OpenRouter with OpenAI SDK compatibility
 const openai = new OpenAI({
@@ -65,7 +66,21 @@ export const generateReport = action({
     conversationId: v.optional(v.id("conversations")),
   },
   handler: async (ctx, args) => {
-    const systemPrompt = `You are an expert report writer. Generate a comprehensive, well-structured report based on the user's request. 
+    // Get current date and time for system prompt
+    const currentDateTime = new Date().toLocaleString('en-US', {
+      weekday: 'long',
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit',
+      second: '2-digit',
+      timeZoneName: 'short'
+    });
+
+    const systemPrompt = `📅 **CURRENT DATE & TIME**: ${currentDateTime}
+
+You are an expert report writer. Generate a comprehensive, well-structured report based on the user's request. 
 
 Format the report as HTML with proper structure:
 - Use <h1> for the main title
@@ -86,14 +101,22 @@ The report should be professional, detailed, and well-organized. Include:
 Make sure the HTML is clean and properly formatted for display in a document editor.`;
 
     try {
+      // Use research model for report generation
+      const selectedModel = getModelForTask(args.prompt, {
+        isReport: true,
+        isResearchTask: true,
+      });
+      const modelParams = getModelParameters(selectedModel);
+
       const completion = await openai.chat.completions.create({
-        model: "openai/gpt-4o", // Updated to GPT-4o for better capabilities
+        model: selectedModel,
         messages: [
           { role: "system", content: systemPrompt },
           { role: "user", content: args.prompt }
         ],
-        temperature: 0.7,
-        max_tokens: 4000,
+        temperature: modelParams.temperature,
+        max_tokens: modelParams.max_tokens,
+        top_p: modelParams.top_p,
       });
 
       const reportContent = completion.choices[0]?.message?.content;
@@ -123,7 +146,21 @@ export const generateLandingPage = action({
     conversationId: v.optional(v.id("conversations")),
   },
   handler: async (ctx, args) => {
-    const systemPrompt = `You are an expert web designer and developer. When a user requests a landing page, use the generate_landing_page function to create a complete, self-contained HTML page.
+    // Get current date and time for system prompt
+    const currentDateTime = new Date().toLocaleString('en-US', {
+      weekday: 'long',
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit',
+      second: '2-digit',
+      timeZoneName: 'short'
+    });
+
+    const systemPrompt = `📅 **CURRENT DATE & TIME**: ${currentDateTime}
+
+You are an expert web designer and developer. When a user requests a landing page, use the generate_landing_page function to create a complete, self-contained HTML page.
 
 Key requirements:
 - Generate complete HTML with inline CSS (no external CDNs)
@@ -136,16 +173,24 @@ Key requirements:
 Always use the generate_landing_page function when creating landing pages.`;
 
     try {
+      // Use coding/landing page model for web development tasks
+      const selectedModel = getModelForTask(args.prompt, {
+        isLandingPage: true,
+        isCodeGeneration: true,
+      });
+      const modelParams = getModelParameters(selectedModel);
+
       const completion = await openai.chat.completions.create({
-        model: "openai/gpt-4o",
+        model: selectedModel,
         messages: [
           { role: "system", content: systemPrompt },
           { role: "user", content: args.prompt }
         ],
         tools: tools,
         tool_choice: "auto",
-        temperature: 0.7,
-        max_tokens: 4000,
+        temperature: modelParams.temperature,
+        max_tokens: modelParams.max_tokens,
+        top_p: modelParams.top_p,
       });
 
       const message = completion.choices[0]?.message;
@@ -183,43 +228,68 @@ Always use the generate_landing_page function when creating landing pages.`;
 
 // Helper function to generate complete HTML
 function generateCompleteHTML(params: any) {
-  const { title, description, content_sections, call_to_action, color_scheme = "modern" } = params;
+  const { 
+    title = "Landing Page", 
+    description = "Welcome to our landing page", 
+    content_sections = [], 
+    call_to_action = "Get Started", 
+    color_scheme = "modern" 
+  } = params;
   
   const colorSchemes = {
     modern: {
-      primary: "#f9c313",
-      secondary: "#1f2937",
+      primary: "#6366f1", // Indigo
+      secondary: "#1f2937", // Gray 800
       background: "#ffffff",
-      text: "#374151",
-      accent: "#eab308"
+      text: "#374151", // Gray 700
+      accent: "#f59e0b", // Amber 500
+      surface: "#f8fafc", // Slate 50
+      border: "#e2e8f0" // Slate 200
     },
     dark: {
-      primary: "#f9c313",
-      secondary: "#ffffff", 
-      background: "#111827",
-      text: "#f3f4f6",
-      accent: "#eab308"
+      primary: "#8b5cf6", // Violet 500
+      secondary: "#f8fafc", // Slate 50
+      background: "#0f172a", // Slate 900
+      text: "#e2e8f0", // Slate 200
+      accent: "#06b6d4", // Cyan 500
+      surface: "#1e293b", // Slate 800
+      border: "#334155" // Slate 700
     },
     light: {
-      primary: "#f9c313",
-      secondary: "#6b7280",
-      background: "#f9fafb",
-      text: "#374151", 
-      accent: "#eab308"
+      primary: "#0ea5e9", // Sky 500
+      secondary: "#475569", // Slate 600
+      background: "#f8fafc", // Slate 50
+      text: "#334155", // Slate 700
+      accent: "#f97316", // Orange 500
+      surface: "#ffffff",
+      border: "#cbd5e1" // Slate 300
     },
     colorful: {
-      primary: "#f9c313",
-      secondary: "#3b82f6",
+      primary: "#ec4899", // Pink 500
+      secondary: "#1e40af", // Blue 800
       background: "#ffffff",
-      text: "#1f2937",
-      accent: "#ef4444"
+      text: "#1f2937", // Gray 800
+      accent: "#10b981", // Emerald 500
+      surface: "#fef3f2", // Rose 50
+      border: "#fde2e4" // Rose 200
     },
     minimal: {
-      primary: "#000000",
-      secondary: "#6b7280",
-      background: "#ffffff", 
-      text: "#374151",
-      accent: "#f9c313"
+      primary: "#18181b", // Zinc 900
+      secondary: "#71717a", // Zinc 500
+      background: "#ffffff",
+      text: "#27272a", // Zinc 800
+      accent: "#3b82f6", // Blue 500
+      surface: "#fafafa", // Neutral 50
+      border: "#e4e4e7" // Zinc 200
+    },
+    elegant: {
+      primary: "#7c3aed", // Violet 600
+      secondary: "#1f2937", // Gray 800
+      background: "#fefefe",
+      text: "#374151", // Gray 700
+      accent: "#d946ef", // Fuchsia 500
+      surface: "#f9fafb", // Gray 50
+      border: "#e5e7eb" // Gray 200
     }
   };
 
@@ -232,6 +302,16 @@ function generateCompleteHTML(params: any) {
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>${title}</title>
     <style>
+        :root {
+            --primary: ${colors.primary};
+            --secondary: ${colors.secondary};
+            --background: ${colors.background};
+            --text: ${colors.text};
+            --accent: ${colors.accent};
+            --surface: ${colors.surface};
+            --border: ${colors.border};
+        }
+        
         * {
             margin: 0;
             padding: 0;
@@ -239,129 +319,241 @@ function generateCompleteHTML(params: any) {
         }
         
         body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
-            line-height: 1.6;
-            color: ${colors.text};
-            background-color: ${colors.background};
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            line-height: 1.7;
+            color: var(--text);
+            background: var(--background);
+            scroll-behavior: smooth;
+            overflow-x: hidden;
         }
         
         .container {
-            max-width: 1200px;
+            max-width: min(1200px, 90vw);
             margin: 0 auto;
-            padding: 0 20px;
+            padding: 0 24px;
+        }
+        
+        /* Glassmorphism effect */
+        .glass {
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
         }
         
         header {
-            background: ${colors.background};
-            padding: 2rem 0;
+            background: linear-gradient(135deg, var(--surface) 0%, var(--background) 100%);
+            padding: 4rem 0;
             text-align: center;
-            border-bottom: 1px solid ${colors.secondary}20;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        header::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: radial-gradient(circle at 30% 20%, var(--primary)15 0%, transparent 50%),
+                        radial-gradient(circle at 70% 80%, var(--accent)15 0%, transparent 50%);
+            z-index: -1;
         }
         
         h1 {
-            font-size: 3rem;
+            font-size: clamp(2.5rem, 5vw, 4rem);
             font-weight: 800;
-            color: ${colors.secondary};
-            margin-bottom: 1rem;
+            background: linear-gradient(135deg, var(--secondary), var(--primary));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            margin-bottom: 1.5rem;
+            letter-spacing: -0.02em;
+            line-height: 1.1;
         }
         
         .subtitle {
-            font-size: 1.25rem;
-            color: ${colors.text};
-            max-width: 600px;
+            font-size: clamp(1.1rem, 2vw, 1.3rem);
+            color: var(--text);
+            max-width: 650px;
             margin: 0 auto;
+            font-weight: 400;
+            opacity: 0.9;
         }
         
         .hero {
-            padding: 4rem 0;
+            padding: 6rem 0;
             text-align: center;
-            background: linear-gradient(135deg, ${colors.primary}10, ${colors.accent}10);
+            position: relative;
+            background: linear-gradient(135deg, var(--surface) 0%, var(--background) 100%);
         }
         
         .cta-button {
-            display: inline-block;
-            background: ${colors.primary};
-            color: ${colors.secondary};
-            padding: 1rem 2rem;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            background: var(--primary);
+            color: white;
+            padding: 16px 32px;
             text-decoration: none;
-            border-radius: 12px;
+            border-radius: 50px;
             font-weight: 600;
             font-size: 1.1rem;
             margin-top: 2rem;
-            transition: all 0.3s ease;
-            border: 2px solid ${colors.primary};
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            border: none;
+            box-shadow: 0 4px 14px 0 rgba(0, 0, 0, 0.1);
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .cta-button::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.3), transparent);
+            transition: left 0.5s;
+        }
+        
+        .cta-button:hover::before {
+            left: 100%;
         }
         
         .cta-button:hover {
-            background: ${colors.accent};
             transform: translateY(-2px);
-            box-shadow: 0 8px 25px ${colors.primary}30;
+            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
+            filter: brightness(1.1);
         }
         
         .content-section {
-            padding: 3rem 0;
-            border-bottom: 1px solid ${colors.secondary}10;
+            padding: 5rem 0;
+            position: relative;
         }
         
-        .content-section:last-child {
-            border-bottom: none;
+        .content-section:nth-child(even) {
+            background: var(--surface);
         }
         
         .section-title {
-            font-size: 2rem;
+            font-size: clamp(1.8rem, 4vw, 2.5rem);
             font-weight: 700;
-            color: ${colors.secondary};
-            margin-bottom: 1.5rem;
+            color: var(--secondary);
+            margin-bottom: 2rem;
             text-align: center;
+            letter-spacing: -0.01em;
         }
         
         .section-content {
-            font-size: 1.1rem;
+            font-size: 1.125rem;
             max-width: 800px;
             margin: 0 auto;
             text-align: center;
+            line-height: 1.8;
+            opacity: 0.9;
         }
         
         .grid {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
             gap: 2rem;
             margin-top: 3rem;
         }
         
         .card {
-            background: ${colors.background};
-            padding: 2rem;
-            border-radius: 16px;
-            border: 2px solid ${colors.secondary}10;
-            transition: all 0.3s ease;
+            background: var(--background);
+            padding: 2.5rem;
+            border-radius: 20px;
+            border: 1px solid var(--border);
+            transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+            position: relative;
+            overflow: hidden;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+        }
+        
+        .card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 4px;
+            background: linear-gradient(90deg, var(--primary), var(--accent));
+            transform: translateX(-100%);
+            transition: transform 0.3s ease;
+        }
+        
+        .card:hover::before {
+            transform: translateX(0);
         }
         
         .card:hover {
-            transform: translateY(-4px);
-            box-shadow: 0 12px 30px ${colors.secondary}15;
-            border-color: ${colors.primary};
+            transform: translateY(-8px);
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+            border-color: var(--primary);
         }
         
         footer {
-            background: ${colors.secondary};
-            color: ${colors.background};
+            background: var(--secondary);
+            color: var(--background);
             text-align: center;
-            padding: 2rem 0;
+            padding: 3rem 0;
             margin-top: 4rem;
+            position: relative;
         }
         
+        footer::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 1px;
+            background: linear-gradient(90deg, transparent, var(--primary), transparent);
+        }
+        
+        /* Animations */
+        @keyframes fadeInUp {
+            from {
+                opacity: 0;
+                transform: translateY(30px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+        
+        .animate-in {
+            animation: fadeInUp 0.6s ease-out forwards;
+        }
+        
+        /* Responsive Design */
         @media (max-width: 768px) {
-            h1 {
-                font-size: 2rem;
-            }
-            
             .container {
-                padding: 0 15px;
+                padding: 0 16px;
             }
             
-            .hero {
-                padding: 2rem 0;
+            .hero, .content-section {
+                padding: 3rem 0;
+            }
+            
+            .card {
+                padding: 2rem;
+            }
+            
+            .grid {
+                grid-template-columns: 1fr;
+                gap: 1.5rem;
+            }
+        }
+        
+        @media (max-width: 480px) {
+            .cta-button {
+                padding: 14px 24px;
+                font-size: 1rem;
             }
         }
     </style>
@@ -382,14 +574,14 @@ function generateCompleteHTML(params: any) {
     
     <main>
         <div class="container">
-            ${content_sections.map((section: any) => `
+            ${Array.isArray(content_sections) ? content_sections.map((section: any) => `
                 <section class="content-section">
-                    <h2 class="section-title">${section.heading}</h2>
+                    <h2 class="section-title">${section?.heading || 'Section Title'}</h2>
                     <div class="section-content">
-                        ${section.content}
+                        ${section?.content || 'Section content goes here.'}
                     </div>
                 </section>
-            `).join('')}
+            `).join('') : '<section class="content-section"><h2 class="section-title">Welcome</h2><div class="section-content">Content will be added here.</div></section>'}
         </div>
     </main>
     

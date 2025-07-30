@@ -126,7 +126,7 @@ export function AgentBuilderInterface({ conversationId, onTitleUpdate }: AgentBu
   };
 
   return (
-    <div className={`h-full flex flex-col ${isDarkMode ? 'bg-gray-900' : 'bg-gray-50'}`}>
+    <div className={`h-full flex flex-col ${isDarkMode ? 'bg-neutral-900' : 'bg-neutral-50'}`}>
       {/* Messages */}
       <div className="flex-1 overflow-y-auto px-6 py-4 space-y-4">
         {messages.length === 0 ? (

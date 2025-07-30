@@ -78,19 +78,22 @@ export function Sidebar({
   };
 
   return (
-    <div className={`h-full ${isDarkMode ? 'bg-neutral-900 border-gray-800' : 'bg-white border-gray-200'} ${isMobile ? 'border-r shadow-xl' : 'border-r'} flex flex-col w-full min-w-[280px]`}>
+    <div className={`h-full ${isDarkMode ? 'bg-black border-r border-neutral-800' : 'bg-white'} flex flex-col w-full min-w-[280px]`}>
       {/* Header */}
-      <div className={`p-4 ${isDarkMode ? 'border-gray-800' : 'border-gray-200'} border-b space-y-3`}>
-        {/* Mobile Close Button */}
-        {isMobile && onClose && (
-          <div className="flex justify-end mb-2">
+      <div className={`p-3 space-y-3`}>
+        {/* Close Button - Always show when onClose is available */}
+        {onClose && (
+          <div className="flex justify-between items-center">
+            <h2 className={`text-sm font-semibold ${isDarkMode ? 'text-white' : 'text-neutral-900'}`}>
+              Chat History
+            </h2>
             <button
               onClick={onClose}
-              className={`p-2 ${isDarkMode ? 'hover:bg-neutral-900 text-gray-400' : 'hover:bg-gray-100 text-gray-600'} rounded-lg transition-colors`}
-              title="Close menu"
+              className={`p-1.5 ${isDarkMode ? 'hover:bg-neutral-800 text-neutral-400' : 'hover:bg-neutral-100 text-neutral-600'} rounded-md transition-colors`}
+              title="Close sidebar"
             >
-              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
               </svg>
             </button>
           </div>
@@ -98,26 +101,24 @@ export function Sidebar({
 
         <button
           onClick={onNewChat}
-          className="w-full btn-primary flex items-center justify-center gap-2"
+          className={`w-full flex items-center justify-center gap-2 px-3 py-2.5 ${isDarkMode ? 'bg-neutral-800 hover:bg-neutral-700 text-white' : 'bg-neutral-100 hover:bg-neutral-200 text-neutral-900'} rounded-lg transition-colors text-sm font-medium`}
         >
           <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
           </svg>
-          New Chat
+          New chat
         </button>
-
-
 
         {/* Search */}
         <div className="relative">
           <input
             type="text"
-            placeholder="Search conversations..."
+            placeholder="Search..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className={`w-full pl-10 pr-4 py-2 border ${isDarkMode ? 'border-gray-700 bg-gray-900 text-white placeholder-gray-500' : 'border-gray-300 bg-white text-gray-900 placeholder-gray-500'} rounded-lg focus:ring-2 focus:ring-primary/20 focus:border-primary text-sm`}
+            className={`w-full pl-9 pr-3 py-2 ${isDarkMode ? 'bg-neutral-800 text-white placeholder-neutral-500' : 'bg-neutral-100 text-neutral-900 placeholder-neutral-500'} rounded-lg focus:outline-none text-sm`}
           />
-          <svg className={`w-4 h-4 ${isDarkMode ? 'text-gray-500' : 'text-gray-500'} absolute left-3 top-1/2 transform -translate-y-1/2`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <svg className={`w-4 h-4 ${isDarkMode ? 'text-neutral-500' : 'text-neutral-500'} absolute left-3 top-1/2 transform -translate-y-1/2`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
           </svg>
         </div>
@@ -126,7 +127,7 @@ export function Sidebar({
       {/* Conversations List */}
       <div className="flex-1 overflow-y-auto scrollbar-thin">
         {filteredConversations.length === 0 ? (
-          <div className={`p-4 text-center ${isDarkMode ? 'text-gray-500' : 'text-gray-500'}`}>
+          <div className={`p-4 text-center ${isDarkMode ? 'text-neutral-500' : 'text-neutral-500'}`}>
             <p>No conversations yet</p>
             <p className="text-sm mt-1">Start a new chat to begin</p>
           </div>
@@ -138,8 +139,8 @@ export function Sidebar({
                 onClick={() => onSelectConversation(conversation._id)}
                 className={`group relative p-3 rounded-lg cursor-pointer transition-colors mb-1 ${
                   selectedConversationId === conversation._id
-                    ? isDarkMode ? 'bg-primary-900/20 border border-primary-700/50' : 'bg-primary-50 border border-primary-200'
-                    : isDarkMode ? 'hover:bg-neutral-900' : 'hover:bg-gray-100'
+                    ? isDarkMode ? 'bg-neutral-800' : 'bg-neutral-200'
+                    : isDarkMode ? 'hover:bg-neutral-800' : 'hover:bg-neutral-100'
                 }`}
               >
                 <div className="flex items-start justify-between">
@@ -155,11 +156,11 @@ export function Sidebar({
                           <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" />
                         </svg>
                       )}
-                      <h3 className={`font-medium ${isDarkMode ? 'text-gray-200' : 'text-gray-900'} truncate text-sm`}>
+                      <h3 className={`font-medium ${isDarkMode ? 'text-neutral-200' : 'text-neutral-900'} truncate text-sm`}>
                         {conversation.title}
                       </h3>
                     </div>
-                    <p className={`text-xs ${isDarkMode ? 'text-gray-500' : 'text-gray-500'} mt-1`}>
+                    <p className={`text-xs ${isDarkMode ? 'text-neutral-500' : 'text-neutral-500'} mt-1`}>
                       {formatDate(conversation.lastMessageAt || conversation._creationTime)}
                     </p>
                   </div>
@@ -170,8 +171,8 @@ export function Sidebar({
                       onClick={(e) => handleStar(conversation._id, e)}
                       className={`flex items-center gap-2 px-2 py-1 text-xs rounded transition-all ${
                         isDarkMode 
-                          ? 'text-gray-500 hover:text-gray-400 hover:bg-neutral-900' 
-                          : 'text-gray-500 hover:text-gray-700 hover:bg-gray-100'
+                          ? 'text-neutral-500 hover:text-neutral-400 hover:bg-neutral-700' 
+                          : 'text-neutral-500 hover:text-neutral-700 hover:bg-neutral-100'
                       }`}
                       title={conversation.starred ? "Unstar" : "Star"}
                     >
@@ -185,8 +186,8 @@ export function Sidebar({
                       onClick={(e) => handleDuplicate(conversation._id, e)}
                       className={`flex items-center gap-2 px-2 py-1 text-xs rounded transition-all ${
                         isDarkMode 
-                          ? 'text-gray-500 hover:text-gray-400 hover:bg-neutral-900' 
-                          : 'text-gray-500 hover:text-gray-700 hover:bg-gray-100'
+                          ? 'text-neutral-500 hover:text-neutral-400 hover:bg-neutral-700' 
+                          : 'text-neutral-500 hover:text-neutral-700 hover:bg-neutral-100'
                       }`}
                       title="Duplicate"
                     >
@@ -200,8 +201,8 @@ export function Sidebar({
                       onClick={(e) => handleDelete(conversation._id, e)}
                       className={`flex items-center gap-2 px-2 py-1 text-xs rounded transition-all ${
                         isDarkMode 
-                          ? 'text-gray-500 hover:text-gray-400 hover:bg-neutral-900' 
-                          : 'text-gray-500 hover:text-gray-700 hover:bg-gray-100'
+                          ? 'text-neutral-500 hover:text-neutral-400 hover:bg-neutral-700' 
+                          : 'text-neutral-500 hover:text-neutral-700 hover:bg-neutral-100'
                       }`}
                       title="Delete"
                     >
@@ -219,15 +220,15 @@ export function Sidebar({
       </div>
 
       {/* Bottom Actions - These are now part of the collapsing sidebar */}
-      <div className={`p-4 ${isDarkMode ? 'border-gray-800' : 'border-gray-200'} border-t space-y-2`}>
+      <div className={`p-3 space-y-1`}>
         {/* MCP Integration */}
         {onOpenMCP && (
           <button
             onClick={onOpenMCP}
-            className={`w-full flex items-center gap-3 px-3 py-2 ${isDarkMode ? 'text-gray-400 hover:text-gray-200 hover:bg-neutral-900' : 'text-gray-600 hover:text-gray-900 hover:bg-gray-100'} rounded-lg transition-colors`}
+            className={`w-full flex items-center gap-3 px-3 py-2 ${isDarkMode ? 'text-neutral-400 hover:text-neutral-200 hover:bg-neutral-800' : 'text-neutral-600 hover:text-neutral-900 hover:bg-neutral-100'} rounded-lg transition-colors`}
             title="MCP Integration"
           >
-            <svg className="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <svg className="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
             </svg>
             <span className="text-sm">MCP Integration</span>
@@ -236,15 +237,15 @@ export function Sidebar({
         {/* Theme Toggle */}
         <button
           onClick={toggleTheme}
-          className={`w-full flex items-center gap-3 px-3 py-2 ${isDarkMode ? 'text-gray-400 hover:text-gray-200 hover:bg-neutral-900' : 'text-gray-600 hover:text-gray-900 hover:bg-gray-100'} rounded-lg transition-colors`}
+          className={`w-full flex items-center gap-3 px-3 py-2 ${isDarkMode ? 'text-neutral-400 hover:text-neutral-200 hover:bg-neutral-800' : 'text-neutral-600 hover:text-neutral-900 hover:bg-neutral-100'} rounded-lg transition-colors`}
           title={isDarkMode ? "Switch to light mode" : "Switch to dark mode"}
         >
           {isDarkMode ? (
-            <svg className="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <svg className="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z" />
             </svg>
           ) : (
-            <svg className="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <svg className="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z" />
             </svg>
           )}
@@ -254,10 +255,10 @@ export function Sidebar({
         {/* Sign Out */}
         <button
           onClick={() => void signOut()}
-          className={`w-full flex items-center gap-3 px-3 py-2 ${isDarkMode ? 'text-gray-400 hover:text-gray-200 hover:bg-neutral-900' : 'text-gray-600 hover:text-gray-900 hover:bg-gray-100'} rounded-lg transition-colors`}
+          className={`w-full flex items-center gap-3 px-3 py-2 ${isDarkMode ? 'text-neutral-400 hover:text-neutral-200 hover:bg-neutral-800' : 'text-neutral-600 hover:text-neutral-900 hover:bg-neutral-100'} rounded-lg transition-colors`}
           title="Sign out"
         >
-          <svg className="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <svg className="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
           </svg>
           <span className="text-sm">Sign out</span>

@@ -4,6 +4,7 @@ import { v } from "convex/values";
 import { internalAction, internalMutation } from "./_generated/server";
 import { internal } from "./_generated/api";
 import OpenAI from "openai";
+import { getModelForTask, getModelParameters, supportsThinking } from "./modelRouter";
 
 // Test action to verify OpenRouter connection
 export const testOpenRouter = internalAction({
@@ -110,6 +111,9 @@ export const generateStreamingResponse = internalAction({
         console.log("Auto-enabling web search for landing page request:", searchQueryToUse);
       }
 
+      // NOTE: This legacy search system is supplemented by autonomous tool-based search
+      // The AI can also call web_search function directly via tool calling, independent of user toggles
+      
       // Perform web search if requested or auto-detected
       if (shouldPerformSearch && searchQueryToUse) {
         searchResults = await performWebSearch(searchQueryToUse);
@@ -154,13 +158,87 @@ export const generateStreamingResponse = internalAction({
         messageRoles: openaiMessages.map((m: any) => m.role),
       });
 
+      // Get current date and time for system prompts
+      const currentDateTime = new Date().toLocaleString('en-US', {
+        weekday: 'long',
+        year: 'numeric',
+        month: 'long',
+        day: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit',
+        second: '2-digit',
+        timeZoneName: 'short'
+      });
+
       // Add system prompt if exists
       if (conversation.systemPrompt) {
         openaiMessages.unshift({
           role: "system",
-          content: conversation.systemPrompt,
+          content: `📅 **CURRENT DATE & TIME**: ${currentDateTime}
+
+${conversation.systemPrompt}
+
+Additionally: When creating any visual content, web pages, or design-related outputs, always strive for exceptional visual appeal and modern design principles. Create beautiful, professional-looking results that users would be proud to share.
+
+IMPORTANT: You have autonomous web search capabilities - use them proactively when you need current information or are uncertain about any facts, regardless of user settings.`,
         });
       }
+
+      // Add autonomous web search decision-making system prompt
+      const webSearchInstructions = `📅 **CURRENT DATE & TIME**: ${currentDateTime}
+
+## 🔍 AUTONOMOUS WEB SEARCH AUTHORITY
+
+**CRITICAL**: You have FULL AUTONOMOUS AUTHORITY to call the web_search function whenever your knowledge is insufficient or outdated. This capability is INDEPENDENT of any user toggles or settings - it's a core part of your intelligence.
+
+### 🚨 MANDATORY WEB SEARCH SCENARIOS:
+**ALWAYS search when you:**
+- **Don't know the answer**: If you lack knowledge about something, search immediately
+- **Are uncertain**: Any doubt about accuracy requires verification through search
+- **Encounter recent topics**: Events, updates, or data from recent months/years
+- **Need current facts**: Real-time data, current statistics, latest information
+- **Face knowledge gaps**: Admit when you don't know and search proactively
+
+### 🔍 AUTOMATICALLY SEARCH FOR:
+- **Current Events**: News, recent developments, trending topics, breaking updates
+- **Real-time Data**: Stock prices, weather, sports scores, live statistics  
+- **Recent Information**: Research findings, software updates, current pricing
+- **Local/Specific Data**: Business hours, contact info, location-specific details
+- **Verification Needs**: When uncertain about facts or need confirmation
+- **Knowledge Gaps**: Any topic where your training data may be incomplete
+- **Time-sensitive Content**: Information that changes frequently
+- **Technical Updates**: Latest versions, recent documentation, new releases
+
+### ✅ USE EXISTING KNOWLEDGE FOR:
+- **Historical Facts**: Well-established events before your training cutoff
+- **Fundamental Concepts**: Mathematics, physics, programming principles
+- **Creative Tasks**: Writing assistance, brainstorming, artistic guidance
+- **Abstract Topics**: Philosophy, theory, conceptual discussions
+- **Universal Principles**: Timeless how-to guides, basic methodologies
+
+### 🎯 DECISION PROCESS:
+Before answering ANY question, ask yourself:
+1. **"Do I have complete, current knowledge of this topic?"**
+2. **"Could this information have changed recently?"**
+3. **"Am I uncertain about any aspect of this?"**
+4. **"Would searching provide more accurate/current information?"**
+
+**If ANY answer is YES or uncertain → IMMEDIATELY call web_search**
+
+### 🚀 SEARCH IMPLEMENTATION:
+- **No permission needed**: You have full authority to search autonomously
+- **Be proactive**: Better to search unnecessarily than provide outdated info
+- **Search first**: When in doubt, search before answering
+- **Multiple searches**: Feel free to search multiple times for comprehensive information
+- **Always explain**: Include your reasoning for why you searched
+
+**Remember: Your goal is accuracy and completeness. User preferences don't override your responsibility to provide the best possible information through autonomous search when needed.**
+`;
+
+      openaiMessages.unshift({
+        role: "system",
+        content: webSearchInstructions,
+      });
 
       // Add HTML generation system prompt for Canvas mode or landing page requests
       const lastUserMsg = messages.filter((m: any) => m.role === "user").pop();
@@ -168,47 +246,49 @@ export const generateStreamingResponse = internalAction({
       const shouldUseHTMLMode = isCanvasMode || isLandingPageRequest;
       
       if (shouldUseHTMLMode) {
-        const htmlSystemPrompt = `You are an expert web developer and designer. When creating HTML content (especially landing pages):
+        const htmlSystemPrompt = `📅 **CURRENT DATE & TIME**: ${currentDateTime}
 
-CRITICAL REQUIREMENTS:
-- Generate ONLY pure HTML with inline CSS styles
-- NO external CSS frameworks (Bootstrap, Tailwind, etc.)
-- NO CDN links or external resources  
-- NO external JavaScript libraries
-- ALL styles must be inline or in <style> tags within the HTML
+You are a world-class UI/UX designer and front-end developer with expertise from companies like Apple, Google, and the best design agencies. When creating HTML content (especially landing pages, web apps, or any web interfaces):
+
+🎨 DESIGN EXCELLENCE REQUIREMENTS:
+- Create **stunning, award-winning designs** that feel like they cost $10,000+ to develop
+- Use cutting-edge design trends: glass morphism, dynamic gradients, perfect typography hierarchy, delightful micro-interactions
+- Implement **sophisticated color palettes** using advanced color theory (60-30-10 rule, complementary harmonies)
+- Use **premium typography** with perfect font pairing (Google Fonts: Inter, Poppins, Fraunces, etc.)
+- Add **subtle depth** with layered shadows, perfect 8px grid spacing, and golden ratio proportions
+- Create designs that would make users think "Wow, this is beautiful!" and screenshot to share
+
+🛠️ TECHNICAL REQUIREMENTS:
+- Generate ONLY pure HTML with inline CSS styles (NO external frameworks or CDNs)
 - Create fully self-contained HTML documents that work in any browser
-- Use semantic HTML5 elements
-- Ensure responsive design with CSS media queries
-- Use modern CSS features (flexbox, grid, animations, gradients)
-- Include proper meta tags and DOCTYPE
+- Use semantic HTML5 elements and modern CSS features (flexbox, grid, CSS variables, animations)
+- Include proper meta tags, DOCTYPE, and viewport settings
+- Ensure mobile-first responsive design with smooth breakpoints
 
-STRUCTURE:
-- Always start with <!DOCTYPE html>
-- Include proper <html>, <head>, and <body> tags
-- Add viewport meta tag for mobile responsiveness
-- Use meaningful title tags
-- Include all CSS in <style> tags in the <head>
+✨ VISUAL DESIGN PRINCIPLES:
+- **Typography**: Use beautiful font stacks, perfect line-height, ideal spacing, clear hierarchy
+- **Colors**: Create sophisticated color palettes with 60-30-10 rule, ensure WCAG contrast compliance  
+- **Layout**: Perfect spacing using 8px grid system, golden ratio proportions, visual balance
+- **Interactive Elements**: Smooth hover effects, subtle animations, micro-interactions that delight
+- **Modern Aesthetics**: Clean minimalism, purposeful use of whitespace, contemporary design patterns
+- **Visual Hierarchy**: Clear information architecture, scannable content, logical flow
 
-LANDING PAGE SPECIFIC GUIDELINES:
-- Create visually appealing, modern designs
-- Use compelling headlines and clear value propositions
-- Include call-to-action buttons with hover effects
-- Add sections like hero, features, testimonials, pricing, contact
-- Use professional color schemes and typography
-- Implement smooth scrolling and subtle animations
-- Make it mobile-first and fully responsive
-- Include placeholder content that's relevant to the topic
-- Use high-quality placeholder images from services like Unsplash via direct URLs
+🚀 LANDING PAGE EXCELLENCE:
+- **Hero sections** that immediately grab attention with magnetic headlines and compelling value propositions
+- **Trust signals**: gorgeous testimonials, client logos, social proof, impressive statistics with beautiful data visualization
+- **User journey**: Seamless flow from problem → solution → benefits → irresistible call-to-action
+- **Multiple touchpoints**: Strategic conversion opportunities that feel natural, not pushy
+- **Visual storytelling**: Guide users through an emotional journey with purposeful design elements
+- **Premium imagery**: High-quality visuals from Unsplash (add ?auto=format&fit=crop&w=800&q=60 for optimization)
 
-DESIGN PRINCIPLES:
-- Clean, modern aesthetic with plenty of white space
-- Consistent typography hierarchy
-- Professional color palette
-- Smooth transitions and hover effects
-- Clear visual hierarchy
-- Accessible design with proper contrast ratios
+🎯 USER EXPERIENCE FOCUS:
+- Intuitive navigation and user flow
+- Fast perceived performance with progressive loading states
+- Accessibility-first design (proper ARIA labels, keyboard navigation, screen reader friendly)
+- Mobile-optimized touch targets and interactions
+- Clear calls-to-action that stand out without being overwhelming
 
-The HTML should be production-ready and work perfectly when saved as a standalone .html file or viewed in a sandbox environment.`;
+The final result should be a beautiful, pixel-perfect design that users would assume cost thousands of dollars to create. Make it feel premium, modern, and professionally crafted.`;
         
         openaiMessages.unshift({
           role: "system",
@@ -220,15 +300,33 @@ The HTML should be production-ready and work perfectly when saved as a standalon
       if (urlContent) {
         openaiMessages.unshift({
           role: "system",
-          content: `The user has shared URLs in their message. Here is the full content from those URLs retrieved using Jina Reader:\n\n${urlContent}\n\nPlease analyze and discuss this content in your response. Provide insights, summaries, or answer questions about what you found on these pages.`,
+          content: `📅 **CURRENT DATE & TIME**: ${currentDateTime}
+
+The user has shared URLs in their message. Here is the full content from those URLs retrieved using Jina Reader:
+
+${urlContent}
+
+Please analyze and discuss this content in your response. Provide insights, summaries, or answer questions about what you found on these pages.`,
         });
       }
 
       // Add search context if available
       if (searchContext) {
         const searchContextPrompt = isLandingPageRequest 
-          ? `You have access to current web search results for "${searchQueryToUse}" to help create an accurate and informed landing page:\n\n${searchContext}\n\nUse this information to create compelling, accurate content for the landing page. Include real facts, statistics, and current information from these sources. Always ensure the content is relevant and up-to-date.`
-          : `You have access to current web search results for "${searchQueryToUse}":\n\n${searchContext}\n\nThe search results include full webpage content retrieved using Jina Reader for comprehensive analysis. Use this information to provide accurate, up-to-date responses. Always cite sources when using information from the search results.`;
+          ? `📅 **CURRENT DATE & TIME**: ${currentDateTime}
+
+You have access to current web search results for "${searchQueryToUse}" to help create an accurate and informed landing page:
+
+${searchContext}
+
+Use this information to create compelling, accurate content for the landing page. Include real facts, statistics, and current information from these sources. Always ensure the content is relevant and up-to-date.`
+          : `📅 **CURRENT DATE & TIME**: ${currentDateTime}
+
+You have access to current web search results for "${searchQueryToUse}":
+
+${searchContext}
+
+The search results include full webpage content retrieved using Jina Reader for comprehensive analysis. Use this information to provide accurate, up-to-date responses. Always cite sources when using information from the search results.`;
         
         openaiMessages.unshift({
           role: "system",
@@ -240,7 +338,9 @@ The HTML should be production-ready and work perfectly when saved as a standalon
       if (integrationContext) {
         openaiMessages.unshift({
           role: "system",
-          content: integrationContext,
+          content: `📅 **CURRENT DATE & TIME**: ${currentDateTime}
+
+${integrationContext}`,
         });
       }
 
@@ -280,58 +380,99 @@ The HTML should be production-ready and work perfectly when saved as a standalon
 
       console.log("Creating OpenRouter streaming completion...");
 
+      // Intelligent model selection based on task type
+      const userPrompt = lastUserMessage?.content || args.searchQuery || "";
+      const selectedModel = getModelForTask(userPrompt, {
+        isLandingPage: isLandingPageRequest,
+        isReport: false,
+        isTitleGeneration: false,
+        isConversationSummary: false,
+        isCodeGeneration: /code|programming|function|implement|debug/.test(userPrompt.toLowerCase()),
+        isResearchTask: /research|analyze|study|investigate/.test(userPrompt.toLowerCase()),
+      });
+      
+      const modelParams = getModelParameters(selectedModel);
+      
+      console.log("🤖 Selected model:", selectedModel, "for task type based on prompt:", userPrompt.substring(0, 100));
+
       // Create streaming completion
       const stream = await openrouter.chat.completions.create({
-        model: conversation.model || "openai/gpt-4o",
+        model: selectedModel,
         messages: openaiMessages,
-        max_tokens: 3000, // Increased for landing pages
-        temperature: conversation.temperature || 0.7,
+        max_tokens: modelParams.max_tokens,
+        temperature: modelParams.temperature,
+        top_p: modelParams.top_p,
         stream: true,
-        // Add tool calling support for landing pages
-        tools: isLandingPageRequest ? [{
-          type: "function" as const,
-          function: {
-            name: "generate_landing_page",
-            description: "Generate a complete HTML landing page with inline CSS",
-            parameters: {
-              type: "object",
-              properties: {
-                title: {
-                  type: "string",
-                  description: "The title of the landing page"
+        // Add tool calling support - always include web search, conditionally include landing page
+        tools: [
+          // Web search tool - always available for autonomous decision making
+          {
+            type: "function" as const,
+            function: {
+              name: "web_search",
+              description: "AUTONOMOUS web search tool - Use whenever you need current information, don't know something, or are uncertain. This tool is ALWAYS available regardless of user settings or toggles. Call proactively when your knowledge is insufficient.",
+              parameters: {
+                type: "object",
+                properties: {
+                  query: {
+                    type: "string",
+                    description: "The search query to find current information"
+                  },
+                  reason: {
+                    type: "string",
+                    description: "Brief explanation of why web search is needed (e.g., 'need current data', 'verify recent information')"
+                  }
                 },
-                description: {
-                  type: "string", 
-                  description: "Meta description for SEO"
-                },
-                content_sections: {
-                  type: "array",
-                  items: {
+                required: ["query", "reason"]
+              }
+            }
+          },
+          // Landing page tool - only when creating landing pages
+          ...(isLandingPageRequest ? [{
+            type: "function" as const,
+            function: {
+              name: "generate_landing_page",
+              description: "Generate a complete HTML landing page with inline CSS",
+              parameters: {
+                type: "object",
+                properties: {
+                  title: {
+                    type: "string",
+                    description: "The title of the landing page"
+                  },
+                  description: {
+                    type: "string", 
+                    description: "Meta description for SEO"
+                  },
+                  content_sections: {
+                    type: "array",
+                    items: {
+                      type: "object",
+                      properties: {
+                        type: { type: "string", enum: ["hero", "features", "testimonials", "pricing", "cta", "about"] },
+                        content: { type: "string" }
+                      }
+                    }
+                  },
+                  call_to_action: {
                     type: "object",
                     properties: {
-                      type: { type: "string", enum: ["hero", "features", "testimonials", "pricing", "cta", "about"] },
-                      content: { type: "string" }
+                      text: { type: "string" },
+                      url: { type: "string" }
                     }
+                  },
+                  color_scheme: {
+                    type: "string",
+                    enum: ["modern", "dark", "light", "colorful", "minimal"],
+                    description: "Color scheme for the landing page"
                   }
                 },
-                call_to_action: {
-                  type: "object",
-                  properties: {
-                    text: { type: "string" },
-                    url: { type: "string" }
-                  }
-                },
-                color_scheme: {
-                  type: "string",
-                  enum: ["modern", "dark", "light", "colorful", "minimal"],
-                  description: "Color scheme for the landing page"
-                }
-              },
-              required: ["title", "description", "content_sections"]
+                required: ["title", "description", "content_sections"]
+              }
             }
-          }
-        }] : undefined,
-        tool_choice: isLandingPageRequest ? "auto" : undefined,
+          }] : [])
+        ],
+        tool_choice: "auto",
       });
 
       console.log("OpenRouter stream created successfully");
@@ -339,6 +480,7 @@ The HTML should be production-ready and work perfectly when saved as a standalon
       let fullContent = "";
       let tokenCount = 0;
       let toolCallData = null;
+      let autonomousSearchResults: any[] = [];
 
       // Process stream
       for await (const chunk of stream) {
@@ -350,8 +492,8 @@ The HTML should be production-ready and work perfectly when saved as a standalon
           // Count tokens more accurately (rough estimate)
           tokenCount += delta.content.split(/\s+/).length;
           
-          // Update message content in real-time (throttle updates)
-          if (fullContent.length % 50 === 0) {
+          // Update message content in real-time (throttle updates for smooth streaming)
+          if (fullContent.length % 40 === 0 || delta.content.includes('\n')) {
             await ctx.runMutation(internal.messages.updateStreamingMessage, {
               messageId: args.messageId,
               content: fullContent,
@@ -378,7 +520,94 @@ The HTML should be production-ready and work perfectly when saved as a standalon
       }
 
       // Process tool call if present
-      if (toolCallData && toolCallData.name === "generate_landing_page") {
+      if (toolCallData && toolCallData.name === "web_search") {
+        try {
+          const params = JSON.parse(toolCallData.arguments);
+          console.log("AI requested autonomous web search:", params);
+          
+          // Perform the web search
+          autonomousSearchResults = await performWebSearch(params.query);
+          
+          if (autonomousSearchResults.length > 0) {
+            // Enhanced search context with full content from top results
+            const enhancedResults = [];
+            
+            for (const result of autonomousSearchResults.slice(0, 3)) {
+              try {
+                const fullContent = await readUrlContent(result.link);
+                if (fullContent) {
+                  enhancedResults.push({
+                    title: result.title,
+                    url: result.link,
+                    snippet: result.snippet,
+                    content: fullContent.substring(0, 2000) // Limit content length
+                  });
+                }
+              } catch (error) {
+                console.log("Error reading URL content for autonomous search:", error);
+                enhancedResults.push({
+                  title: result.title,
+                  url: result.link,
+                  snippet: result.snippet,
+                  content: result.snippet
+                });
+              }
+            }
+            
+            // Create search context for the AI
+            const searchContext = enhancedResults
+              .map((result, index) => {
+                return `**Source ${index + 1}: ${result.title}**\nURL: ${result.url}\n${result.content}`;
+              })
+              .join('\n\n---\n\n');
+
+            // Now make a second API call with the search results to get the informed response
+            const followUpMessages = [
+              ...openaiMessages,
+              {
+                role: "assistant" as const,
+                content: `I need to search for current information about "${params.query}" because: ${params.reason}. Let me find the latest information for you.`
+              },
+              {
+                role: "system" as const,
+                content: `Here are the current search results for "${params.query}":\n\n${searchContext}\n\nPlease provide a comprehensive response using this current information. Always cite your sources using the provided URLs.`
+              },
+              {
+                role: "user" as const,
+                content: "Please provide your response using the current information you just found."
+              }
+            ];
+
+            // Make follow-up call to get informed response
+            const informedResponse = await openrouter.chat.completions.create({
+              model: selectedModel,
+              messages: followUpMessages,
+              max_tokens: modelParams.max_tokens,
+              temperature: modelParams.temperature,
+              top_p: modelParams.top_p,
+            });
+
+            const responseContent = informedResponse.choices[0]?.message?.content || "I found some information but couldn't process it properly.";
+            
+            fullContent = `🔍 **Searched for current information**: ${params.query}\n*Reason: ${params.reason}*\n\n${responseContent}`;
+            
+            // Update message content first
+            await ctx.runMutation(internal.messages.updateStreamingMessage, {
+              messageId: args.messageId,
+              content: fullContent,
+              isComplete: false,
+            });
+            
+          } else {
+            fullContent = `I attempted to search for current information about "${params.query}" but didn't find any results. Let me answer based on my existing knowledge.`;
+          }
+          
+          tokenCount = fullContent.split(/\s+/).length;
+        } catch (error) {
+          console.error("Error processing autonomous web search:", error);
+          fullContent = `I tried to search for current information but encountered an error. Let me answer based on my existing knowledge instead.`;
+        }
+      } else if (toolCallData && toolCallData.name === "generate_landing_page") {
         try {
           const params = JSON.parse(toolCallData.arguments);
           const html = generateCompleteHTML(params);
@@ -417,14 +646,17 @@ The page will automatically open in the browser preview on the right panel for y
         isComplete: false,
       });
 
+      // Combine regular search results with autonomous search results
+      const allSearchResults = [...searchResults, ...autonomousSearchResults];
+      
       // Finalize the message
       await ctx.runMutation(internal.messages.finalizeStreamingMessage, {
         messageId: args.messageId,
         content: fullContent,
         tokens: tokenCount,
         model: conversation.model || "openai/gpt-4o-mini",
-        searchResults: searchResults.length > 0 ? searchResults : undefined,
-        hasWebSearch: shouldPerformSearch || false,
+        searchResults: allSearchResults.length > 0 ? allSearchResults : undefined,
+        hasWebSearch: shouldPerformSearch || autonomousSearchResults.length > 0,
       });
 
     } catch (error) {
