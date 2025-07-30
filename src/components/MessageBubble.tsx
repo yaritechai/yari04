@@ -169,8 +169,23 @@ export function MessageBubble({ message, showTokenCount, onOpenFragment, onMCPCr
     return titleMatch ? titleMatch[1].trim() : null;
   };
 
+  // Helper function to clean message content for display
+  const cleanMessageContent = (content: string) => {
+    if (message.role !== 'user') {
+      return content; // Only clean user messages
+    }
+    
+    // Remove search tags like [Search: query] and just show the query
+    const searchMatch = content.match(/^\[Search:\s*(.+?)\]$/);
+    if (searchMatch) {
+      return searchMatch[1]; // Return just the search query without the brackets
+    }
+    
+    return content; // Return original content if no search tag found
+  };
+
   const renderContent = () => {
-    const content = message.content;
+    const content = cleanMessageContent(message.content);
     
     return (
       <ReactMarkdown
