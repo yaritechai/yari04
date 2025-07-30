@@ -71,7 +71,10 @@ export const generateStreamingResponse = internalAction({
       // Get available capabilities for context  
       const availableCapabilities = await ctx.runQuery(internal.agentBuilder.getAvailableCapabilitiesInternal, {});
 
-      // Get current date and time for comprehensive context
+      // Get current date and time using Eastern Time (most common US timezone)
+      // TODO: Add proper user timezone detection and storage
+      const userTimezone = "America/New_York";
+      
       const now = new Date();
       const currentDateTime = now.toLocaleString('en-US', {
         weekday: 'long',
@@ -81,11 +84,12 @@ export const generateStreamingResponse = internalAction({
         hour: '2-digit',
         minute: '2-digit',
         second: '2-digit',
-        timeZoneName: 'short'
+        timeZoneName: 'short',
+        timeZone: userTimezone
       });
 
       const currentTimestamp = Date.now();
-      const currentTimeZone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+      const currentTimeZone = userTimezone;
 
       console.log("Checking message for URLs:", message.content);
 

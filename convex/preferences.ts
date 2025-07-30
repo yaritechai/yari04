@@ -24,6 +24,7 @@ export const get = query({
       enableWebSearch: false,
       enableStreaming: true,
       showTokenCount: false,
+      timezone: "America/New_York", // Default to Eastern Time
     };
   },
 });
@@ -38,6 +39,7 @@ export const update = mutation({
     enableWebSearch: v.optional(v.boolean()),
     enableStreaming: v.optional(v.boolean()),
     showTokenCount: v.optional(v.boolean()),
+    timezone: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
     const userId = await getAuthUserId(ctx);

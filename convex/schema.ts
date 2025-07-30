@@ -116,6 +116,7 @@ const applicationTables = {
     enableWebSearch: v.optional(v.boolean()),
     enableStreaming: v.optional(v.boolean()),
     showTokenCount: v.optional(v.boolean()),
+    timezone: v.optional(v.string()),
     updatedAt: v.optional(v.number()),
   }).index("by_user", ["userId"]),
 
