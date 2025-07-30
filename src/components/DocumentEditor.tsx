@@ -50,7 +50,12 @@ export function DocumentEditor({ initialContent = '', title: initialTitle = 'Unt
         // Try to parse as JSON blocks first (from streaming)
         const parsedBlocks = JSON.parse(initialContent);
         if (Array.isArray(parsedBlocks) && parsedBlocks.length > 0) {
-          setBlocks(parsedBlocks);
+          // Only update if the content is actually different to prevent unnecessary re-renders
+          const currentContent = JSON.stringify(blocks);
+          const newContent = JSON.stringify(parsedBlocks);
+          if (currentContent !== newContent) {
+            setBlocks(parsedBlocks);
+          }
           return;
         }
       } catch {
@@ -63,20 +68,22 @@ export function DocumentEditor({ initialContent = '', title: initialTitle = 'Unt
         })).filter(block => block.content);
         
         if (textBlocks.length > 0) {
-          setBlocks(textBlocks);
+          // Only update if we have meaningful content
+          const hasContent = textBlocks.some(block => block.content.length > 0);
+          if (hasContent) {
+            setBlocks(textBlocks);
+          }
         }
       }
+    } else if (blocks.length === 1 && blocks[0].content === '') {
+      // Ensure we always have at least one empty block for editing
+      setBlocks([{ id: 'block-1', type: 'text', content: '', style: { bold: false, italic: false, underline: false, alignment: 'left' as const } }]);
     }
   }, [initialContent]);
 
-  // Listen for real-time content updates (streaming)
+  // Listen for real-time content updates (streaming) - simplified
   useEffect(() => {
-    const handleDocumentUpdate = () => {
-      // This will be triggered when streaming updates come in
-      // The initialContent useEffect above will handle the actual updates
-    };
-    
-    // We could add an event listener here for real-time updates if needed
+    // We don't need additional logic here since initialContent useEffect handles updates
     return () => {};
   }, []);
 

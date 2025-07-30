@@ -5,6 +5,7 @@ import { internalAction } from "./_generated/server";
 import { internal } from "./_generated/api";
 import OpenAI from "openai";
 import { getModelForTask, getModelParameters } from "./modelRouter";
+import { Id } from "./_generated/dataModel";
 
 // Test action to verify OpenRouter connection
 export const testOpenRouter = internalAction({
@@ -328,7 +329,7 @@ Please provide a detailed and informative response based on these search results
 
       // Early detection for document content to open editor during "thinking"
       const isLikelyDocumentRequest = detectDocumentRequest(message.content);
-      let documentId: string | null = null;
+      let documentId: Id<"messages"> | null = null;
       
       if (isLikelyDocumentRequest) {
         console.log("🗒️ Early detection: Opening document editor for likely document request");
@@ -358,6 +359,7 @@ Please provide a detailed and informative response based on these search results
 
       let streamedContent = "";
       let accumulatedContent = "";
+      let updateCounter = 0;
 
       // Stream the normal response
       for await (const chunk of completion) {
@@ -366,16 +368,18 @@ Please provide a detailed and informative response based on these search results
         if (delta?.content) {
           streamedContent += delta.content;
           accumulatedContent += delta.content;
+          updateCounter++;
           
           // If we have a document editor open, stream content into it
-          if (documentId) {
-            // Update document editor in real-time
-            if (accumulatedContent.length > 50) {
+          if (documentId && updateCounter % 10 === 0) { // Update every 10 chunks to avoid too many mutations
+            try {
               const updatedBlocks = convertTextToDocumentBlocks(accumulatedContent);
               await ctx.runMutation(internal.messages.updateDocumentContent, {
                 messageId: documentId,
                 content: JSON.stringify(updatedBlocks),
               });
+            } catch (error) {
+              console.error("Error updating document content:", error);
             }
           }
           
@@ -410,11 +414,15 @@ Please provide a detailed and informative response based on these search results
         }
       } else {
         // Final update for document editor
-        const finalBlocks = convertTextToDocumentBlocks(accumulatedContent);
-        await ctx.runMutation(internal.messages.updateDocumentContent, {
-          messageId: documentId,
-          content: JSON.stringify(finalBlocks),
-        });
+        try {
+          const finalBlocks = convertTextToDocumentBlocks(accumulatedContent);
+          await ctx.runMutation(internal.messages.updateDocumentContent, {
+            messageId: documentId,
+            content: JSON.stringify(finalBlocks),
+          });
+        } catch (error) {
+          console.error("Error with final document update:", error);
+        }
       }
 
       // Finalize normal response
@@ -628,7 +636,7 @@ function detectDocumentRequest(message: string): boolean {
     'guide', 'tutorial', 'documentation', 'content', 'copy',
     'script', 'speech', 'presentation', 'marketing copy',
     'creative writing', 'brainstorm', 'outline', 'brief',
-    'white paper', 'case study', 'research paper'
+    'white paper', 'case study', 'research paper', 'write about'
   ];
   
   const lowerMessage = message.toLowerCase();

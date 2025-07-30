@@ -209,9 +209,10 @@ export function RightPanel({
       case 'document':
         return (
           <DocumentEditor
+            key={`doc-${fragmentData?.title || 'untitled'}`} // Force re-mount with different titles
             initialContent={fragmentData?.content || ''}
             title={fragmentData?.title || 'New Document'}
-            onClose={() => onFragmentChange('document', null)}
+            onClose={() => onFragmentChange(null)}
           />
         );
       case 'mcp':

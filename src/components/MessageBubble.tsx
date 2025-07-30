@@ -125,18 +125,18 @@ export function MessageBubble({ message, showTokenCount, onOpenFragment, onMCPCr
 
   // Auto-open document editor when document content becomes available
   useEffect(() => {
-    if (message.documentContent && !message.isStreaming) {
-      // Small delay to ensure UI is ready and avoid conflicts
+    if (message.documentContent) {
+      // Open immediately when document content is available, even during streaming
       const timer = setTimeout(() => {
         handleOpenInFragment('document', {
           title: message.documentContent.title,
           content: message.documentContent.content,
         });
-      }, 100);
+      }, 50); // Reduced delay for faster opening
       
       return () => clearTimeout(timer);
     }
-  }, [message.documentContent, message.isStreaming, handleOpenInFragment]);
+  }, [message.documentContent, handleOpenInFragment]); // Removed isStreaming dependency
 
   // Handler for document badge clicks
   const handleDocumentClick = () => {
