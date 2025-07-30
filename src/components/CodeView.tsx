@@ -116,6 +116,7 @@ const GeneratingLoadingAnimation = ({ isDarkMode }: { isDarkMode: boolean }) => 
 export function CodeView({ data, onClose }: CodeViewProps) {
   const { isDarkMode } = useTheme();
   const [copied, setCopied] = useState(false);
+  const [isPreviewMode, setIsPreviewMode] = useState(false);
 
   const handleCopy = async () => {
     if (data?.code) {
@@ -127,6 +128,16 @@ export function CodeView({ data, onClose }: CodeViewProps) {
         console.error('Failed to copy code:', err);
       }
     }
+  };
+
+  const canPreview = () => {
+    const lang = data?.language?.toLowerCase();
+    return lang === 'html' || lang === 'css' || lang === 'javascript' || lang === 'js' || 
+           (data?.code && (data.code.includes('<html') || data.code.includes('<!DOCTYPE')));
+  };
+
+  const handleTogglePreview = () => {
+    setIsPreviewMode(!isPreviewMode);
   };
 
   // Show loading animation while streaming - don't show partial content during generation
@@ -162,6 +173,30 @@ export function CodeView({ data, onClose }: CodeViewProps) {
           )}
         </div>
         <div className="flex items-center gap-2">
+          {canPreview() && (
+            <button
+              onClick={handleTogglePreview}
+              className={`flex items-center gap-2 px-3 py-1.5 text-sm ${isDarkMode ? 'hover:bg-neutral-800 text-gray-300 hover:text-white' : 'hover:bg-gray-100 text-gray-600 hover:text-gray-900'} rounded transition-colors`}
+              title={isPreviewMode ? "Show Code" : "Show Preview"}
+            >
+              {isPreviewMode ? (
+                <>
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4" />
+                  </svg>
+                  Code
+                </>
+              ) : (
+                <>
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                  </svg>
+                  Preview
+                </>
+              )}
+            </button>
+          )}
           <button
             onClick={handleCopy}
             className={`flex items-center gap-2 px-3 py-1.5 text-sm ${isDarkMode ? 'hover:bg-neutral-800 text-gray-300 hover:text-white' : 'hover:bg-gray-100 text-gray-600 hover:text-gray-900'} rounded transition-colors`}
@@ -202,9 +237,22 @@ export function CodeView({ data, onClose }: CodeViewProps) {
 
       {/* Code Content */}
       <div className="flex-1 overflow-auto scrollbar-thin">
-        <pre className={`p-4 text-sm font-mono leading-relaxed ${isDarkMode ? 'text-gray-300' : 'text-gray-800'}`}>
-          <code>{data.code}</code>
-        </pre>
+        {isPreviewMode && canPreview() ? (
+          // Preview Mode - render as HTML
+          <div className="h-full">
+            <iframe
+              srcDoc={data.code}
+              className="w-full h-full border-0"
+              sandbox="allow-scripts allow-same-origin"
+              title="Code Preview"
+            />
+          </div>
+        ) : (
+          // Code Mode - show syntax highlighted code
+          <pre className={`p-4 text-sm font-mono leading-relaxed ${isDarkMode ? 'text-gray-300' : 'text-gray-800'}`}>
+            <code>{data.code}</code>
+          </pre>
+        )}
       </div>
     </div>
   );

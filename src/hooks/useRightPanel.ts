@@ -3,7 +3,7 @@ import { FragmentType } from "../components/RightPanel";
 
 export function useRightPanel() {
   const [isOpen, setIsOpen] = useState(false);
-  const [width, setWidth] = useState(800);
+  const [width, setWidth] = useState(Math.floor(window.innerWidth * 0.6)); // 60% of viewport width
   const [activeFragment, setActiveFragment] = useState<FragmentType | null>(null);
   const [fragmentData, setFragmentData] = useState<any>(null);
   const [isTransitioning, setIsTransitioning] = useState(false);
