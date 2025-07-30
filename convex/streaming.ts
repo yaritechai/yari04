@@ -230,66 +230,81 @@ Remember: You're here to be genuinely helpful, direct, and efficient. Focus on s
         },
       });
 
-      // Add tools for autonomous web search and landing page generation
-      const tools = [
-        {
-          type: "function" as const,
-          function: {
-            name: "generate_landing_page",
-            description: "Generate a completely custom HTML landing page with unique design, layout, and styling tailored to the specific request. Be creative with colors, animations, layouts, and interactions.",
-            parameters: {
-              type: "object",
-              properties: {
-                title: {
-                  type: "string",
-                  description: "The main title/headline for the landing page"
-                },
-                subtitle: {
-                  type: "string", 
-                  description: "Supporting description or tagline"
-                },
-                htmlContent: {
-                  type: "string",
-                  description: "Complete HTML document with embedded CSS - be creative with design, colors, layout, animations, and interactive elements. Make it unique and tailored to the request."
-                },
-                designDescription: {
-                  type: "string",
-                  description: "Brief description of the design choices and visual style used"
-                }
-              },
-              required: ["title", "subtitle", "htmlContent"]
-            }
-          }
-        },
-        {
-          type: "function" as const,
-          function: {
-            name: "web_search",
-            description: "Search the web for current information. ONLY use this when you need specific current data that you don't already know (recent news, current prices, etc.). Do NOT use for creative tasks like landing pages.",
-            parameters: {
-              type: "object",
-              properties: {
-                query: {
-                  type: "string",
-                  description: "The search query to find current information"
-                },
-                reason: {
-                  type: "string", 
-                  description: "Explanation of why this search is needed"
-                }
-              },
-              required: ["query", "reason"]
-            }
-          }
-        }
-      ];
+      console.log("Creating OpenRouter streaming completion...");
 
-      // First API call to potentially trigger tool usage
-      let toolCallData: any = null;
-      let autonomousSearchResults: any[] = [];
-      let fullContent = "";
-      let tokenCount = 0;
-      
+      // SIMPLE SEARCH APPROACH - No complex tool calling
+      if (shouldPerformSearch) {
+        console.log("🔍 Performing direct search for:", message.content);
+        
+        // Direct search call - simple and clean
+        try {
+          const searchResults = await performWebSearch(message.content);
+          
+          if (searchResults.length > 0) {
+            // Format search results for LLM
+            const searchContext = searchResults.map((result, index) => 
+              `${index + 1}. **${result.title}**\n   URL: ${result.link}\n   ${result.snippet}\n`
+            ).join('\n');
+            
+            // Create enhanced prompt with search results
+            const searchPrompt = `Based on the following search results about "${message.content}", provide a comprehensive response:
+
+${searchContext}
+
+Please provide a detailed and informative response based on these search results.`;
+
+            // Call LLM with search context
+            const completion = await openrouter.chat.completions.create({
+              model: selectedModel,
+              messages: [
+                { role: "system", content: systemPrompt },
+                { role: "user", content: searchPrompt }
+              ],
+              max_tokens: modelParams.max_tokens,
+              temperature: modelParams.temperature,
+              stream: true
+            });
+
+            let responseContent = "";
+            
+            // Stream the response
+            for await (const chunk of completion) {
+              const delta = chunk.choices[0]?.delta;
+              if (delta?.content) {
+                responseContent += delta.content;
+                
+                // Update streaming message
+                if (responseContent.length % 50 === 0) {
+                  await ctx.runMutation(internal.messages.updateStreamingMessage, {
+                    messageId: args.messageId,
+                    content: responseContent,
+                    isComplete: false,
+                  });
+                }
+              }
+            }
+
+            // Finalize with search results
+            await ctx.runMutation(internal.messages.finalizeStreamingMessage, {
+              messageId: args.messageId,
+              content: responseContent,
+              searchResults: searchResults, // Show in right panel
+              hasWebSearch: true,
+            });
+
+            console.log("Search completed, response length:", responseContent.length);
+            return;
+            
+          } else {
+            console.log("No search results found, falling back to normal response");
+          }
+        } catch (error) {
+          console.error("Search failed:", error);
+          // Fall through to normal response
+        }
+      }
+
+      // NORMAL RESPONSE (no search)
       const messagesWithSystem = [
         { role: "system" as const, content: systemPrompt },
         ...openaiMessages
@@ -297,30 +312,25 @@ Remember: You're here to be genuinely helpful, direct, and efficient. Focus on s
 
       console.log(`🤖 Selected model: ${selectedModel} for task type based on prompt:`, message.content);
 
-      // Use streaming completion for real-time updates
       const completion = await openrouter.chat.completions.create({
         model: selectedModel,
         messages: messagesWithSystem,
         max_tokens: modelParams.max_tokens,
         temperature: modelParams.temperature,
         top_p: modelParams.top_p,
-        tools: tools,
-        tool_choice: "auto",
         stream: true
       });
 
       let streamedContent = "";
-      let responseMessage: any = null;
-      let capturedToolCalls: any = null;
 
-      // Process streaming chunks
+      // Stream the normal response
       for await (const chunk of completion) {
         const delta = chunk.choices[0]?.delta;
         
         if (delta?.content) {
           streamedContent += delta.content;
           
-          // Update message in real-time every few chunks to avoid too many DB calls
+          // Update message in real-time
           if (streamedContent.length % 50 === 0 || streamedContent.length > 100) {
             await ctx.runMutation(internal.messages.updateStreamingMessage, {
               messageId: args.messageId,
@@ -329,221 +339,15 @@ Remember: You're here to be genuinely helpful, direct, and efficient. Focus on s
             });
           }
         }
-        
-        // Capture tool calls during streaming
-        if (delta?.tool_calls) {
-          capturedToolCalls = delta.tool_calls;
-        }
-        
-        // Mark as complete when streaming finishes
-        if (chunk.choices[0]?.finish_reason) {
-          responseMessage = { content: streamedContent };
-        }
       }
 
-      // Ensure we have the final content
-      if (!responseMessage) {
-        responseMessage = { content: streamedContent };
-      }
+      // Finalize normal response
+      await ctx.runMutation(internal.messages.finalizeStreamingMessage, {
+        messageId: args.messageId,
+        content: streamedContent,
+      });
 
-      if (capturedToolCalls && capturedToolCalls.length > 0) {
-        // Handle the first tool call
-        const toolCall = capturedToolCalls[0];
-        toolCallData = {
-          name: toolCall.function.name,
-          arguments: toolCall.function.arguments
-        };
-      }
-
-      // Process tool call if present
-      if (toolCallData && toolCallData.name === "web_search") {
-        try {
-          const params = JSON.parse(toolCallData.arguments);
-          console.log("AI requested autonomous web search:", params);
-          
-          // Perform the web search
-          autonomousSearchResults = await performWebSearch(params.query);
-          
-          if (autonomousSearchResults.length > 0) {
-            // Enhanced search context with full content from top results
-            const enhancedResults = [];
-            
-            for (const result of autonomousSearchResults.slice(0, 3)) {
-              try {
-                const fullContent = await readUrlContent(result.link);
-                if (fullContent && fullContent.trim()) {
-                  enhancedResults.push({
-                    title: result.title,
-                    url: result.link,
-                    snippet: result.snippet,
-                    content: fullContent.substring(0, 2000) // Limit content length
-                  });
-                } else {
-                  // Fallback to snippet if full content fails
-                  enhancedResults.push({
-                    title: result.title,
-                    url: result.link,
-                    snippet: result.snippet,
-                    content: result.snippet
-                  });
-                }
-              } catch (error) {
-                console.log("Error reading URL content for autonomous search:", error);
-                enhancedResults.push({
-                  title: result.title,
-                  url: result.link,
-                  snippet: result.snippet,
-                  content: result.snippet
-                });
-              }
-            }
-            
-            // Create search context for the AI
-            const searchContext = enhancedResults
-              .map((result, index) => {
-                return `**Source ${index + 1}: ${result.title}**\nURL: ${result.url}\n${result.content}`;
-              })
-              .join('\n\n---\n\n');
-
-            // Now make a second API call with the search results to get the informed response
-            const followUpMessages = [
-              ...openaiMessages,
-              {
-                role: "assistant" as const,
-                content: `I need to search for current information about "${params.query}" because: ${params.reason}. Let me find the latest information for you.`
-              },
-              {
-                role: "system" as const,
-                content: `Here are the current search results for "${params.query}":\n\n${searchContext}\n\nPlease provide a comprehensive response using this current information. Always cite your sources using the provided URLs.`
-              },
-              {
-                role: "user" as const,
-                content: "Please provide your response using the current information you just found."
-              }
-            ];
-
-            // Make follow-up call to get informed response with streaming
-            const informedResponse = await openrouter.chat.completions.create({
-              model: selectedModel,
-              messages: followUpMessages,
-              max_tokens: modelParams.max_tokens,
-              temperature: modelParams.temperature,
-              top_p: modelParams.top_p,
-              stream: true,
-            });
-
-            let searchResponseContent = "";
-            const searchPrefix = `🔍 **Searched for current information**: ${params.query}\n*Reason: ${params.reason}*\n\n`;
-            
-            // Stream the search response content
-            for await (const chunk of informedResponse) {
-              const delta = chunk.choices[0]?.delta;
-              
-              if (delta?.content) {
-                searchResponseContent += delta.content;
-                
-                // Update with search results prefix + streaming content
-                const currentContent = searchPrefix + searchResponseContent;
-                
-                // Update every 30 characters or so to show streaming progress
-                if (searchResponseContent.length % 30 === 0 || searchResponseContent.length > 50) {
-                  await ctx.runMutation(internal.messages.updateStreamingMessage, {
-                    messageId: args.messageId,
-                    content: currentContent,
-                    isComplete: false,
-                  });
-                }
-              }
-            }
-            
-            fullContent = searchPrefix + (searchResponseContent || "I found some information but couldn't process it properly.");
-            
-          } else {
-            fullContent = `I attempted to search for current information about "${params.query}" but didn't find any results. Let me answer based on my existing knowledge.`;
-          }
-          
-          tokenCount = fullContent.split(/\s+/).length;
-        } catch (error) {
-          console.error("Error processing autonomous web search:", error);
-          fullContent = `I tried to search for current information but encountered an error. Let me answer based on my existing knowledge instead.`;
-        }
-      } else if (toolCallData && toolCallData.name === "generate_landing_page") {
-        try {
-          const params = JSON.parse(toolCallData.arguments);
-          
-          // Use the AI's custom HTML directly - no templates!
-          const html = params.htmlContent;
-          
-          // Create content that will display the landing page and auto-open the right panel
-          fullContent = `# 🚀 Landing Page Generated: ${params.title}
-
-I've created a completely custom landing page for you! ${params.designDescription ? `\n\n**Design Concept**: ${params.designDescription}` : ''}
-
-The landing page features:
-- **Custom design** tailored specifically to your request
-- **Unique layout and styling** created from scratch
-- **Responsive design** that works beautifully on all devices  
-- **Interactive elements** and smooth animations
-- **Professional typography** and modern aesthetics
-
-Click the "Generated HTML" button below to view your custom landing page!`;
-
-          tokenCount = fullContent.split(/\s+/).length;
-          
-          // Store the HTML content for the right panel
-          await ctx.runMutation(internal.messages.addLandingPageContent, {
-            messageId: args.messageId,
-            htmlContent: html,
-            title: params.title,
-            theme: 'custom'
-          });
-          
-          // Update the message with the generated content
-          await ctx.runMutation(internal.messages.updateStreamingMessage, {
-            messageId: args.messageId,
-            content: fullContent,
-            isComplete: false,
-          });
-          
-        } catch (error) {
-          console.error("Error generating landing page:", error);
-          fullContent = "I encountered an error while generating the landing page. Please try again with more specific requirements.";
-        }
-      } else {
-        // No tool calls, use the streamed response
-        fullContent = streamedContent || "I apologize, but I couldn't generate a response.";
-        tokenCount = fullContent.split(/\s+/).length;
-        
-        // Make sure we have the final streamed content in the message
-        await ctx.runMutation(internal.messages.updateStreamingMessage, {
-          messageId: args.messageId,
-          content: fullContent,
-          isComplete: false,
-        });
-      }
-
-      console.log("OpenRouter stream created successfully");
-
-      // Log final status
-      console.log("Stream completed, final content length:", fullContent.length);
-
-      // Save the final AI response - always update the original streaming message
-      if (autonomousSearchResults.length > 0) {
-        // Update the original streaming message with search results
-        await ctx.runMutation(internal.messages.finalizeStreamingMessage, {
-          messageId: args.messageId,
-          content: fullContent,
-          searchResults: autonomousSearchResults.slice(0, 5), // Limit to 5 results for UI
-          hasWebSearch: true,
-        });
-      } else {
-        // Regular message without search results
-        await ctx.runMutation(internal.messages.updateStreamingMessage, {
-          messageId: args.messageId,
-          content: fullContent,
-          isComplete: true,
-        });
-      }
+      console.log("Stream completed, final content length:", streamedContent.length);
 
       // Update conversation metadata
       await ctx.runMutation(internal.conversations.updateLastMessage, {

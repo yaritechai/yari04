@@ -52,6 +52,7 @@ async function performWebSearch(query: string): Promise<any[]> {
       if (response.ok) {
         const data = await response.json();
         if (data.results && data.results.length > 0) {
+          console.log(`Tavily search successful: ${data.results.length} results`);
           return data.results.map((result: any) => ({
             title: result.title || "",
             link: result.url || "",
@@ -66,6 +67,28 @@ async function performWebSearch(query: string): Promise<any[]> {
     }
   }
 
+  // Try DuckDuckGo as fallback
+  try {
+    console.log("Falling back to DuckDuckGo search");
+    const response = await fetch(`https://api.duckduckgo.com/?q=${encodeURIComponent(query)}&format=json&no_html=1&skip_disambig=1`);
+    
+    if (response.ok) {
+      const data = await response.json();
+      if (data.RelatedTopics && data.RelatedTopics.length > 0) {
+        console.log(`DuckDuckGo search successful: ${data.RelatedTopics.length} results`);
+        return data.RelatedTopics.slice(0, 5).map((topic: any) => ({
+          title: topic.Text ? topic.Text.split(' - ')[0] : "DuckDuckGo Result",
+          link: topic.FirstURL || "",
+          snippet: topic.Text || "",
+          displayLink: topic.FirstURL ? new URL(topic.FirstURL).hostname : "",
+        }));
+      }
+    }
+  } catch (error) {
+    console.error("DuckDuckGo search failed:", error);
+  }
+
+  console.log("All search providers failed, returning empty results");
   return [];
 }
 
