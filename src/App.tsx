@@ -33,8 +33,15 @@ function AppContent() {
 
   // Wrapper for openFragment that closes sidebar when right panel opens
   const openFragment = (fragment: FragmentType, data?: any) => {
+    // Only close sidebar if we're opening a new fragment (not if panel is already open with this fragment)
+    const isNewFragment = !isRightPanelOpen || activeFragment !== fragment;
+    
     originalOpenFragment(fragment, data);
-    setIsSidebarOpen(false); // Close sidebar when right panel opens
+    
+    // Only close sidebar when opening a new fragment, not when panel is already open
+    if (isNewFragment) {
+      setIsSidebarOpen(false);
+    }
   };
 
   const conversations = useQuery(api.conversations.list, {}) || [];
@@ -147,12 +154,7 @@ function AppContent() {
         {!isSidebarOpen && (
           <button
             onClick={() => {
-              const newSidebarState = !isSidebarOpen;
-              setIsSidebarOpen(newSidebarState);
-              // Close right panel when sidebar opens
-              if (newSidebarState && isRightPanelOpen) {
-                closeFragment();
-              }
+              setIsSidebarOpen(!isSidebarOpen);
             }}
             className={`absolute top-4 left-4 z-50 p-2 ${
               isDarkMode 
