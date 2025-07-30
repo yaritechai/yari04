@@ -85,7 +85,8 @@ export function RightPanel({
             data={{
               code: fragmentData?.code || '',
               language: fragmentData?.language || 'javascript',
-              filename: fragmentData?.title
+              filename: fragmentData?.title,
+              isStreaming: fragmentData?.isStreaming
             }}
           />
         );
@@ -94,7 +95,8 @@ export function RightPanel({
           <BrowserView
             data={{
               htmlContent: fragmentData?.htmlContent || '',
-              title: fragmentData?.title || 'Preview'
+              title: fragmentData?.title || 'Preview',
+              isStreaming: fragmentData?.isStreaming
             }}
           />
         );

@@ -7,8 +7,111 @@ interface BrowserViewProps {
     title?: string;
     content?: string;
     htmlContent?: string;
+    isStreaming?: boolean;
   };
 }
+
+// Beautiful loading animation component for HTML generation
+const GeneratingLoadingAnimation = ({ isDarkMode }: { isDarkMode: boolean }) => {
+  const loaderWrapperStyle: React.CSSProperties = {
+    position: 'relative',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    width: '180px',
+    height: '180px',
+    fontFamily: '"Inter", sans-serif',
+    fontSize: '1.2em',
+    fontWeight: 300,
+    color: isDarkMode ? 'white' : '#374151',
+    borderRadius: '50%',
+    backgroundColor: 'transparent',
+    userSelect: 'none'
+  };
+
+  const loaderStyle: React.CSSProperties = {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    width: '100%',
+    aspectRatio: '1 / 1',
+    borderRadius: '50%',
+    backgroundColor: 'transparent',
+    animation: 'loader-rotate 2s linear infinite',
+    zIndex: 0
+  };
+
+  const letterStyle: React.CSSProperties = {
+    display: 'inline-block',
+    opacity: 0.4,
+    transform: 'translateY(0)',
+    animation: 'loader-letter-anim 2s infinite',
+    zIndex: 1,
+    borderRadius: '50ch',
+    border: 'none'
+  };
+
+  return (
+    <div className="flex-1 flex items-center justify-center p-8">
+      <div style={loaderWrapperStyle}>
+        <span style={{...letterStyle, animationDelay: '0s'}}>G</span>
+        <span style={{...letterStyle, animationDelay: '0.1s'}}>e</span>
+        <span style={{...letterStyle, animationDelay: '0.2s'}}>n</span>
+        <span style={{...letterStyle, animationDelay: '0.3s'}}>e</span>
+        <span style={{...letterStyle, animationDelay: '0.4s'}}>r</span>
+        <span style={{...letterStyle, animationDelay: '0.5s'}}>a</span>
+        <span style={{...letterStyle, animationDelay: '0.6s'}}>t</span>
+        <span style={{...letterStyle, animationDelay: '0.7s'}}>i</span>
+        <span style={{...letterStyle, animationDelay: '0.8s'}}>n</span>
+        <span style={{...letterStyle, animationDelay: '0.9s'}}>g</span>
+        <div style={loaderStyle}></div>
+      </div>
+      
+      <style dangerouslySetInnerHTML={{
+        __html: `
+          @keyframes loader-rotate {
+            0% {
+              transform: rotate(90deg);
+              box-shadow:
+                0 10px 20px 0 ${isDarkMode ? '#fff' : '#6b7280'} inset,
+                0 20px 30px 0 ${isDarkMode ? '#ad5fff' : '#8b5cf6'} inset,
+                0 60px 60px 0 ${isDarkMode ? '#471eec' : '#7c3aed'} inset;
+            }
+            50% {
+              transform: rotate(270deg);
+              box-shadow:
+                0 10px 20px 0 ${isDarkMode ? '#fff' : '#6b7280'} inset,
+                0 20px 10px 0 ${isDarkMode ? '#d60a47' : '#dc2626'} inset,
+                0 40px 60px 0 ${isDarkMode ? '#311e80' : '#6366f1'} inset;
+            }
+            100% {
+              transform: rotate(450deg);
+              box-shadow:
+                0 10px 20px 0 ${isDarkMode ? '#fff' : '#6b7280'} inset,
+                0 20px 30px 0 ${isDarkMode ? '#ad5fff' : '#8b5cf6'} inset,
+                0 60px 60px 0 ${isDarkMode ? '#471eec' : '#7c3aed'} inset;
+            }
+          }
+
+          @keyframes loader-letter-anim {
+            0%, 100% {
+              opacity: 0.4;
+              transform: translateY(0);
+            }
+            20% {
+              opacity: 1;
+              transform: scale(1.15);
+            }
+            40% {
+              opacity: 0.7;
+              transform: translateY(0);
+            }
+          }
+        `
+      }} />
+    </div>
+  );
+};
 
 export function BrowserView({ data }: BrowserViewProps) {
   const { isDarkMode } = useTheme();
@@ -80,6 +183,11 @@ export function BrowserView({ data }: BrowserViewProps) {
       }
     }
   };
+
+  // Show loading animation if streaming and no/incomplete HTML content
+  if (data?.isStreaming && (!data?.htmlContent || data.htmlContent.length < 100)) {
+    return <GeneratingLoadingAnimation isDarkMode={isDarkMode} />;
+  }
 
   if (!data?.url && !data?.htmlContent) {
     return (

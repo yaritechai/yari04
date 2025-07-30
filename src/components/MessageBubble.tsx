@@ -19,6 +19,7 @@ interface MessageBubbleProps {
     content: string;
     tokenCount?: number;
     _creationTime: number;
+    isStreaming?: boolean;
     hasCodeBlocks?: boolean;
     hasHTMLContent?: boolean;
     searchResults?: Array<{
@@ -178,7 +179,8 @@ export function MessageBubble({ message, showTokenCount, onOpenFragment, onMCPCr
                 requestAnimationFrame(() => {
                   handleOpenInFragment('browser', {
                     htmlContent: codeContent,
-                    title: extractTitleFromHTML(codeContent) || 'Generated HTML Document'
+                    title: extractTitleFromHTML(codeContent) || 'Generated HTML Document',
+                    isStreaming: message.isStreaming
                   });
                 });
               }
@@ -192,12 +194,14 @@ export function MessageBubble({ message, showTokenCount, onOpenFragment, onMCPCr
                         if (isHTML) {
                           handleOpenInFragment('browser', {
                             htmlContent: codeContent,
-                            title: extractTitleFromHTML(codeContent) || 'Generated HTML Document'
+                            title: extractTitleFromHTML(codeContent) || 'Generated HTML Document',
+                            isStreaming: message.isStreaming
                           });
                         } else {
                           handleOpenInFragment('code', {
                             code: codeContent,
-                            language: language
+                            language: language,
+                            isStreaming: message.isStreaming
                           });
                         }
                       }}
