@@ -45,7 +45,7 @@ export const generateStreamingResponse = internalAction({
     try {
       // Get the message that triggered this response
       const message = await ctx.runQuery(internal.messages.get, {
-        messageId: args.messageId,
+      messageId: args.messageId,
       });
 
       if (!message) {
@@ -327,27 +327,6 @@ Please provide a detailed and informative response based on these search results
 
       console.log(`🤖 Selected model: ${selectedModel} for task type based on prompt:`, message.content);
 
-      // Early detection for document content to open editor during "thinking"
-      const isLikelyDocumentRequest = detectDocumentRequest(message.content);
-      let documentId: Id<"messages"> | null = null;
-      
-      if (isLikelyDocumentRequest) {
-        console.log("🗒️ Early detection: Opening document editor for likely document request");
-        
-        // Create initial document content immediately
-        const initialTitle = extractDocumentTitle("", message.content);
-        const initialBlocks = [{ id: 'block-1', type: 'text', content: '' }];
-        
-        await ctx.runMutation(internal.messages.addDocumentContent, {
-          messageId: args.messageId,
-          title: initialTitle,
-          content: JSON.stringify(initialBlocks),
-          shouldOpenRightPanel: true,
-        });
-        
-        documentId = args.messageId;
-      }
-
       const completion = await openrouter.chat.completions.create({
               model: selectedModel,
         messages: messagesWithSystem,
@@ -358,8 +337,6 @@ Please provide a detailed and informative response based on these search results
       });
 
       let streamedContent = "";
-      let accumulatedContent = "";
-      let updateCounter = 0;
 
       // Stream the normal response
       for await (const chunk of completion) {
@@ -367,23 +344,8 @@ Please provide a detailed and informative response based on these search results
         
         if (delta?.content) {
           streamedContent += delta.content;
-          accumulatedContent += delta.content;
-          updateCounter++;
           
-          // If we have a document editor open, stream content into it
-          if (documentId && updateCounter % 10 === 0) { // Update every 10 chunks to avoid too many mutations
-            try {
-              const updatedBlocks = convertTextToDocumentBlocks(accumulatedContent);
-              await ctx.runMutation(internal.messages.updateDocumentContent, {
-                messageId: documentId,
-                content: JSON.stringify(updatedBlocks),
-              });
-            } catch (error) {
-              console.error("Error updating document content:", error);
-            }
-          }
-          
-          // Also update the regular chat message
+          // Update message in real-time
           if (streamedContent.length % 50 === 0 || streamedContent.length > 100) {
             await ctx.runMutation(internal.messages.updateStreamingMessage, {
               messageId: args.messageId,
@@ -391,37 +353,6 @@ Please provide a detailed and informative response based on these search results
               isComplete: false,
             });
           }
-        }
-      }
-
-      // Check if we should trigger document editor for non-early-detected content
-      if (!documentId) {
-        const shouldTriggerDocumentEditor = detectDocumentContent(streamedContent, message.content);
-        
-        if (shouldTriggerDocumentEditor) {
-          console.log("🗒️ Post-detection: Triggering document editor for content");
-          
-          // Convert the AI response to document blocks
-          const documentBlocks = convertTextToDocumentBlocks(streamedContent);
-          
-          // Add document content to the message
-          await ctx.runMutation(internal.messages.addDocumentContent, {
-            messageId: args.messageId,
-            title: extractDocumentTitle(streamedContent, message.content),
-            content: JSON.stringify(documentBlocks),
-            shouldOpenRightPanel: true,
-          });
-        }
-      } else {
-        // Final update for document editor
-        try {
-          const finalBlocks = convertTextToDocumentBlocks(accumulatedContent);
-          await ctx.runMutation(internal.messages.updateDocumentContent, {
-            messageId: documentId,
-            content: JSON.stringify(finalBlocks),
-          });
-        } catch (error) {
-          console.error("Error with final document update:", error);
         }
       }
 
@@ -456,7 +387,7 @@ Please provide a detailed and informative response based on these search results
       });
       } catch (saveError) {
         console.error("Failed to save error message:", saveError);
-      }
+    }
     }
 
     return null;

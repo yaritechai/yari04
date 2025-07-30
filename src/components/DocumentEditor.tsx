@@ -655,13 +655,6 @@ function BlockComponent({
       return classes;
     };
 
-    // Real-time streaming indicator
-    const isStreamingBlock = block.content.length > 0 && (
-      block.content.endsWith('...') || 
-      block.content.includes('◊') || // Streaming marker
-      block.id === 'block-1' // First block is likely streaming
-    );
-
     const commonProps = {
       'data-block-id': block.id,
       contentEditable: block.type !== 'divider',
@@ -775,7 +768,7 @@ function BlockComponent({
       </div>
 
       {/* Real-time Streaming Indicator */}
-      {isStreamingBlock && (
+      {/* isStreamingBlock && (
         <div className={`absolute right-2 top-2 z-10 flex items-center gap-2 px-2 py-1 rounded-full text-xs ${
           isDarkMode ? 'bg-blue-900/50 text-blue-300' : 'bg-blue-100 text-blue-600'
         }`}>
@@ -786,12 +779,12 @@ function BlockComponent({
           </div>
           <span>Streaming</span>
         </div>
-      )}
+      ) */}
 
       {/* Block Actions */}
       {isHovered && (
         <div className={`absolute right-2 top-2 flex items-center gap-1 ${
-          isStreamingBlock ? 'top-8' : ''
+          /* isStreamingBlock ? 'top-8' : '' */ ''
         }`}>
           <button
             onClick={onDelete}
