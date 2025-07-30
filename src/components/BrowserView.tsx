@@ -9,6 +9,7 @@ interface BrowserViewProps {
     htmlContent?: string;
     isStreaming?: boolean;
   };
+  onClose?: () => void;
 }
 
 // Beautiful loading animation component for HTML generation
@@ -113,7 +114,7 @@ const GeneratingLoadingAnimation = ({ isDarkMode }: { isDarkMode: boolean }) => 
   );
 };
 
-export function BrowserView({ data }: BrowserViewProps) {
+export function BrowserView({ data, onClose }: BrowserViewProps) {
   const { isDarkMode } = useTheme();
   const [isLoading, setIsLoading] = useState(false);
   const [isFullscreen, setIsFullscreen] = useState(false);
@@ -281,6 +282,18 @@ export function BrowserView({ data }: BrowserViewProps) {
               )}
             </svg>
           </button>
+
+          {onClose && (
+            <button
+              onClick={onClose}
+              className={`p-2 ${isDarkMode ? 'hover:bg-neutral-700 text-gray-300 hover:text-white' : 'hover:bg-gray-200 text-gray-600 hover:text-gray-900'} rounded transition-colors`}
+              title="Close Browser View"
+            >
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            </button>
+          )}
         </div>
       </div>
 

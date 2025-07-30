@@ -183,6 +183,7 @@ export function RightPanel({
               filename: fragmentData?.title,
               isStreaming: fragmentData?.isStreaming
             }}
+            onClose={() => onFragmentChange(null)}
           />
         );
       case 'browser':
@@ -193,6 +194,7 @@ export function RightPanel({
               title: fragmentData?.title || 'Preview',
               isStreaming: fragmentData?.isStreaming
             }}
+            onClose={() => onFragmentChange(null)}
           />
         );
       case 'search':
