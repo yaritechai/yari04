@@ -245,12 +245,6 @@ export const finalizeStreamingMessage = internalMutation({
     content: v.string(),
     tokens: v.optional(v.number()),
     model: v.optional(v.string()),
-    searchResults: v.optional(v.array(v.object({
-      title: v.string(),
-      link: v.string(),
-      snippet: v.string(),
-      displayLink: v.string(),
-    }))),
     hasWebSearch: v.optional(v.boolean()),
   },
   returns: v.null(),
@@ -263,7 +257,6 @@ export const finalizeStreamingMessage = internalMutation({
       isStreaming: false,
       tokens: args.tokens,
       model: args.model,
-      searchResults: args.searchResults,
       hasWebSearch: args.hasWebSearch,
     });
 
@@ -307,12 +300,6 @@ export const addAssistantMessageWithSearch = internalMutation({
   args: {
     conversationId: v.id("conversations"),
     content: v.string(),
-    searchResults: v.array(v.object({
-      title: v.string(),
-      link: v.string(),
-      snippet: v.string(),
-      displayLink: v.string(),
-    })),
   },
   returns: v.null(),
   handler: async (ctx, args) => {
@@ -326,7 +313,6 @@ export const addAssistantMessageWithSearch = internalMutation({
       role: "assistant",
       content: args.content,
       userId: conversation.userId,
-      searchResults: args.searchResults,
       hasWebSearch: true,
       timestamp: Date.now(),
       createdAt: Date.now(),
@@ -353,6 +339,30 @@ export const addLandingPageContent = internalMutation({
         htmlContent: args.htmlContent,
         title: args.title,
         theme: args.theme,
+        shouldOpenRightPanel: true,
+      },
+    });
+    return null;
+  },
+});
+
+export const addSearchResults = internalMutation({
+  args: {
+    messageId: v.id("messages"),
+    query: v.string(),
+    results: v.array(v.object({
+      title: v.string(),
+      url: v.string(),
+      snippet: v.string(),
+      content: v.optional(v.string()),
+    })),
+  },
+  returns: v.null(),
+  handler: async (ctx, args) => {
+    await ctx.db.patch(args.messageId, {
+      searchResults: {
+        query: args.query,
+        results: args.results,
         shouldOpenRightPanel: true,
       },
     });

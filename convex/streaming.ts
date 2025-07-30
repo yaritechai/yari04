@@ -98,12 +98,19 @@ export const generateStreamingResponse = internalAction({
       const urlRegex = /https?:\/\/[^\s]+/g;
       const urls = message.content.match(urlRegex) || [];
 
-      // Auto-enable web search for landing page requests
+      // Auto-enable web search for landing page requests and research queries
       let shouldPerformSearch = args.includeWebSearch || false;
       const isLandingPageRequest = /\b(landing page|website|webpage|create.*page|build.*page|design.*page)\b/i.test(message.content);
       
+      // Auto-detect research queries
+      const researchKeywords = /\b(research|search|find information|look up|investigate|tell me about|who is|what is|current|latest|recent|news about)\b/i;
+      const isResearchRequest = researchKeywords.test(message.content);
+      
       if (isLandingPageRequest) {
         console.log("Auto-enabling web search for landing page request:", message.content);
+        shouldPerformSearch = true;
+      } else if (isResearchRequest) {
+        console.log("Auto-enabling web search for research request:", message.content);
         shouldPerformSearch = true;
       }
 
@@ -368,6 +375,21 @@ Remember: You're here to be genuinely helpful, direct, and efficient. Focus on s
           autonomousSearchResults = await performWebSearch(params.query);
           
           if (autonomousSearchResults.length > 0) {
+            // Store search results for sidebar display
+            const searchResultsForSidebar = autonomousSearchResults.slice(0, 5).map(result => ({
+              title: result.title,
+              url: result.link,
+              snippet: result.snippet,
+              content: result.snippet, // We'll use snippet as content for sidebar
+            }));
+
+            // Save search results to trigger sidebar
+            await ctx.runMutation(internal.messages.addSearchResults, {
+              messageId: args.messageId,
+              query: params.query,
+              results: searchResultsForSidebar,
+            });
+
             // Enhanced search context with full content from top results
             const enhancedResults = [];
             
@@ -536,7 +558,6 @@ Click the "Generated HTML" button below to view your custom landing page!`;
         await ctx.runMutation(internal.messages.finalizeStreamingMessage, {
           messageId: args.messageId,
           content: fullContent,
-          searchResults: autonomousSearchResults.slice(0, 5), // Limit to 5 results for UI
           hasWebSearch: true,
         });
       } else {

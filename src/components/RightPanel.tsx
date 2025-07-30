@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from 'react';
+import React, { useRef, useState, useEffect } from 'react';
 import { useTheme } from '../contexts/ThemeContext';
 import { CodeView } from './CodeView';
 import { BrowserView } from './BrowserView';
@@ -101,10 +101,9 @@ export function RightPanel({
       case 'search':
         return (
           <SearchResults
-            data={{
-              results: fragmentData?.results || [],
-              query: fragmentData?.query
-            }}
+            query={fragmentData?.query}
+            results={fragmentData?.results || []}
+            isLoading={fragmentData?.isLoading || false}
           />
         );
       case 'document':
