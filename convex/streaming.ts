@@ -457,13 +457,14 @@ You can copy this HTML and save it as an \`.html\` file to use immediately!`;
       // Log final status
       console.log("Stream completed, final content length:", fullContent.length);
 
-      // Save the final AI response with search results if available
+      // Save the final AI response - always update the original streaming message
       if (autonomousSearchResults.length > 0) {
-        // Use addAssistantMessageWithSearch to store search results for UI display
-        await ctx.runMutation(internal.messages.addAssistantMessageWithSearch, {
-          conversationId: args.conversationId,
+        // Update the original streaming message with search results
+        await ctx.runMutation(internal.messages.finalizeStreamingMessage, {
+          messageId: args.messageId,
           content: fullContent,
           searchResults: autonomousSearchResults.slice(0, 5), // Limit to 5 results for UI
+          hasWebSearch: true,
         });
       } else {
         // Regular message without search results

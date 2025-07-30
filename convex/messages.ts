@@ -251,6 +251,7 @@ export const finalizeStreamingMessage = internalMutation({
     }))),
     hasWebSearch: v.optional(v.boolean()),
   },
+  returns: v.null(),
   handler: async (ctx, args) => {
     const message = await ctx.db.get(args.messageId);
     if (!message) return;
@@ -268,6 +269,8 @@ export const finalizeStreamingMessage = internalMutation({
     await ctx.db.patch(message.conversationId, {
       lastMessageAt: Date.now(),
     });
+    
+    return null;
   },
 });
 
