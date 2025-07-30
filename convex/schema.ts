@@ -55,6 +55,12 @@ const applicationTables = {
       theme: v.string(),
       shouldOpenRightPanel: v.boolean(),
     })),
+    documentContent: v.optional(v.object({
+      title: v.string(),
+      content: v.string(), // JSON string of blocks
+      shouldOpenRightPanel: v.boolean(),
+    })),
+    hasDocument: v.optional(v.boolean()),
   }).index("by_conversation", ["conversationId"]),
 
   folders: defineTable({

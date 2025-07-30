@@ -36,6 +36,31 @@ export function DocumentEditor({ initialContent = '', title: initialTitle = 'Unt
   const saveDocument = useMutation(api.files.saveDocument);
   const containerRef = useRef<HTMLDivElement>(null);
 
+  // Parse initialContent if provided as JSON blocks
+  useEffect(() => {
+    if (initialContent && initialContent.trim()) {
+      try {
+        // Try to parse as JSON blocks first
+        const parsedBlocks = JSON.parse(initialContent);
+        if (Array.isArray(parsedBlocks) && parsedBlocks.length > 0) {
+          setBlocks(parsedBlocks);
+          return;
+        }
+      } catch {
+        // If not valid JSON, treat as plain text and convert to blocks
+        const textBlocks = initialContent.split('\n\n').map((paragraph, index) => ({
+          id: `block-${index + 1}`,
+          type: 'text' as const,
+          content: paragraph.trim()
+        })).filter(block => block.content);
+        
+        if (textBlocks.length > 0) {
+          setBlocks(textBlocks);
+        }
+      }
+    }
+  }, [initialContent]);
+
   // Global keyboard event listener for shortcuts
   useEffect(() => {
     const handleGlobalKeyDown = (e: KeyboardEvent) => {

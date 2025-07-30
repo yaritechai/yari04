@@ -363,6 +363,24 @@ Please provide a detailed and informative response based on these search results
 
       console.log("Stream completed, final content length:", streamedContent.length);
 
+      // Check if the response should trigger the document editor
+      const shouldTriggerDocumentEditor = detectDocumentContent(streamedContent, message.content);
+      
+      if (shouldTriggerDocumentEditor) {
+        console.log("🗒️ Triggering document editor for content");
+        
+        // Convert the AI response to document blocks
+        const documentBlocks = convertTextToDocumentBlocks(streamedContent);
+        
+        // Add document content to the message
+        await ctx.runMutation(internal.messages.addDocumentContent, {
+          messageId: args.messageId,
+          title: extractDocumentTitle(streamedContent, message.content),
+          content: JSON.stringify(documentBlocks),
+          shouldOpenRightPanel: true,
+        });
+      }
+
       // Update conversation metadata
       await ctx.runMutation(internal.conversations.updateLastMessage, {
         conversationId: args.conversationId,
@@ -510,6 +528,171 @@ async function performWebSearch(query: string): Promise<any[]> {
   }
 
   return [];
+}
+
+// Function to detect if content should trigger the document editor
+function detectDocumentContent(content: string, userMessage: string): boolean {
+  const contentLength = content.length;
+  const userRequest = userMessage.toLowerCase();
+  
+  // Detect writing/creative content keywords in user request
+  const writingKeywords = [
+    'write', 'create', 'draft', 'compose', 'author',
+    'article', 'blog', 'essay', 'story', 'letter',
+    'email', 'memo', 'report', 'proposal', 'plan',
+    'guide', 'tutorial', 'documentation', 'content',
+    'copy', 'script', 'speech', 'presentation',
+    'marketing', 'creative', 'brainstorm', 'outline'
+  ];
+  
+  const hasWritingKeywords = writingKeywords.some(keyword => 
+    userRequest.includes(keyword)
+  );
+  
+  // Detect structured content patterns in AI response
+  const hasStructuredContent = 
+    content.includes('\n\n') || // Multiple paragraphs
+    content.includes('# ') ||    // Headers
+    content.includes('## ') ||   // Headers
+    content.includes('### ') ||  // Headers
+    content.includes('- ') ||    // Lists
+    content.includes('* ') ||    // Lists
+    content.includes('1. ') ||   // Numbered lists
+    content.includes('**') ||    // Bold text
+    content.includes('---');     // Dividers
+  
+  // Criteria for triggering document editor:
+  // 1. Long content (500+ chars) with writing keywords
+  // 2. Structured content (headers, lists, etc.) regardless of length
+  // 3. Very long content (1000+ chars) regardless of keywords
+  
+  return (
+    (contentLength > 500 && hasWritingKeywords) ||
+    (hasStructuredContent && contentLength > 200) ||
+    contentLength > 1000
+  );
+}
+
+// Function to convert text content to document blocks
+function convertTextToDocumentBlocks(content: string): any[] {
+  const blocks = [];
+  let blockIdCounter = 1;
+  
+  // Split content by double newlines (paragraphs)
+  const sections = content.split(/\n\s*\n/);
+  
+  for (const section of sections) {
+    const trimmedSection = section.trim();
+    if (!trimmedSection) continue;
+    
+    const lines = trimmedSection.split('\n');
+    
+    for (const line of lines) {
+      const trimmedLine = line.trim();
+      if (!trimmedLine) continue;
+      
+      let blockType = 'text';
+      let content = trimmedLine;
+      let level = undefined;
+      
+      // Detect headers
+      if (trimmedLine.startsWith('### ')) {
+        blockType = 'heading';
+        content = trimmedLine.substring(4);
+        level = 3;
+      } else if (trimmedLine.startsWith('## ')) {
+        blockType = 'heading';
+        content = trimmedLine.substring(3);
+        level = 2;
+      } else if (trimmedLine.startsWith('# ')) {
+        blockType = 'heading';
+        content = trimmedLine.substring(2);
+        level = 1;
+      }
+      // Detect lists
+      else if (trimmedLine.match(/^[\*\-\+]\s/)) {
+        blockType = 'list';
+        content = trimmedLine.substring(2);
+      }
+      // Detect numbered lists
+      else if (trimmedLine.match(/^\d+\.\s/)) {
+        blockType = 'list';
+        content = trimmedLine.replace(/^\d+\.\s/, '');
+      }
+      // Detect quotes
+      else if (trimmedLine.startsWith('> ')) {
+        blockType = 'quote';
+        content = trimmedLine.substring(2);
+      }
+      // Detect dividers
+      else if (trimmedLine.match(/^[\-\*_]{3,}$/)) {
+        blockType = 'divider';
+        content = '';
+      }
+      
+      blocks.push({
+        id: `block-${blockIdCounter++}`,
+        type: blockType,
+        content: content,
+        ...(level && { level })
+      });
+    }
+  }
+  
+  // If no blocks were created, create a single text block
+  if (blocks.length === 0) {
+    blocks.push({
+      id: 'block-1',
+      type: 'text',
+      content: content
+    });
+  }
+  
+  return blocks;
+}
+
+// Function to extract a suitable title for the document
+function extractDocumentTitle(content: string, userMessage: string): string {
+  // Try to extract title from content
+  const lines = content.split('\n');
+  
+  // Look for first heading
+  for (const line of lines) {
+    const trimmed = line.trim();
+    if (trimmed.startsWith('# ')) {
+      return trimmed.substring(2).trim();
+    }
+    if (trimmed.startsWith('## ')) {
+      return trimmed.substring(3).trim();
+    }
+  }
+  
+  // Extract from user message
+  const userRequest = userMessage.toLowerCase();
+  
+  // Look for "write a [something]" or "create a [something]"
+  const writeMatch = userRequest.match(/(?:write|create|draft|compose)\s+(?:a\s+|an\s+)?(.+?)(?:\s+(?:for|about|on)|\s*$)/);
+  if (writeMatch) {
+    const extracted = writeMatch[1].trim();
+    return extracted.charAt(0).toUpperCase() + extracted.slice(1);
+  }
+  
+  // Look for content type keywords
+  if (userRequest.includes('article')) return 'Article';
+  if (userRequest.includes('blog')) return 'Blog Post';
+  if (userRequest.includes('essay')) return 'Essay';
+  if (userRequest.includes('story')) return 'Story';
+  if (userRequest.includes('letter')) return 'Letter';
+  if (userRequest.includes('email')) return 'Email';
+  if (userRequest.includes('memo')) return 'Memo';
+  if (userRequest.includes('report')) return 'Report';
+  if (userRequest.includes('proposal')) return 'Proposal';
+  if (userRequest.includes('plan')) return 'Plan';
+  if (userRequest.includes('guide')) return 'Guide';
+  if (userRequest.includes('tutorial')) return 'Tutorial';
+  
+  // Default fallback
+  return 'Generated Document';
 }
 
 // Note: Old template function removed - AI now generates custom HTML directly

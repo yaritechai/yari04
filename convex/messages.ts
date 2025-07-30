@@ -359,3 +359,24 @@ export const addLandingPageContent = internalMutation({
     return null;
   },
 });
+
+export const addDocumentContent = internalMutation({
+  args: {
+    messageId: v.id("messages"),
+    title: v.string(),
+    content: v.string(), // JSON string of blocks
+    shouldOpenRightPanel: v.boolean(),
+  },
+  returns: v.null(),
+  handler: async (ctx, args) => {
+    await ctx.db.patch(args.messageId, {
+      documentContent: {
+        title: args.title,
+        content: args.content,
+        shouldOpenRightPanel: args.shouldOpenRightPanel,
+      },
+      hasDocument: true,
+    });
+    return null;
+  },
+});

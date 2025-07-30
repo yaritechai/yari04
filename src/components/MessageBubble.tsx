@@ -36,6 +36,10 @@ interface MessageBubbleProps {
       fileSize: number;
     }>;
     mcpCredentialRequest?: any;
+    documentContent?: {
+      title: string;
+      content: string;
+    };
   };
   showTokenCount?: boolean;
   onOpenFragment?: (type: FragmentType, data: any) => void;
@@ -118,6 +122,31 @@ export function MessageBubble({ message, showTokenCount, onOpenFragment, onMCPCr
       return () => clearTimeout(timer);
     }
   }, [message.searchResults, message.isStreaming, handleOpenInFragment]);
+
+  // Auto-open document editor when document content becomes available
+  useEffect(() => {
+    if (message.documentContent && !message.isStreaming) {
+      // Small delay to ensure UI is ready and avoid conflicts
+      const timer = setTimeout(() => {
+        handleOpenInFragment('document', {
+          title: message.documentContent.title,
+          content: message.documentContent.content,
+        });
+      }, 100);
+      
+      return () => clearTimeout(timer);
+    }
+  }, [message.documentContent, message.isStreaming, handleOpenInFragment]);
+
+  // Handler for document badge clicks
+  const handleDocumentClick = () => {
+    if (message.documentContent) {
+      handleOpenInFragment('document', {
+        title: message.documentContent.title,
+        content: message.documentContent.content,
+      });
+    }
+  };
 
   const getLanguageIcon = (language: string) => {
     const lang = language.toLowerCase();
@@ -551,6 +580,54 @@ export function MessageBubble({ message, showTokenCount, onOpenFragment, onMCPCr
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
                 </svg>
                 View all
+              </button>
+            </div>
+          </div>
+        )}
+
+        {/* Document Editor Badges */}
+        {message.documentContent && (
+          <div className="mt-2 sm:mt-3">
+            <div className="flex items-center gap-2 flex-wrap">
+              <div className="flex items-center gap-1">
+                <svg className={`w-3 h-3 ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                </svg>
+                <span className={`text-xs ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`}>
+                  Generated document:
+                </span>
+              </div>
+              
+              <button
+                onClick={handleDocumentClick}
+                className={`inline-flex items-center gap-1.5 px-3 py-1.5 text-xs rounded-full transition-colors ${
+                  isDarkMode 
+                    ? 'bg-purple-900/30 text-purple-300 hover:bg-purple-900/50 border border-purple-700/50' 
+                    : 'bg-purple-50 text-purple-600 hover:bg-purple-100 border border-purple-200'
+                }`}
+                title={`Open "${message.documentContent.title}" in document editor`}
+              >
+                <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                </svg>
+                {message.documentContent.title}
+              </button>
+
+              <button
+                onClick={handleDocumentClick}
+                className={`inline-flex items-center gap-1.5 px-2 py-1 text-xs rounded-full transition-colors ${
+                  isDarkMode 
+                    ? 'bg-gray-700 text-gray-300 hover:bg-gray-600 border border-gray-600' 
+                    : message.role === 'user'
+                    ? 'bg-primary-100 text-primary-600 hover:bg-primary-200 border border-primary-200'
+                    : 'bg-gray-100 text-gray-600 hover:bg-gray-200 border border-gray-200'
+                }`}
+                title="Open document in editor"
+              >
+                <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+                </svg>
+                Edit
               </button>
             </div>
           </div>
