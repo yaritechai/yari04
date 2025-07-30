@@ -72,7 +72,8 @@ export const generateStreamingResponse = internalAction({
       const availableCapabilities = await ctx.runQuery(internal.agentBuilder.getAvailableCapabilitiesInternal, {});
 
       // Get current date and time for comprehensive context
-      const currentDateTime = new Date().toLocaleString('en-US', {
+      const now = new Date();
+      const currentDateTime = now.toLocaleString('en-US', {
         weekday: 'long',
         year: 'numeric',
         month: 'long',
@@ -84,6 +85,7 @@ export const generateStreamingResponse = internalAction({
       });
 
       const currentTimestamp = Date.now();
+      const currentTimeZone = Intl.DateTimeFormat().resolvedOptions().timeZone;
 
       console.log("Checking message for URLs:", message.content);
 
@@ -125,8 +127,11 @@ export const generateStreamingResponse = internalAction({
       }));
 
       // Create comprehensive system prompt with context
-      const systemPrompt = `📅 **CURRENT DATE & TIME**: ${currentDateTime}
-⏰ **TIMESTAMP**: ${currentTimestamp}
+      const systemPrompt = `🕐 **IMPORTANT: USER'S CURRENT TIME & DATE**
+📅 **Right now it is**: ${currentDateTime}
+🌍 **Timezone**: ${currentTimeZone}
+⏰ **Unix timestamp**: ${currentTimestamp}
+🎯 **This is the user's current local time** - ALWAYS use this for time-sensitive responses, scheduling, deadlines, and any time-related context.
 
 🤖 **AI ASSISTANT CONTEXT**
 You are **Yari AI**, an advanced AI assistant created by **Yari Tech** (CEO: Neil Patel). You have access to powerful capabilities and integrations, including web search, landing page design, and content creation. 
@@ -153,6 +158,7 @@ ${userIntegrations.length > 0 ? userIntegrations.map(int =>
 ${mcpConnections.length > 0 ? '• **MCP Tools**: Various tools available through connected integrations' : ''}
 
 ⚡ **CORE INSTRUCTIONS**:
+- **USE CURRENT TIME AWARENESS**: Always reference the user's current time/date when relevant (scheduling, deadlines, "today", "tomorrow", etc.)
 - **BE DIRECT & CONVERSATIONAL**: Use natural, flowing speech like talking to a friend
 - **KEEP IT CONCISE**: For basic questions, give short, clear answers. Don't over-explain unless asked
 - **BE HELPFUL**: Always aim to be genuinely useful and solve the user's actual need
