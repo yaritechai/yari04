@@ -37,13 +37,7 @@ function AppContent() {
     setIsSidebarOpen(false); // Close sidebar when right panel opens
   };
 
-  // Debug: Check authentication state
-  const currentUser = useQuery(api.auth.loggedInUser, {});
-  console.log("🔍 App Debug - Current user:", currentUser);
-
   const conversations = useQuery(api.conversations.list, {}) || [];
-  console.log("🔍 App Debug - Conversations query result:", conversations);
-  
   const selectedConversation = useQuery(
     api.conversations.get, 
     selectedConversationId ? { conversationId: selectedConversationId } : "skip"
@@ -106,12 +100,6 @@ function AppContent() {
 
   return (
     <div className={`h-screen flex ${isDarkMode ? 'bg-neutral-900' : 'bg-neutral-50'} overflow-hidden`}>
-      {/* Debug Panel - Show auth state */}
-      <div className="fixed top-0 right-0 z-50 bg-red-500 text-white p-2 text-xs">
-        User: {currentUser ? '✅ Authenticated' : '❌ Not authenticated'} | 
-        Conversations: {conversations.length}
-      </div>
-
       {/* Mobile Sidebar Overlay */}
       {isMobile && isSidebarOpen && (
         <div 

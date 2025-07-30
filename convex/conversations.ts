@@ -11,18 +11,10 @@ export const list = query({
   },
   returns: v.array(v.any()),
   handler: async (ctx, args) => {
-    console.log("🔍 Auth Debug - Starting conversations.list query");
-    
     const userId = await getAuthUserId(ctx);
-    console.log("🔍 Auth Debug - userId from getAuthUserId:", userId);
-    
     if (!userId) {
-      console.error("🔍 Auth Debug - No userId found, user not authenticated");
-      console.log("🔍 Auth Debug - ctx.auth:", ctx.auth);
       throw new Error("Not authenticated");
     }
-
-    console.log("🔍 Auth Debug - User authenticated, fetching conversations for userId:", userId);
 
     let query = ctx.db
       .query("conversations")
@@ -32,7 +24,6 @@ export const list = query({
       .order("desc");
 
     const conversations = await query.take(100);
-    console.log("🔍 Auth Debug - Found conversations:", conversations.length);
 
     // Filter by folder if specified
     if (args.folderId) {
@@ -135,6 +126,7 @@ export const create = mutation({
       temperature: args.temperature,
       type: args.type || "chat",
       agentId: args.agentId as Id<"agentConfigs"> | undefined,
+      isArchived: false, // ADD THIS: Ensure conversations appear in the list
       createdAt: Date.now(),
       updatedAt: Date.now(),
     });
