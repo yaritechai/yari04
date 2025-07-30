@@ -234,73 +234,87 @@ Remember: You're here to be genuinely helpful, direct, and efficient. Focus on s
 
       // SIMPLE SEARCH APPROACH - No complex tool calling
       if (shouldPerformSearch) {
-        console.log("🔍 Performing direct search for:", message.content);
+        // Get the latest user message from the conversation for search query
+        const conversationMessages = await ctx.runQuery(internal.messages.listInternal, {
+          conversationId: args.conversationId,
+        });
         
-        // Direct search call - simple and clean
-        try {
-          const searchResults = await performWebSearch(message.content);
+        // Find the latest user message
+        const latestUserMessage = conversationMessages
+          .filter(msg => msg.role === "user")
+          .sort((a, b) => b._creationTime - a._creationTime)[0];
+        
+        if (!latestUserMessage) {
+          console.log("No user message found for search");
+        } else {
+          console.log("🔍 Performing direct search for:", latestUserMessage.content);
           
-          if (searchResults.length > 0) {
-            // Format search results for LLM
-            const searchContext = searchResults.map((result, index) => 
-              `${index + 1}. **${result.title}**\n   URL: ${result.link}\n   ${result.snippet}\n`
-            ).join('\n');
+          // Direct search call - simple and clean
+          try {
+            const searchResults = await performWebSearch(latestUserMessage.content);
             
-            // Create enhanced prompt with search results
-            const searchPrompt = `Based on the following search results about "${message.content}", provide a comprehensive response:
+            if (searchResults.length > 0) {
+              // Format search results for LLM
+              const searchContext = searchResults.map((result, index) => 
+                `${index + 1}. **${result.title}**\n   URL: ${result.link}\n   ${result.snippet}\n`
+              ).join('\n');
+              
+              // Create enhanced prompt with search results
+              const searchPrompt = `Based on the following search results about "${latestUserMessage.content}", provide a comprehensive response:
 
 ${searchContext}
 
 Please provide a detailed and informative response based on these search results.`;
 
-            // Call LLM with search context
-            const completion = await openrouter.chat.completions.create({
-              model: selectedModel,
-              messages: [
-                { role: "system", content: systemPrompt },
-                { role: "user", content: searchPrompt }
-              ],
-              max_tokens: modelParams.max_tokens,
-              temperature: modelParams.temperature,
-              stream: true
-            });
+              // Call LLM with search context
+              const completion = await openrouter.chat.completions.create({
+                model: selectedModel,
+                messages: [
+                  { role: "system", content: systemPrompt },
+                  { role: "user", content: searchPrompt }
+                ],
+                max_tokens: modelParams.max_tokens,
+                temperature: modelParams.temperature,
+                stream: true
+              });
 
-            let responseContent = "";
-            
-            // Stream the response
-            for await (const chunk of completion) {
-              const delta = chunk.choices[0]?.delta;
-              if (delta?.content) {
-                responseContent += delta.content;
-                
-                // Update streaming message
-                if (responseContent.length % 50 === 0) {
-                  await ctx.runMutation(internal.messages.updateStreamingMessage, {
-                    messageId: args.messageId,
-                    content: responseContent,
-                    isComplete: false,
-                  });
+              let responseContent = "";
+              
+              // Stream the response
+              for await (const chunk of completion) {
+                const delta = chunk.choices[0]?.delta;
+                if (delta?.content) {
+                  responseContent += delta.content;
+                  
+                  // Update streaming message
+                  if (responseContent.length % 50 === 0) {
+                    await ctx.runMutation(internal.messages.updateStreamingMessage, {
+                      messageId: args.messageId,
+                      content: responseContent,
+                      isComplete: false,
+                    });
+                  }
                 }
               }
+
+              // Finalize with search results - this will show the badges and enable right panel
+              await ctx.runMutation(internal.messages.finalizeStreamingMessage, {
+                messageId: args.messageId,
+                content: responseContent,
+                searchResults: searchResults, // Show in right panel
+                hasWebSearch: true,
+              });
+
+              console.log("Search completed, response length:", responseContent.length);
+              return;
+              
+            } else {
+              console.log("No search results found, falling back to normal response");
             }
-
-            // Finalize with search results
-            await ctx.runMutation(internal.messages.finalizeStreamingMessage, {
-              messageId: args.messageId,
-              content: responseContent,
-              searchResults: searchResults, // Show in right panel
-              hasWebSearch: true,
-            });
-
-            console.log("Search completed, response length:", responseContent.length);
-            return;
-            
-          } else {
-            console.log("No search results found, falling back to normal response");
+          } catch (error) {
+            console.error("Search failed:", error);
+            // Fall through to normal response
           }
-        } catch (error) {
-          console.error("Search failed:", error);
-          // Fall through to normal response
         }
       }
 
