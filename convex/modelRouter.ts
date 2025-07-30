@@ -2,17 +2,17 @@ import { v } from "convex/values";
 
 // Model configurations with task-specific routing
 export const MODELS = {
-  // General model - switchpoint/router for most conversations
-  GENERAL_THINKING: "switchpoint/router",
+  // General model - moonshotai/kimi-k2 for most conversations
+  GENERAL_THINKING: "moonshotai/kimi-k2",
   
-  // Research and analysis tasks - switchpoint/router handles routing
-  RESEARCH: "switchpoint/router",
+  // Research and analysis tasks - moonshotai/kimi-k2 with tool support
+  RESEARCH: "moonshotai/kimi-k2",
   
-  // Landing pages and coding tasks - switchpoint/router for intelligent routing
-  CODING_LANDING: "switchpoint/router",
+  // Landing pages and coding tasks - moonshotai/kimi-k2 for tool compatibility
+  CODING_LANDING: "moonshotai/kimi-k2",
   
-  // Summarization and title generation - switchpoint/router for all tasks
-  SUMMARIZATION: "switchpoint/router",
+  // Summarization and title generation - moonshotai/kimi-k2 for all tasks
+  SUMMARIZATION: "moonshotai/kimi-k2",
 } as const;
 
 // Task type identification patterns
@@ -172,12 +172,12 @@ export function getModelForTask(
 
 // Model metadata for UI display
 export const MODEL_METADATA = {
-  "switchpoint/router": {
-    label: "Switchpoint Router",
-    description: "Intelligent model routing for all tasks - research, coding, conversations, and more",
+  "moonshotai/kimi-k2": {
+    label: "Moonshot AI Kimi-K2",
+    description: "Advanced AI model with tool support for research, coding, conversations, and more",
     category: "Universal",
-    capabilities: ["thinking", "reasoning", "conversation", "routing", "research", "coding", "summarization"],
-    icon: "🎯"
+    capabilities: ["thinking", "reasoning", "conversation", "research", "coding", "summarization", "tool-use"],
+    icon: "🌙"
   }
 } as const;
 

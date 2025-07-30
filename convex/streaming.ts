@@ -17,7 +17,7 @@ export const testOpenRouter = internalAction({
       });
 
       const completion = await openrouter.chat.completions.create({
-        model: "switchpoint/router",
+        model: "moonshotai/kimi-k2",
         messages: [{ role: "user", content: "Say hello" }],
         max_tokens: 10,
       });

@@ -16,7 +16,7 @@ export const get = query({
       .first();
 
     return preferences || {
-      defaultModel: "switchpoint/router",
+      defaultModel: "moonshotai/kimi-k2",
       defaultTemperature: 0.7,
       theme: "light",
       codeTheme: "github",
