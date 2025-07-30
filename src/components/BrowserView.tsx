@@ -285,8 +285,11 @@ export function BrowserView({ data, onClose }: BrowserViewProps) {
 
           {onClose && (
             <button
-              onClick={onClose}
-              className={`p-2 ${isDarkMode ? 'hover:bg-neutral-700 text-gray-300 hover:text-white' : 'hover:bg-gray-200 text-gray-600 hover:text-gray-900'} rounded transition-colors`}
+              onClick={(e) => {
+                e.stopPropagation();
+                onClose();
+              }}
+              className={`relative z-50 p-2 ${isDarkMode ? 'hover:bg-neutral-700 text-gray-300 hover:text-white' : 'hover:bg-gray-200 text-gray-600 hover:text-gray-900'} rounded transition-colors`}
               title="Close Browser View"
             >
               <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">

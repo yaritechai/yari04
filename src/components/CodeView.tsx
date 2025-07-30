@@ -219,8 +219,11 @@ export function CodeView({ data, onClose }: CodeViewProps) {
           </button>
           {onClose && (
             <button
-              onClick={onClose}
-              className={`p-1.5 rounded transition-colors ${
+              onClick={(e) => {
+                e.stopPropagation();
+                onClose();
+              }}
+              className={`relative z-50 p-1.5 rounded transition-colors ${
                 isDarkMode 
                   ? 'hover:bg-neutral-800 text-gray-400 hover:text-white' 
                   : 'hover:bg-gray-100 text-gray-500 hover:text-gray-700'
