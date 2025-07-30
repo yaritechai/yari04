@@ -100,10 +100,14 @@ export function MessageInput({
     setShowOptions(false);
 
     try {
+      // Get user's actual timezone from browser
+      const userTimezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+      
       const result = await sendMessage({
         conversationId,
         content: messageContent,
         requiresWebSearch: webSearchEnabled,
+        userTimezone,
         attachments: messageAttachments.length > 0 ? messageAttachments : undefined,
       });
 

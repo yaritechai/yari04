@@ -35,6 +35,7 @@ export const generateStreamingResponse = internalAction({
     conversationId: v.id("conversations"),
     messageId: v.id("messages"),
     includeWebSearch: v.optional(v.boolean()),
+    userTimezone: v.optional(v.string()),
   },
   returns: v.null(),
   handler: async (ctx, args) => {
@@ -73,7 +74,7 @@ export const generateStreamingResponse = internalAction({
 
       // Get current date and time using Eastern Time (most common US timezone)
       // TODO: Add proper user timezone detection and storage
-      const userTimezone = "America/New_York";
+      const userTimezone = args.userTimezone || "America/New_York";
       
       const now = new Date();
       const currentDateTime = now.toLocaleString('en-US', {

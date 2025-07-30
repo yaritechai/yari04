@@ -83,12 +83,16 @@ export function MessageInputModern({
       // Determine if web search is enabled
       const requiresWebSearch = message.toLowerCase().includes('[search:') || webSearchEnabled;
 
+      // Get user's actual timezone from browser
+      const userTimezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+
       // Send the message
       await sendMessage({
         conversationId: currentConversationId,
         content: message,
         attachments: attachments.length > 0 ? attachments : undefined,
         requiresWebSearch,
+        userTimezone,
       });
 
       // Generate smart title for first message

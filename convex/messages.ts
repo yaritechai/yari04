@@ -32,6 +32,7 @@ export const send = mutation({
     conversationId: v.id("conversations"),
     content: v.string(),
     requiresWebSearch: v.optional(v.boolean()),
+    userTimezone: v.optional(v.string()),
     attachments: v.optional(v.array(v.object({
       fileId: v.id("_storage"),
       fileName: v.string(),
@@ -85,6 +86,7 @@ export const send = mutation({
       conversationId: args.conversationId,
       messageId: assistantMessageId,
       includeWebSearch: args.requiresWebSearch,
+      userTimezone: args.userTimezone,
     });
 
     return { userMessageId, assistantMessageId };
