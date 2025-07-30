@@ -23,13 +23,13 @@ function AppContent() {
   const [minChatWidth] = useState(400);
 
   const {
-    isRightPanelOpen,
-    toggleRightPanel,
+    isOpen: isRightPanelOpen,
+    togglePanel: toggleRightPanel,
     activeFragment,
     fragmentData,
     isTransitioning,
     openFragment: originalOpenFragment,
-    closeFragment
+    closePanel: closeFragment
   } = useRightPanel();
 
   // Detect mobile screen size
