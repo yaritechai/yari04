@@ -181,9 +181,9 @@ export function MessageBubble({ message, showTokenCount, onOpenFragment, onMCPCr
             <div 
               className={`prose prose-sm sm:prose-base w-full min-w-0 break-words overflow-hidden ${
                 isDarkMode 
-                  ? 'prose-invert prose-headings:text-gray-100 prose-p:text-gray-200 prose-strong:text-gray-100 prose-code:text-gray-200 prose-pre:bg-gray-900 prose-pre:border prose-pre:border-gray-700' 
-                  : 'prose-headings:text-gray-900 prose-p:text-gray-800 prose-strong:text-gray-900 prose-code:text-gray-800'
-              } ${message.role === 'user' ? (isDarkMode ? 'prose-headings:text-gray-100 prose-p:text-gray-100 prose-strong:text-gray-100 prose-code:text-gray-100 prose-pre:bg-neutral-700 prose-pre:text-gray-100' : 'prose-headings:text-gray-900 prose-p:text-gray-900 prose-strong:text-gray-900 prose-code:text-gray-900 prose-pre:bg-neutral-200 prose-pre:text-gray-900') : ''}`}
+                  ? 'prose-invert prose-headings:text-foreground prose-p:text-muted-foreground prose-strong:text-foreground prose-code:text-muted-foreground prose-pre:bg-card prose-pre:border prose-pre:border-border' 
+                  : 'prose-headings:text-foreground prose-p:text-muted-foreground prose-strong:text-foreground prose-code:text-muted-foreground prose-pre:bg-card prose-pre:border prose-pre:border-border'
+              } ${message.role === 'user' ? (isDarkMode ? 'prose-headings:text-foreground prose-p:text-foreground prose-strong:text-foreground prose-code:text-foreground prose-pre:bg-muted prose-pre:text-foreground' : 'prose-headings:text-foreground prose-p:text-foreground prose-strong:text-foreground prose-code:text-foreground prose-pre:bg-muted prose-pre:text-foreground') : ''}`}
               {...props}
             >
               {children}
@@ -250,10 +250,10 @@ export function MessageBubble({ message, showTokenCount, onOpenFragment, onMCPCr
                       }}
                       className={`inline-flex items-center gap-2 px-3 py-1.5 text-xs rounded-full transition-all duration-200 break-words ${
                         isDarkMode 
-                          ? 'bg-gray-800/80 text-gray-300 hover:bg-gray-700 border border-gray-700/50' 
+                          ? 'bg-card/80 text-muted-foreground hover:bg-muted border border-border/50' 
                           : message.role === 'user'
-                          ? 'bg-primary-700/50 text-white hover:bg-primary-600/50 border border-primary-600/50'
-                          : 'text-gray-700 hover:bg-gray-50 border border-gray-200/50'
+                          ? 'bg-primary/50 text-primary-foreground hover:bg-primary/60 border border-primary/50'
+                          : 'bg-muted text-muted-foreground hover:bg-muted/80 border border-border/50'
                       } backdrop-blur-sm`}
                     >
                       <span className="text-sm flex-shrink-0">{getLanguageIcon(language)}</span>
@@ -269,10 +269,10 @@ export function MessageBubble({ message, showTokenCount, onOpenFragment, onMCPCr
                   {/* Code Block */}
                   <div className={`rounded-lg overflow-hidden w-full min-w-0 ${
                     isDarkMode 
-                      ? 'bg-gray-950 border border-gray-800' 
+                      ? 'bg-card border border-border' 
                       : message.role === 'user'
-                      ? 'bg-neutral-200/50 border border-neutral-300'
-                      : 'border border-gray-200'
+                      ? 'bg-muted border border-border'
+                      : 'bg-card border border-border'
                   }`}>
                     <CodeBlock
                       code={codeContent}
@@ -291,11 +291,11 @@ export function MessageBubble({ message, showTokenCount, onOpenFragment, onMCPCr
                 className={`px-1.5 py-0.5 rounded text-sm font-mono break-words ${
                   message.role === 'user'
                     ? isDarkMode
-                      ? 'bg-neutral-700 text-gray-100'
-                      : 'bg-neutral-200 text-gray-900'
+                      ? 'bg-muted text-foreground'
+                      : 'bg-muted text-foreground'
                     : isDarkMode 
-                    ? 'bg-gray-800 text-gray-200' 
-                    : 'bg-gray-100 text-gray-800'
+                    ? 'bg-muted text-muted-foreground' 
+                    : 'bg-muted text-muted-foreground'
                 }`} 
                 {...props}
               >
@@ -308,14 +308,14 @@ export function MessageBubble({ message, showTokenCount, onOpenFragment, onMCPCr
           },
           h1: ({ children }) => (
             <h1 className={`text-xl sm:text-2xl font-bold mb-3 break-words ${
-              message.role === 'user' ? (isDarkMode ? 'text-gray-100' : 'text-gray-900') : isDarkMode ? 'text-gray-100' : 'text-gray-900'
+              message.role === 'user' ? 'text-foreground' : 'text-foreground'
             }`}>
               {children}
             </h1>
           ),
           h2: ({ children }) => (
             <h2 className={`text-lg sm:text-xl font-bold mb-2 break-words ${
-              message.role === 'user' ? (isDarkMode ? 'text-gray-100' : 'text-gray-900') : isDarkMode ? 'text-gray-100' : 'text-gray-900'
+              message.role === 'user' ? 'text-foreground' : 'text-foreground'
             }`}>
               {children}
             </h2>
