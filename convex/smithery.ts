@@ -1,5 +1,5 @@
 import { v } from "convex/values";
-import { query, mutation, action, internalMutation, internalQuery } from "./_generated/server";
+import { query, mutation, action, internalMutation, internalQuery, internalAction } from "./_generated/server";
 import { internal } from "./_generated/api";
 import { getAuthUserId } from "@convex-dev/auth/server";
 
@@ -54,7 +54,7 @@ function transformSmitheryServer(server: any): SmitheryServer {
 }
 
 // Update the searchMCPServers function to include quality filters
-export const searchMCPServers = action({
+export const searchMCPServers = internalAction({
   args: {
     query: v.string(),
     limit: v.optional(v.number()),
@@ -124,7 +124,7 @@ export const searchMCPServers = action({
       };
     } catch (error) {
       console.error('Error searching MCP servers:', error);
-      throw new Error(`Failed to search MCP servers: ${error.message}`);
+      throw new Error(`Failed to search MCP servers: ${error instanceof Error ? error.message : String(error)}`);
     }
   },
 });
@@ -230,13 +230,13 @@ export const getPopularMCPServers = action({
       };
     } catch (error) {
       console.error('Error getting popular MCP servers:', error);
-      throw new Error(`Failed to get popular MCP servers: ${error.message}`);
+      throw new Error(`Failed to get popular MCP servers: ${error instanceof Error ? error.message : String(error)}`);
     }
   },
 });
 
 // Enhanced getMCPServerDetails with security validation
-export const getMCPServerDetails = action({
+export const getMCPServerDetails = internalAction({
   args: {
     qualifiedName: v.string(),
   },
@@ -288,13 +288,13 @@ export const getMCPServerDetails = action({
       };
     } catch (error) {
       console.error('Error getting MCP server details:', error);
-      throw new Error(`Failed to get server details: ${error.message}`);
+      throw new Error(`Failed to get server details: ${error instanceof Error ? error.message : String(error)}`);
     }
   },
 });
 
 // Get tools available for a specific MCP server
-export const getMCPServerTools = action({
+export const getMCPServerTools = internalAction({
   args: {
     serverId: v.string(),
   },
@@ -331,7 +331,7 @@ export const getMCPServerTools = action({
 });
 
 // Create MCP connection for user
-export const createMCPConnection = mutation({
+export const createMCPConnection = internalMutation({
   args: {
     serverId: v.string(),
     serverName: v.string(),
@@ -369,7 +369,7 @@ export const createMCPConnection = mutation({
 });
 
 // Test MCP connection
-export const testMCPConnection = action({
+export const testMCPConnection = internalAction({
   args: {
     connectionId: v.id("mcpConnections"),
   },
@@ -657,6 +657,12 @@ export const suggestMCPIntegration = action({
     query: v.string(), // What the user wants to accomplish
     suggestedServers: v.optional(v.array(v.string())), // Specific server IDs to suggest
   },
+  returns: v.object({
+    query: v.string(),
+    suggestedServers: v.array(v.any()),
+    requiresUserConsent: v.boolean(),
+    nextStep: v.string(),
+  }),
   handler: async (ctx, args) => {
     const userId = await getAuthUserId(ctx);
     if (!userId) {
@@ -665,11 +671,11 @@ export const suggestMCPIntegration = action({
 
     try {
       // Search for relevant verified MCP servers if not provided
-      let servers = [];
+      let servers: any[] = [];
       if (args.suggestedServers && args.suggestedServers.length > 0) {
         // Get details for specific suggested servers (already quality-filtered)
         for (const serverId of args.suggestedServers) {
-          const server = await ctx.runAction(internal.smithery.getMCPServerDetails, {
+          const server: any = await ctx.runAction(internal.smithery.getMCPServerDetails, {
             qualifiedName: serverId
           });
           if (server && server.isRecommended) {
@@ -678,7 +684,7 @@ export const suggestMCPIntegration = action({
         }
       } else {
         // Search for verified, secure servers based on the query
-        const searchResult = await ctx.runAction(internal.smithery.searchMCPServers, {
+        const searchResult: any = await ctx.runAction(internal.smithery.searchMCPServers, {
           query: args.query,
           limit: 3 // Limit to top 3 most relevant verified servers
         });
@@ -686,8 +692,8 @@ export const suggestMCPIntegration = action({
       }
 
       // Get tools for each server
-      const serversWithTools = await Promise.all(
-        servers.map(async (server) => {
+      const serversWithTools: any[] = await Promise.all(
+        servers.map(async (server: any) => {
           try {
             const tools = await ctx.runAction(internal.smithery.getMCPServerTools, {
               serverId: server.qualifiedName
@@ -765,25 +771,61 @@ export const createPendingMCPIntegration = mutation({
 });
 
 // Complete the pending integration with user-provided credentials
-export const completePendingMCPIntegration = mutation({
+// Helper query to get pending MCP integration
+export const getPendingMCPIntegration = internalQuery({
+  args: {
+    pendingId: v.id("pendingMCPIntegrations"),
+    userId: v.id("users"),
+  },
+  returns: v.union(v.null(), v.any()),
+  handler: async (ctx, args) => {
+    const pending = await ctx.db.get(args.pendingId);
+    if (!pending || pending.userId !== args.userId) {
+      return null;
+    }
+    return pending;
+  },
+});
+
+// Helper mutation to delete pending MCP integration
+export const deletePendingMCPIntegration = internalMutation({
+  args: {
+    pendingId: v.id("pendingMCPIntegrations"),
+  },
+  returns: v.null(),
+  handler: async (ctx, args) => {
+    await ctx.db.delete(args.pendingId);
+    return null;
+  },
+});
+
+export const completePendingMCPIntegration = action({
   args: {
     pendingId: v.id("pendingMCPIntegrations"),
     credentials: v.any(),
     selectedTools: v.array(v.string()),
   },
+  returns: v.object({
+    connectionId: v.any(),
+    isConnected: v.boolean(),
+    message: v.string(),
+  }),
   handler: async (ctx, args) => {
     const userId = await getAuthUserId(ctx);
     if (!userId) {
       throw new Error("Authentication required");
     }
 
-    const pending = await ctx.db.get(args.pendingId);
-    if (!pending || pending.userId !== userId) {
+    const pending: any = await ctx.runQuery(internal.smithery.getPendingMCPIntegration, {
+      pendingId: args.pendingId,
+      userId,
+    });
+    if (!pending) {
       throw new Error("Pending integration not found");
     }
 
     // Create the actual MCP connection
-    const connectionId = await ctx.runMutation(internal.smithery.createMCPConnection, {
+    const connectionId: any = await ctx.runMutation(internal.smithery.createMCPConnection, {
       serverId: pending.serverId,
       serverName: pending.serverName,
       connectionUrl: pending.connectionUrl,
@@ -792,10 +834,12 @@ export const completePendingMCPIntegration = mutation({
     });
 
     // Clean up the pending record
-    await ctx.db.delete(args.pendingId);
+    await ctx.runMutation(internal.smithery.deletePendingMCPIntegration, {
+      pendingId: args.pendingId,
+    });
 
     // Test the connection
-    const testResult = await ctx.runAction(internal.smithery.testMCPConnection, {
+    const testResult: any = await ctx.runAction(internal.smithery.testMCPConnection, {
       connectionId,
     });
 

@@ -10,7 +10,7 @@ export const checkStuckStreaming = query({
     role: v.string(),
     content: v.string(),
     isStreaming: v.optional(v.boolean()),
-    createdAt: v.number(),
+    createdAt: v.optional(v.number()),
   })),
   handler: async (ctx) => {
     const stuckMessages = await ctx.db
@@ -45,7 +45,7 @@ export const fixStuckStreaming = mutation({
     // Fix messages that have been streaming for more than 5 minutes
     const fiveMinutesAgo = Date.now() - (5 * 60 * 1000);
     const messagesToFix = stuckMessages.filter(msg => 
-      msg.createdAt < fiveMinutesAgo
+      msg.createdAt && msg.createdAt < fiveMinutesAgo
     );
     
     for (const message of messagesToFix) {
@@ -68,7 +68,7 @@ export const checkRecentActivity = query({
   returns: v.array(v.object({
     _id: v.id("messages"),
     conversationId: v.id("conversations"),
-    createdAt: v.number(),
+    createdAt: v.optional(v.number()),
     content: v.string(),
     isStreaming: v.optional(v.boolean()),
   })),
