@@ -227,6 +227,7 @@ export const updateSettings = mutation({
     systemPrompt: v.optional(v.string()),
     temperature: v.optional(v.number()),
   },
+  returns: v.null(),
   handler: async (ctx, args) => {
     const userId = await getAuthUserId(ctx);
     if (!userId) {
@@ -248,6 +249,7 @@ export const updateSettings = mutation({
 
 export const archive = mutation({
   args: { conversationId: v.id("conversations") },
+  returns: v.null(),
   handler: async (ctx, args) => {
     const userId = await getAuthUserId(ctx);
     if (!userId) {
@@ -490,5 +492,18 @@ Generate a 2-3 word title that captures the essence of this conversation. Be con
         title: fallbackTitle,
       });
     }
+  },
+});
+
+export const updateLastMessage = internalMutation({
+  args: {
+    conversationId: v.id("conversations"),
+  },
+  returns: v.null(),
+  handler: async (ctx, args) => {
+    await ctx.db.patch(args.conversationId, {
+      lastMessageAt: Date.now(),
+      updatedAt: Date.now(),
+    });
   },
 });

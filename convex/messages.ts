@@ -85,7 +85,7 @@ export const send = mutation({
       conversationId: args.conversationId,
       messageId: assistantMessageId,
       includeWebSearch: args.requiresWebSearch,
-      searchQuery: args.requiresWebSearch ? args.content : undefined,
+      
     });
 
     return { userMessageId, assistantMessageId };
@@ -201,8 +201,17 @@ export const regenerate = mutation({
 });
 
 // Internal functions
+export const get = internalQuery({
+  args: { messageId: v.id("messages") },
+  returns: v.union(v.any(), v.null()),
+  handler: async (ctx, args) => {
+    return await ctx.db.get(args.messageId);
+  },
+});
+
 export const listInternal = internalQuery({
   args: { conversationId: v.id("conversations") },
+  returns: v.array(v.any()),
   handler: async (ctx, args) => {
     return await ctx.db
       .query("messages")
@@ -220,6 +229,7 @@ export const updateStreamingMessage = internalMutation({
     content: v.string(),
     isComplete: v.boolean(),
   },
+  returns: v.null(),
   handler: async (ctx, args) => {
     await ctx.db.patch(args.messageId, {
       content: args.content,
@@ -300,6 +310,7 @@ export const addAssistantMessageWithSearch = internalMutation({
       displayLink: v.string(),
     })),
   },
+  returns: v.null(),
   handler: async (ctx, args) => {
     const conversation = await ctx.db.get(args.conversationId);
     if (!conversation) {

@@ -431,8 +431,9 @@ export const testMCPConnection = internalAction({
 
 // Get user's MCP connections
 export const getUserMCPConnections = query({
-  args: {},
-  handler: async (ctx) => {
+  args: { conversationId: v.optional(v.id("conversations")) },
+  returns: v.array(v.any()),
+  handler: async (ctx, args) => {
     const userId = await getAuthUserId(ctx);
     if (!userId) {
       return [];
