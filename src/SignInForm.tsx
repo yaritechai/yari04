@@ -2,7 +2,7 @@
 import { useAuthActions } from "@convex-dev/auth/react";
 import { useState } from "react";
 import { toast } from "sonner";
-import { Eye, EyeOff, Mail, Lock, UserPlus, LogIn, Sparkles } from "lucide-react";
+import { Eye, EyeOff, Mail, Lock, UserPlus, LogIn } from "lucide-react";
 
 export function SignInForm() {
   const { signIn } = useAuthActions();
@@ -14,9 +14,6 @@ export function SignInForm() {
     <div className="w-full max-w-md mx-auto bg-white rounded-2xl p-8 pt-12">
       {/* Form Header */}
       <div className="text-center mb-8">
-        <div className="inline-flex items-center justify-center w-12 h-12 bg-[#f9c313] rounded-xl mb-4">
-          <Sparkles className="w-6 h-6 text-black" />
-        </div>
         <h2 className="text-2xl font-semibold text-gray-900 mb-2">
           {flow === "signIn" ? "Welcome back" : "Create your account"}
         </h2>
