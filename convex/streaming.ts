@@ -126,11 +126,56 @@ export const generateStreamingResponse = internalAction({
         messageRoles: filteredMessages.map(m => m.role)
       });
 
-      // Format messages for OpenAI
-      const openaiMessages = filteredMessages.map((msg: any) => ({
-        role: msg.role as "user" | "assistant",
-        content: msg.content,
-      }));
+      // Format messages for OpenAI with vision support
+      const hasImages = filteredMessages.some((msg: any) => 
+        msg.attachments && msg.attachments.length > 0
+      );
+      
+      const openaiMessages = await Promise.all(
+        filteredMessages.map(async (msg: any) => {
+          // Handle text-only messages
+          if (!msg.attachments || msg.attachments.length === 0) {
+            return {
+              role: msg.role as "user" | "assistant",
+              content: msg.content,
+            };
+          }
+          
+          // Handle messages with attachments (images)
+          const content: any[] = [
+            {
+              type: "text",
+              text: msg.content || "Please analyze this image:"
+            }
+          ];
+          
+          // Process image attachments
+          for (const attachment of msg.attachments) {
+            if (attachment.fileType && attachment.fileType.startsWith('image/')) {
+              try {
+                // Get the image URL from Convex storage
+                const imageUrl = await ctx.storage.getUrl(attachment.fileId);
+                if (imageUrl) {
+                  content.push({
+                    type: "image_url",
+                    image_url: {
+                      url: imageUrl,
+                      detail: "high" // Use high detail for better analysis
+                    }
+                  });
+                }
+              } catch (error) {
+                console.error("Failed to get image URL:", error);
+              }
+            }
+          }
+          
+          return {
+            role: msg.role as "user" | "assistant",
+            content: content
+          };
+        })
+      );
 
       // Create comprehensive system prompt with context
       const systemPrompt = `🕐 **IMPORTANT: USER'S CURRENT TIME & DATE**
@@ -208,7 +253,8 @@ Remember: You're here to be genuinely helpful, direct, and efficient. Focus on s
       const selectedModel = getModelForTask(message.content, {
         isLandingPage: isLandingPageRequest,
         isCodeGeneration: message.content.toLowerCase().includes('code') || message.content.toLowerCase().includes('html'),
-        isResearchTask: shouldPerformSearch
+        isResearchTask: shouldPerformSearch,
+        hasImages: hasImages // Include image detection for vision model selection
       });
       
       const modelParams = getModelParameters(selectedModel);
@@ -219,7 +265,9 @@ Remember: You're here to be genuinely helpful, direct, and efficient. Focus on s
         temperature: modelParams.temperature,
         hasApiKey: !!process.env.OPENROUTER_API_KEY,
         isLandingPageRequest,
-        shouldPerformSearch
+        shouldPerformSearch,
+        hasImages: hasImages,
+        imagesDetected: hasImages ? "Using vision-capable model" : "Using standard model"
       });
 
       const openrouter = new OpenAI({

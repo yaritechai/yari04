@@ -13,6 +13,10 @@ export const MODELS = {
   
   // Summarization and title generation - moonshotai/kimi-k2 for all tasks
   SUMMARIZATION: "moonshotai/kimi-k2",
+  
+  // Vision-capable models for image processing
+  VISION: "anthropic/claude-3.5-sonnet", // Claude has excellent vision capabilities
+  VISION_GPT: "openai/gpt-4-vision-preview", // Alternative vision model
 } as const;
 
 // Task type identification patterns
@@ -95,6 +99,27 @@ const TASK_PATTERNS = {
     /condensed/i,
     /short version/i,
   ],
+  
+  // Vision and image processing patterns
+  vision: [
+    /image/i,
+    /photo/i,
+    /picture/i,
+    /screenshot/i,
+    /analyze.*image/i,
+    /describe.*image/i,
+    /what.*see/i,
+    /what.*this/i,
+    /identify/i,
+    /recognize/i,
+    /read.*text/i,
+    /ocr/i,
+    /extract.*text/i,
+    /visual/i,
+    /diagram/i,
+    /chart/i,
+    /graph/i,
+  ],
 };
 
 // Special task detection for internal operations
@@ -107,9 +132,15 @@ export function detectTaskType(
     isConversationSummary?: boolean;
     isCodeGeneration?: boolean;
     isResearchTask?: boolean;
+    hasImages?: boolean; // New parameter for image detection
   }
 ): keyof typeof MODELS {
   const lowerPrompt = prompt.toLowerCase();
+  
+  // Check for images first - vision takes priority
+  if (context?.hasImages) {
+    return 'VISION';
+  }
   
   // Check context flags first (most reliable)
   if (context?.isTitleGeneration || context?.isConversationSummary) {
@@ -129,6 +160,11 @@ export function detectTaskType(
   }
   
   // Pattern-based detection
+  
+  // Check for vision requests
+  if (TASK_PATTERNS.vision.some(pattern => pattern.test(lowerPrompt))) {
+    return 'VISION';
+  }
   
   // Check for summarization first (often explicit)
   if (TASK_PATTERNS.summarization.some(pattern => pattern.test(lowerPrompt))) {
@@ -164,6 +200,7 @@ export function getModelForTask(
     isConversationSummary?: boolean;
     isCodeGeneration?: boolean;
     isResearchTask?: boolean;
+    hasImages?: boolean; // New parameter for image detection
   }
 ): string {
   const taskType = detectTaskType(prompt, context);
@@ -178,6 +215,20 @@ export const MODEL_METADATA = {
     category: "Universal",
     capabilities: ["thinking", "reasoning", "conversation", "research", "coding", "summarization", "tool-use"],
     icon: "🌙"
+  },
+  "anthropic/claude-3.5-sonnet": {
+    label: "Claude 3.5 Sonnet",
+    description: "Advanced vision-capable model for image analysis, OCR, and visual understanding",
+    category: "Vision",
+    capabilities: ["vision", "image-analysis", "ocr", "reasoning", "conversation", "coding"],
+    icon: "👁️"
+  },
+  "openai/gpt-4-vision-preview": {
+    label: "GPT-4 Vision",
+    description: "OpenAI's vision model for image understanding and multimodal interactions",
+    category: "Vision",
+    capabilities: ["vision", "image-analysis", "ocr", "reasoning", "conversation"],
+    icon: "🔍"
   }
 } as const;
 
@@ -224,6 +275,20 @@ export function getModelParameters(modelId: string) {
         temperature: 0.1,
         max_tokens: 1000,
         top_p: 0.7,
+      };
+    
+    case MODELS.VISION:
+      return {
+        temperature: 0.5,
+        max_tokens: 4000,
+        top_p: 0.9,
+      };
+    
+    case MODELS.VISION_GPT:
+      return {
+        temperature: 0.5,
+        max_tokens: 4000,
+        top_p: 0.9,
       };
     
     default:
