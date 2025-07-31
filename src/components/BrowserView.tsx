@@ -24,7 +24,7 @@ const GeneratingLoadingAnimation = ({ isDarkMode }: { isDarkMode: boolean }) => 
     fontFamily: '"Inter", sans-serif',
     fontSize: '1.2em',
     fontWeight: 300,
-    color: 'var(--foreground)',
+    color: 'white',
     borderRadius: '50%',
     backgroundColor: 'transparent',
     userSelect: 'none'
@@ -53,7 +53,7 @@ const GeneratingLoadingAnimation = ({ isDarkMode }: { isDarkMode: boolean }) => 
   };
 
   return (
-    <div className="flex-1 flex items-center justify-center p-8">
+    <div className="absolute inset-0 flex items-center justify-center" style={{ paddingTop: '60px', pointerEvents: 'none' }}>
       <div style={loaderWrapperStyle}>
         <span style={{...letterStyle, animationDelay: '0s'}}>G</span>
         <span style={{...letterStyle, animationDelay: '0.1s'}}>e</span>
@@ -74,23 +74,23 @@ const GeneratingLoadingAnimation = ({ isDarkMode }: { isDarkMode: boolean }) => 
             0% {
               transform: rotate(90deg);
               box-shadow:
-                0 10px 20px 0 var(--muted-foreground) inset,
+                0 10px 20px 0 #fff inset,
                 0 20px 30px 0 #f9c313 inset,
-                0 60px 60px 0 #fef9c3 inset;
+                0 60px 60px 0 #471eec inset;
             }
             50% {
               transform: rotate(270deg);
               box-shadow:
-                0 10px 20px 0 var(--muted-foreground) inset,
-                0 20px 10px 0 #eab308 inset,
-                0 40px 60px 0 #f9c313 inset;
+                0 10px 20px 0 #fff inset,
+                0 20px 10px 0 #d60a47 inset,
+                0 40px 60px 0 #311e80 inset;
             }
             100% {
               transform: rotate(450deg);
               box-shadow:
-                0 10px 20px 0 var(--muted-foreground) inset,
+                0 10px 20px 0 #fff inset,
                 0 20px 30px 0 #f9c313 inset,
-                0 60px 60px 0 #fef9c3 inset;
+                0 60px 60px 0 #471eec inset;
             }
           }
           
@@ -99,11 +99,13 @@ const GeneratingLoadingAnimation = ({ isDarkMode }: { isDarkMode: boolean }) => 
               opacity: 0.4;
               transform: translateY(0);
             }
-            50% {
+            20% {
               opacity: 1;
-              transform: translateY(-10px);
-              color: #f9c313;
-              text-shadow: 0 0 10px rgba(249, 195, 19, 0.5);
+              transform: scale(1.15);
+            }
+            40% {
+              opacity: 0.7;
+              transform: translateY(0);
             }
           }
         `
