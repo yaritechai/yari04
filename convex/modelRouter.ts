@@ -17,6 +17,9 @@ export const MODELS = {
   // Vision-capable models for image processing
   VISION: "anthropic/claude-3.5-sonnet", // Claude has excellent vision capabilities
   VISION_GPT: "openai/gpt-4-vision-preview", // Alternative vision model
+  
+  // Data analysis for CSV/Excel files
+  DATA_ANALYSIS: "anthropic/claude-3.5-sonnet", // Claude excels at data analysis
 } as const;
 
 // Task type identification patterns
@@ -120,6 +123,28 @@ const TASK_PATTERNS = {
     /chart/i,
     /graph/i,
   ],
+  
+  // Data analysis patterns for CSV/Excel files
+  dataAnalysis: [
+    /analyze.*data/i,
+    /csv/i,
+    /excel/i,
+    /spreadsheet/i,
+    /data.*analysis/i,
+    /statistics/i,
+    /trends/i,
+    /insights/i,
+    /correlations/i,
+    /patterns/i,
+    /summarize.*data/i,
+    /dashboard/i,
+    /metrics/i,
+    /kpi/i,
+    /report/i,
+    /visualization/i,
+    /pivot/i,
+    /aggregate/i,
+  ],
 };
 
 // Special task detection for internal operations
@@ -133,11 +158,17 @@ export function detectTaskType(
     isCodeGeneration?: boolean;
     isResearchTask?: boolean;
     hasImages?: boolean; // New parameter for image detection
+    hasDataFiles?: boolean; // New parameter for CSV/Excel detection
   }
 ): keyof typeof MODELS {
   const lowerPrompt = prompt.toLowerCase();
   
-  // Check for images first - vision takes priority
+  // Check for data files first - data analysis takes priority when files are present
+  if (context?.hasDataFiles) {
+    return 'DATA_ANALYSIS';
+  }
+  
+  // Check for images second - vision takes priority for image tasks
   if (context?.hasImages) {
     return 'VISION';
   }
@@ -160,6 +191,11 @@ export function detectTaskType(
   }
   
   // Pattern-based detection
+  
+  // Check for data analysis requests
+  if (TASK_PATTERNS.dataAnalysis.some(pattern => pattern.test(lowerPrompt))) {
+    return 'DATA_ANALYSIS';
+  }
   
   // Check for vision requests
   if (TASK_PATTERNS.vision.some(pattern => pattern.test(lowerPrompt))) {
@@ -201,6 +237,7 @@ export function getModelForTask(
     isCodeGeneration?: boolean;
     isResearchTask?: boolean;
     hasImages?: boolean; // New parameter for image detection
+    hasDataFiles?: boolean; // New parameter for CSV/Excel detection
   }
 ): string {
   const taskType = detectTaskType(prompt, context);
@@ -218,9 +255,9 @@ export const MODEL_METADATA = {
   },
   "anthropic/claude-3.5-sonnet": {
     label: "Claude 3.5 Sonnet",
-    description: "Advanced vision-capable model for image analysis, OCR, and visual understanding",
-    category: "Vision",
-    capabilities: ["vision", "image-analysis", "ocr", "reasoning", "conversation", "coding"],
+    description: "Advanced vision-capable model for image analysis, OCR, visual understanding, and data analysis",
+    category: "Vision & Data",
+    capabilities: ["vision", "image-analysis", "ocr", "reasoning", "conversation", "coding", "data-analysis", "csv-excel"],
     icon: "👁️"
   },
   "openai/gpt-4-vision-preview": {
@@ -289,6 +326,13 @@ export function getModelParameters(modelId: string) {
         temperature: 0.5,
         max_tokens: 4000,
         top_p: 0.9,
+      };
+    
+    case MODELS.DATA_ANALYSIS:
+      return {
+        temperature: 0.3,
+        max_tokens: 6000,
+        top_p: 0.8,
       };
     
     default:

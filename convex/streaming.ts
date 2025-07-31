@@ -6,6 +6,7 @@ import { internal } from "./_generated/api";
 import OpenAI from "openai";
 import { getModelForTask, getModelParameters } from "./modelRouter";
 import { Id } from "./_generated/dataModel";
+import * as XLSX from 'xlsx';
 
 // Test action to verify OpenRouter connection
 export const testOpenRouter = internalAction({
@@ -128,7 +129,22 @@ export const generateStreamingResponse = internalAction({
 
       // Format messages for OpenAI with vision support
       const hasImages = filteredMessages.some((msg: any) => 
-        msg.attachments && msg.attachments.length > 0
+        msg.attachments && msg.attachments.length > 0 && 
+        msg.attachments.some((att: any) => att.fileType && att.fileType.startsWith('image/'))
+      );
+      
+      const hasDataFiles = filteredMessages.some((msg: any) => 
+        msg.attachments && msg.attachments.length > 0 && 
+        msg.attachments.some((att: any) => 
+          att.fileType && (
+            att.fileType === 'text/csv' ||
+            att.fileType === 'application/vnd.ms-excel' ||
+            att.fileType === 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' ||
+            att.fileName?.toLowerCase().endsWith('.csv') ||
+            att.fileName?.toLowerCase().endsWith('.xls') ||
+            att.fileName?.toLowerCase().endsWith('.xlsx')
+          )
+        )
       );
       
       const openaiMessages = await Promise.all(
@@ -166,6 +182,71 @@ export const generateStreamingResponse = internalAction({
                 }
               } catch (error) {
                 console.error("Failed to get image URL:", error);
+              }
+            } else if (attachment.fileType && (
+              attachment.fileType === 'text/csv' ||
+              attachment.fileType === 'application/vnd.ms-excel' ||
+              attachment.fileType === 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' ||
+              attachment.fileName?.toLowerCase().endsWith('.csv') ||
+              attachment.fileName?.toLowerCase().endsWith('.xls') ||
+              attachment.fileName?.toLowerCase().endsWith('.xlsx')
+            )) {
+              try {
+                // Get the file content from Convex storage
+                const fileBlob = await ctx.storage.get(attachment.fileId);
+                if (fileBlob) {
+                  const arrayBuffer = await fileBlob.arrayBuffer();
+                  
+                  // Parse CSV files
+                  if (attachment.fileType === 'text/csv' || attachment.fileName?.toLowerCase().endsWith('.csv')) {
+                    const text = new TextDecoder().decode(arrayBuffer);
+                    const rows = text.split('\n').slice(0, 100); // Limit to first 100 rows for context
+                    const dataPreview = rows.join('\n');
+                    
+                    content.push({
+                      type: "text",
+                      text: `\n\n📊 CSV FILE: ${attachment.fileName}\nFile Size: ${attachment.fileSize} bytes\nFirst 100 rows:\n\n${dataPreview}\n\n`
+                    });
+                  } else if (attachment.fileName?.toLowerCase().endsWith('.xlsx') || 
+                           attachment.fileName?.toLowerCase().endsWith('.xls') ||
+                           attachment.fileType === 'application/vnd.ms-excel' ||
+                           attachment.fileType === 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet') {
+                    // Parse Excel files using xlsx library
+                    try {
+                      const workbook = XLSX.read(arrayBuffer, { type: 'array' });
+                      const sheetName = workbook.SheetNames[0]; // Get first sheet
+                      const worksheet = workbook.Sheets[sheetName];
+                      
+                      // Convert to CSV format (first 100 rows)
+                      const csvData = XLSX.utils.sheet_to_csv(worksheet, { strip: true });
+                      const rows = csvData.split('\n').slice(0, 100);
+                      const dataPreview = rows.join('\n');
+                      
+                      content.push({
+                        type: "text",
+                        text: `\n\n📊 EXCEL FILE: ${attachment.fileName}\nSheet: ${sheetName}\nFile Size: ${attachment.fileSize} bytes\nFirst 100 rows:\n\n${dataPreview}\n\n`
+                      });
+                    } catch (excelError) {
+                      console.error("Failed to parse Excel file:", excelError);
+                      content.push({
+                        type: "text", 
+                        text: `\n\n📊 EXCEL FILE: ${attachment.fileName}\nFile Size: ${attachment.fileSize} bytes\n❌ Error parsing Excel file. Please try converting to CSV format.\n\n`
+                      });
+                    }
+                  } else {
+                    // For other data file types
+                    content.push({
+                      type: "text", 
+                      text: `\n\n📊 DATA FILE: ${attachment.fileName}\nFile Size: ${attachment.fileSize} bytes\nFile Type: ${attachment.fileType}\n\n`
+                    });
+                  }
+                }
+              } catch (error) {
+                console.error("Failed to process data file:", error);
+                content.push({
+                  type: "text",
+                  text: `\n\n❌ Error processing file: ${attachment.fileName}\n\n`
+                });
               }
             }
           }
@@ -218,6 +299,23 @@ You can analyze, understand, and work with images, screenshots, photos, and visu
 - Match brand colors, typography, button styles, and layout proportions exactly
 - Use inline CSS for all styling to ensure immediate visual rendering
 - Maintain responsive design principles while preserving the original design intent
+
+### 📊 **Data Analysis & Processing**
+You can analyze and work with structured data from CSV and Excel files:
+- **CSV ANALYSIS**: Process and analyze comma-separated value files
+- **DATA INSIGHTS**: Extract patterns, trends, and key insights from datasets
+- **STATISTICAL ANALYSIS**: Calculate means, medians, correlations, and distributions
+- **DATA VISUALIZATION**: Suggest charts and graphs for data representation
+- **REPORTING**: Create comprehensive data reports and summaries
+- **FILTERING & GROUPING**: Help organize and filter data by various criteria
+
+**WHEN ANALYZING DATA FILES:**
+- Examine the data structure and identify column headers and data types
+- Look for patterns, trends, outliers, and interesting insights
+- Provide statistical summaries and key metrics
+- Suggest actionable recommendations based on the data
+- Offer data visualization suggestions (charts, graphs, dashboards)
+- Help with data cleaning and organization tasks
 
 ### 🔍 **Web Search & Research**
 You can search the web for current information, latest news, research data, and real-time updates. Use this for:
@@ -300,7 +398,8 @@ Remember: You're here to be genuinely helpful, direct, and efficient. Focus on s
         isLandingPage: isLandingPageRequest,
         isCodeGeneration: message.content.toLowerCase().includes('code') || message.content.toLowerCase().includes('html'),
         isResearchTask: shouldPerformSearch,
-        hasImages: hasImages // Include image detection for vision model selection
+        hasImages: hasImages, // Include image detection for vision model selection
+        hasDataFiles: hasDataFiles // Include data file detection for data analysis model selection
       });
       
       const modelParams = getModelParameters(selectedModel);
@@ -313,7 +412,9 @@ Remember: You're here to be genuinely helpful, direct, and efficient. Focus on s
         isLandingPageRequest,
         shouldPerformSearch,
         hasImages: hasImages,
-        imagesDetected: hasImages ? "Using vision-capable model" : "Using standard model"
+        hasDataFiles: hasDataFiles,
+        imagesDetected: hasImages ? "Using vision-capable model" : "Using standard model",
+        dataFilesDetected: hasDataFiles ? "Using data analysis model" : "Using standard model"
       });
 
       const openrouter = new OpenAI({

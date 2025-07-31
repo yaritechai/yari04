@@ -793,10 +793,21 @@ export const PromptInputBox = React.forwardRef<HTMLDivElement, PromptInputBoxPro
   };
 
   const isImageFile = (file: File) => file.type.startsWith("image/");
+  
+  const isDataFile = (file: File) => {
+    return file.type === "text/csv" || 
+           file.type === "application/vnd.ms-excel" ||
+           file.type === "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" ||
+           file.name.toLowerCase().endsWith('.csv') ||
+           file.name.toLowerCase().endsWith('.xls') ||
+           file.name.toLowerCase().endsWith('.xlsx');
+  };
+  
+  const isAllowedFile = (file: File) => isImageFile(file) || isDataFile(file);
 
   const processFile = (file: File) => {
-    if (!isImageFile(file)) {
-      console.log("Only image files are allowed");
+    if (!isAllowedFile(file)) {
+      console.log("Only image files (PNG, JPG, etc.) and data files (CSV, Excel) are allowed");
       return;
     }
     if (file.size > 10 * 1024 * 1024) {
@@ -804,9 +815,16 @@ export const PromptInputBox = React.forwardRef<HTMLDivElement, PromptInputBoxPro
       return;
     }
     setFiles([file]);
-    const reader = new FileReader();
-    reader.onload = (e) => setFilePreviews({ [file.name]: e.target?.result as string });
-    reader.readAsDataURL(file);
+    
+    if (isImageFile(file)) {
+      // Handle image files (existing logic)
+      const reader = new FileReader();
+      reader.onload = (e) => setFilePreviews({ [file.name]: e.target?.result as string });
+      reader.readAsDataURL(file);
+    } else if (isDataFile(file)) {
+      // Handle CSV/Excel files - show file name preview
+      setFilePreviews({ [file.name]: `📊 ${file.name} (${(file.size / 1024).toFixed(1)} KB)` });
+    }
   };
 
   const handleDragOver = React.useCallback((e: React.DragEvent) => {
@@ -823,8 +841,8 @@ export const PromptInputBox = React.forwardRef<HTMLDivElement, PromptInputBoxPro
     e.preventDefault();
     e.stopPropagation();
     const files = Array.from(e.dataTransfer.files);
-    const imageFiles = files.filter((file) => isImageFile(file));
-    if (imageFiles.length > 0) processFile(imageFiles[0]);
+    const allowedFiles = files.filter((file) => isAllowedFile(file));
+    if (allowedFiles.length > 0) processFile(allowedFiles[0]);
   }, []);
 
   const handleRemoveFile = (index: number) => {
@@ -985,7 +1003,7 @@ export const PromptInputBox = React.forwardRef<HTMLDivElement, PromptInputBoxPro
               isRecording ? "opacity-0 invisible h-0" : "opacity-100 visible"
             )}
           >
-            <PromptInputAction tooltip="Upload image">
+            <PromptInputAction tooltip="Upload image or data file">
               <button
                 onClick={() => uploadInputRef.current?.click()}
                 className={`flex h-8 w-8 cursor-pointer items-center justify-center rounded-full transition-colors ${
@@ -1004,7 +1022,7 @@ export const PromptInputBox = React.forwardRef<HTMLDivElement, PromptInputBoxPro
                     if (e.target.files && e.target.files.length > 0) processFile(e.target.files[0]);
                     if (e.target) e.target.value = "";
                   }}
-                  accept="image/*"
+                  accept="image/*,.csv,.xls,.xlsx,application/vnd.ms-excel,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,text/csv"
                 />
               </button>
             </PromptInputAction>
