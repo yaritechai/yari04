@@ -46,11 +46,9 @@ const GeneratingLoadingAnimation = ({ isDarkMode }: { isDarkMode: boolean }) => 
     width: '100%',
     aspectRatio: '1 / 1',
     borderRadius: '50%',
-    backgroundColor: 'var(--card)',
-    border: '2px solid var(--border)',
+    backgroundColor: 'transparent',
     animation: 'loader-rotate 2s linear infinite',
-    zIndex: 0,
-    boxShadow: '0 4px 20px rgba(0, 0, 0, 0.1)'
+    zIndex: 0
   };
 
   const letterStyle: React.CSSProperties = {
@@ -85,29 +83,23 @@ const GeneratingLoadingAnimation = ({ isDarkMode }: { isDarkMode: boolean }) => 
             0% {
               transform: rotate(90deg);
               box-shadow:
-                0 0 0 2px #f9c313 inset,
                 0 10px 20px 0 var(--muted-foreground) inset,
                 0 20px 30px 0 #f9c313 inset,
-                0 60px 60px 0 #fef9c3 inset,
-                0 0 30px rgba(249, 195, 19, 0.3);
+                0 60px 60px 0 #fef9c3 inset;
             }
             50% {
               transform: rotate(270deg);
               box-shadow:
-                0 0 0 2px #eab308 inset,
                 0 10px 20px 0 var(--muted-foreground) inset,
                 0 20px 10px 0 #eab308 inset,
-                0 40px 60px 0 #f9c313 inset,
-                0 0 40px rgba(234, 179, 8, 0.4);
+                0 40px 60px 0 #f9c313 inset;
             }
             100% {
               transform: rotate(450deg);
               box-shadow:
-                0 0 0 2px #f9c313 inset,
                 0 10px 20px 0 var(--muted-foreground) inset,
                 0 20px 30px 0 #f9c313 inset,
-                0 60px 60px 0 #fef9c3 inset,
-                0 0 30px rgba(249, 195, 19, 0.3);
+                0 60px 60px 0 #fef9c3 inset;
             }
           }
           
