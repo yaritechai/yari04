@@ -84,22 +84,22 @@ const GeneratingLoadingAnimation = ({ isDarkMode }: { isDarkMode: boolean }) => 
               transform: rotate(90deg);
               box-shadow:
                 0 10px 20px 0 var(--muted-foreground) inset,
-                0 20px 30px 0 var(--primary) inset,
-                0 60px 60px 0 var(--primary) inset;
+                0 20px 30px 0 #f9c313 inset,
+                0 60px 60px 0 #fef9c3 inset;
             }
             50% {
               transform: rotate(270deg);
               box-shadow:
                 0 10px 20px 0 var(--muted-foreground) inset,
-                0 20px 10px 0 var(--destructive) inset,
-                0 40px 60px 0 var(--primary) inset;
+                0 20px 10px 0 #eab308 inset,
+                0 40px 60px 0 #f9c313 inset;
             }
             100% {
               transform: rotate(450deg);
               box-shadow:
                 0 10px 20px 0 var(--muted-foreground) inset,
-                0 20px 30px 0 var(--primary) inset,
-                0 60px 60px 0 var(--primary) inset;
+                0 20px 30px 0 #f9c313 inset,
+                0 60px 60px 0 #fef9c3 inset;
             }
           }
           
@@ -111,6 +111,8 @@ const GeneratingLoadingAnimation = ({ isDarkMode }: { isDarkMode: boolean }) => 
             50% {
               opacity: 1;
               transform: translateY(-10px);
+              color: #f9c313;
+              text-shadow: 0 0 10px rgba(249, 195, 19, 0.5);
             }
           }
         `
