@@ -136,39 +136,22 @@ function AppContent() {
           maxWidth: (!isMobile && isRightPanelOpen) ? `calc(100vw - ${isSidebarOpen ? sidebarWidth : 0}px - ${rightPanelWidth}px - 2rem)` : undefined
         }}
       >
-        {/* Top Header with Logo */}
-        <div className={`flex items-center justify-center py-4 border-b ${
-          isDarkMode ? 'bg-neutral-900 border-neutral-800' : 'bg-white border-neutral-200'
-        } relative`}>
-          {/* Sidebar Toggle Button - Always show on mobile, only when sidebar closed on desktop */}
-          {(isMobile || !isSidebarOpen) && (
-            <button
-              onClick={() => setIsSidebarOpen(!isSidebarOpen)}
-              className={`absolute left-4 p-2 ${
-                isDarkMode 
-                  ? 'bg-neutral-800 hover:bg-neutral-700 text-gray-300 hover:text-white' 
-                  : 'bg-neutral-100 hover:bg-neutral-200 text-gray-600 hover:text-gray-900'
-              } rounded-lg transition-colors shadow-sm`}
-              title="Open sidebar"
-            >
-              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
-              </svg>
-            </button>
-          )}
-          
-          {/* Center Logo */}
-          <div className="flex items-center gap-3">
-            <img 
-              src="/yari-logo.png" 
-              alt="Yari AI Logo" 
-              className="w-8 h-8 object-contain"
-            />
-            <h1 className={`font-semibold text-lg ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
-              Yari AI
-            </h1>
-          </div>
-        </div>
+        {/* Sidebar Toggle Button - Always show on mobile, only when sidebar closed on desktop */}
+        {(isMobile || !isSidebarOpen) && (
+          <button
+            onClick={() => setIsSidebarOpen(!isSidebarOpen)}
+            className={`absolute top-4 left-4 z-30 p-2 ${
+              isDarkMode 
+                ? 'bg-neutral-800 hover:bg-neutral-700 text-gray-300 hover:text-white' 
+                : 'bg-neutral-100 hover:bg-neutral-200 text-gray-600 hover:text-gray-900'
+            } rounded-lg transition-colors shadow-sm`}
+            title="Open sidebar"
+          >
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
+            </svg>
+          </button>
+        )}
 
         {selectedConversationId ? (
           <ChatInterface
@@ -178,7 +161,7 @@ function AppContent() {
           />
         ) : (
           <div className={`flex-1 flex flex-col items-center justify-center ${isDarkMode ? 'bg-neutral-900' : 'bg-neutral-50'} px-4`}>
-            <div className="w-full max-w-4xl flex flex-col items-center justify-center flex-1">
+            <div className="w-full max-w-4xl flex flex-col items-center justify-center min-h-[60vh]">
               {/* Welcome Message */}
               <div className="text-center mb-8">
                 <div className="flex items-center justify-center mx-auto mb-6">
