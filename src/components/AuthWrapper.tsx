@@ -6,9 +6,20 @@ export function AuthWrapper() {
   const { isDarkMode } = useTheme();
 
   return (
-    <div className={`min-h-screen flex ${
+    <div className={`min-h-screen flex flex-col ${
       isDarkMode ? 'bg-black' : 'bg-white'
     }`}>
+      {/* Top Center Logo */}
+      <div className="flex justify-center pt-8 pb-4">
+        <img 
+          src="/yari-logo.png" 
+          alt="Yari AI Logo" 
+          className="w-12 h-12 object-contain"
+        />
+      </div>
+      
+      {/* Main Content */}
+      <div className="flex-1 flex">{/* Split layout container */}
       {/* Left Side - Branding/Features */}
       <div className={`hidden lg:flex lg:w-1/2 xl:w-3/5 ${
         isDarkMode ? 'bg-white' : 'bg-black'
@@ -91,12 +102,12 @@ export function AuthWrapper() {
         <div className="w-full max-w-md">
           {/* Mobile Logo */}
           <div className="lg:hidden text-center mb-12">
-            <div className={`w-16 h-16 rounded-xl ${
-              isDarkMode ? 'bg-white' : 'bg-black'
-            } flex items-center justify-center mx-auto mb-6`}>
-              <Shield className={`w-8 h-8 ${
-                isDarkMode ? 'text-black' : 'text-white'
-              }`} />
+            <div className="flex items-center justify-center mx-auto mb-6">
+              <img 
+                src="/yari-logo.png" 
+                alt="Yari AI Logo" 
+                className="w-16 h-16 object-contain"
+              />
             </div>
             <h1 className={`text-2xl font-bold ${
               isDarkMode ? 'text-white' : 'text-black'
@@ -133,6 +144,7 @@ export function AuthWrapper() {
             </p>
           </div>
         </div>
+      </div>
       </div>
     </div>
   );
