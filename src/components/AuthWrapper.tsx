@@ -1,6 +1,6 @@
 import { useTheme } from "../contexts/ThemeContext";
 import { SignInForm } from "../SignInForm";
-import { User, Shield, Zap } from "lucide-react";
+import { User, Zap } from "lucide-react";
 
 export function AuthWrapper() {
   const { isDarkMode } = useTheme();
@@ -16,12 +16,12 @@ export function AuthWrapper() {
         <div className="max-w-lg">
           {/* Logo/Brand */}
           <div className="mb-12">
-            <div className={`w-16 h-16 rounded-xl ${
-              isDarkMode ? 'bg-black' : 'bg-white'
-            } flex items-center justify-center mb-6`}>
-              <Shield className={`w-8 h-8 ${
-                isDarkMode ? 'text-white' : 'text-black'
-              }`} />
+            <div className="flex items-center justify-center mb-6">
+              <img 
+                src="/yari-logo.png" 
+                alt="Yari AI Logo" 
+                className="w-16 h-16 object-contain"
+              />
             </div>
             <h1 className={`text-4xl font-bold ${
               isDarkMode ? 'text-black' : 'text-white'

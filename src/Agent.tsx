@@ -139,10 +139,12 @@ export function Agent() {
           ) : (
             <div className={`flex-1 flex items-center justify-center ${isDarkMode ? 'bg-neutral-900' : 'bg-neutral-50'} p-4`}>
               <div className="text-center max-w-md">
-                <div className={`w-20 h-20 ${isDarkMode ? 'bg-gradient-to-br from-blue-900/50 to-purple-900/50 border-gray-700' : 'bg-gradient-to-br from-blue-100 to-purple-100 border-gray-300'} rounded-2xl flex items-center justify-center mx-auto mb-6 border`}>
-                  <svg className={`w-10 h-10 ${isDarkMode ? 'text-blue-400' : 'text-blue-600'}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
-                  </svg>
+                <div className="flex items-center justify-center mx-auto mb-6">
+                  <img 
+                    src="/yari-logo.png" 
+                    alt="Yari AI Logo" 
+                    className="w-20 h-20 object-contain"
+                  />
                 </div>
                 <h2 className={`text-2xl sm:text-3xl font-bold ${isDarkMode ? 'text-white' : 'text-gray-900'} mb-3`}>Welcome to Agent</h2>
                 <p className={`${isDarkMode ? 'text-gray-400' : 'text-gray-600'} mb-8 leading-relaxed text-sm sm:text-base`}>
