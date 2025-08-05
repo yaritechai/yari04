@@ -12,6 +12,15 @@ export function SignInForm() {
 
   return (
     <div className="w-full max-w-md mx-auto bg-white rounded-2xl p-8 pt-12">
+      {/* Logo */}
+      <div className="flex justify-center mb-6">
+        <img 
+          src="/yari-logo.png" 
+          alt="Yari AI Logo" 
+          className="w-16 h-16 object-contain"
+        />
+      </div>
+
       {/* Form Header */}
       <div className="text-center mb-8">
         <h2 className="text-2xl font-semibold text-gray-900 mb-2">
