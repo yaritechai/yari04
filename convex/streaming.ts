@@ -547,8 +547,22 @@ Please provide a detailed and informative response based on these search results
       }
 
       // NORMAL RESPONSE (no search)
+      const systemWithTools = `${systemPrompt}
+
+## IMAGE TOOLS
+- Tool name: generate_image
+  - Use when creating a new image from text.
+  - Arguments: { "prompt": string, "size"?: string, "quality"?: string, "background"?: string }
+
+- Tool name: edit_image
+  - Use when the user provides an image and asks to modify or edit it (changes, additions, removals, style tweaks, inpainting-like changes).
+  - If the user did not include a base64 image in the tool call, use the most recent image attached in this conversation.
+  - Arguments: { "prompt": string, "input_image"?: base64 or data URL, "attachmentIndex"?: number }
+
+When you need to call a tool, output a single fenced JSON object calling the correct tool.`;
+
       const messagesWithSystem = [
-        { role: "system" as const, content: systemPrompt },
+        { role: "system" as const, content: systemWithTools },
         ...openaiMessages
       ];
 
@@ -583,41 +597,82 @@ Please provide a detailed and informative response based on these search results
         }
       }
 
-      // Attempt to detect a generate_image tool call in the streamed content
+      // Attempt to detect a generate_image or edit_image tool call in the streamed content
       let finalContent = streamedContent;
       try {
-        // Helper to execute a generate_image tool call
+        // Helper to execute a generate_image or edit_image tool call
         const executeTool = async (
           matchedText: string,
-          toolObj: { arguments?: { prompt?: string; size?: string; quality?: string; background?: string } }
+          toolObj: { tool?: string; name?: string; arguments?: { prompt?: string; size?: string; quality?: string; background?: string; input_image?: string; attachmentIndex?: number } }
         ) => {
           const argsObj = (toolObj.arguments || {}) as {
             prompt?: string;
             size?: string;
             quality?: string;
             background?: string;
+            input_image?: string;
+            attachmentIndex?: number;
           };
+          const toolName = (toolObj.tool || toolObj.name || '').toLowerCase();
           if (!argsObj.prompt) return;
           try {
-            const result = await ctx.runAction(api.ai.generateImage, {
-              prompt: argsObj.prompt,
-              size: argsObj.size,
-              quality: argsObj.quality,
-              background: argsObj.background,
-            });
-            if (result && result.url) {
-              finalContent = streamedContent.replace(matchedText, `Generated image: ${result.url}`);
-            } else {
-              finalContent = streamedContent.replace(
-                matchedText,
-                "❌ Failed to generate image. The provider did not return a URL."
-              );
+            if (toolName === 'generate_image') {
+              const result = await ctx.runAction(api.ai.generateImage, {
+                prompt: argsObj.prompt,
+                size: argsObj.size,
+                quality: argsObj.quality,
+                background: argsObj.background,
+              });
+              if (result && result.url) {
+                finalContent = streamedContent.replace(matchedText, `Generated image: ${result.url}`);
+              } else {
+                finalContent = streamedContent.replace(matchedText, "❌ Failed to generate image. The provider did not return a URL.");
+              }
+              return;
+            }
+            if (toolName === 'edit_image') {
+              // Prefer provided input_image (base64 or data URL). Otherwise use most recent image attachment in this conversation.
+              let base64: string | null = null;
+              if (argsObj.input_image && typeof argsObj.input_image === 'string') {
+                const val = argsObj.input_image.trim();
+                if (val.startsWith('data:')) base64 = val.split(',')[1] || '';
+                else if (/^[A-Za-z0-9+/=]+$/.test(val) && val.length > 100) base64 = val;
+              }
+              if (!base64) {
+                const imageMessages = messages
+                  .filter((m: any) => m.attachments && m.attachments.some((a: any) => a.fileType?.startsWith('image/')))
+                  .reverse();
+                const idx = Math.max(0, Number(argsObj.attachmentIndex ?? 0));
+                const target = imageMessages[idx];
+                if (target) {
+                  const att = target.attachments.find((a: any) => a.fileType?.startsWith('image/'));
+                  if (att) {
+                    const blob = await ctx.storage.get(att.fileId);
+                    if (blob) {
+                      const arr = await blob.arrayBuffer();
+                      base64 = Buffer.from(arr).toString('base64');
+                    }
+                  }
+                }
+              }
+              if (!base64) {
+                finalContent = streamedContent.replace(matchedText, "❌ Could not find a source image to edit. Please attach an image and try again.");
+                return;
+              }
+              const result = await ctx.runAction(api.ai.editImage, {
+                prompt: argsObj.prompt,
+                imageBase64: base64,
+              });
+              if (result && (result as any).url) {
+                finalContent = streamedContent.replace(matchedText, `Generated image: ${(result as any).url}`);
+              } else {
+                finalContent = streamedContent.replace(matchedText, "❌ Failed to edit image. The provider did not return a URL.");
+              }
+              return;
             }
           } catch (imageError) {
-            console.error("Image generation failed:", imageError);
-            const hint =
-              "❌ Failed to generate image. Please verify your image provider credentials and quota.";
-            finalContent = streamedContent.replace(matchedText, hint);
+            console.error("Image tool execution failed:", imageError);
+            finalContent = streamedContent.replace(matchedText, "❌ Failed to execute image tool.");
           }
         };
 
@@ -664,24 +719,27 @@ Please provide a detailed and informative response based on these search results
           const maybeObj = JSON.parse(toolJsonMatch[1]);
           if (
             maybeObj &&
-            (maybeObj.tool === "generate_image" || maybeObj.name === "generate_image")
+            (maybeObj.tool === "generate_image" || maybeObj.name === "generate_image" || maybeObj.tool === 'edit_image' || maybeObj.name === 'edit_image')
           ) {
             await executeTool(toolJsonMatch[0], maybeObj);
           }
         } else {
-          // 2) Fallback: try to find an unfenced JSON object containing a generate_image tool call
-          const anchor = streamedContent.indexOf('generate_image');
-          if (anchor >= 0) {
-            const candidate = extractBalancedJsonAt(streamedContent, anchor);
-            if (candidate) {
-              try {
-                const obj = JSON.parse(candidate);
-                if (obj && (obj.tool === 'generate_image' || obj.name === 'generate_image')) {
-                  await executeTool(candidate, obj);
-                }
-              } catch {
-                // ignore parse errors
+          // 2) Fallback: try to find an unfenced JSON object containing a generate_image or edit_image tool call
+          const anchors = ['generate_image', 'edit_image']
+            .map((key) => ({ key, idx: streamedContent.indexOf(key) }))
+            .filter((a) => a.idx >= 0)
+            .sort((a, b) => a.idx - b.idx);
+          for (const { key, idx } of anchors) {
+            const candidate = extractBalancedJsonAt(streamedContent, idx);
+            if (!candidate) continue;
+            try {
+              const obj = JSON.parse(candidate);
+              if (obj && (obj.tool === key || obj.name === key)) {
+                await executeTool(candidate, obj);
+                break;
               }
+            } catch {
+              // ignore parse errors
             }
           }
         }
