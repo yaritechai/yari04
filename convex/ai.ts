@@ -248,6 +248,110 @@ Always use the generate_landing_page function when creating landing pages.`;
   },
 });
 
+// Image generation via Black Forest Labs (FLUX)
+export const generateImage = action({
+  args: {
+    prompt: v.string(),
+    size: v.optional(v.string()), // e.g., "1024x1024", "1024x576" (used to derive aspect_ratio)
+    quality: v.optional(v.string()), // unused for BFL but accepted for compat
+    background: v.optional(v.string()), // unused for BFL but accepted for compat
+  },
+  handler: async (ctx, args) => {
+    const apiKey = process.env.BFL_API_KEY;
+    if (!apiKey) {
+      throw new Error("BFL_API_KEY environment variable is not set. Please configure your Black Forest Labs API key.");
+    }
+
+    // Map size (e.g., 1024x576) -> aspect_ratio (e.g., 16:9). Default 1:1
+    const toAspectRatio = (size?: string): string => {
+      if (!size) return "1:1";
+      const match = size.match(/^(\d+)x(\d+)$/i);
+      if (!match) return "1:1";
+      const w = parseInt(match[1], 10);
+      const h = parseInt(match[2], 10);
+      if (!w || !h) return "1:1";
+      const gcd = (a: number, b: number): number => (b === 0 ? a : gcd(b, a % b));
+      const g = gcd(w, h);
+      return `${Math.round(w / g)}:${Math.round(h / g)}`;
+    };
+
+    const aspect_ratio = toAspectRatio(args.size);
+
+    try {
+      // 1) Submit generation request
+      const submitResp = await fetch("https://api.bfl.ai/v1/flux-kontext-pro", {
+        method: "POST",
+        headers: {
+          accept: "application/json",
+          "x-key": apiKey,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          prompt: args.prompt,
+          aspect_ratio,
+        }),
+      });
+
+      if (!submitResp.ok) {
+        const text = await submitResp.text();
+        throw new Error(`BFL submit failed: ${submitResp.status} ${submitResp.statusText} - ${text}`);
+      }
+
+      const submitJson: any = await submitResp.json();
+      const pollingUrl: string | undefined = submitJson?.polling_url;
+      if (!pollingUrl) {
+        throw new Error("BFL did not return a polling_url");
+      }
+
+      // 2) Poll for completion (up to ~60s)
+      const start = Date.now();
+      const timeoutMs = 60000;
+      let finalUrl: string | null = null;
+      // eslint-disable-next-line no-constant-condition
+      while (true) {
+        if (Date.now() - start > timeoutMs) {
+          throw new Error("Timed out waiting for image generation");
+        }
+
+        await new Promise((r) => setTimeout(r, 500));
+
+        const pollResp = await fetch(pollingUrl, {
+          method: "GET",
+          headers: {
+            accept: "application/json",
+            "x-key": apiKey,
+          },
+        });
+
+        if (!pollResp.ok) {
+          const text = await pollResp.text();
+          throw new Error(`BFL poll failed: ${pollResp.status} ${pollResp.statusText} - ${text}`);
+        }
+
+        const pollJson: any = await pollResp.json();
+        const status: string = pollJson?.status || "";
+        if (status === "Ready") {
+          finalUrl = pollJson?.result?.sample || null;
+          break;
+        }
+        if (status === "Error" || status === "Failed") {
+          throw new Error(`BFL generation failed: ${JSON.stringify(pollJson)}`);
+        }
+        // Otherwise keep polling (Queued/Processing)
+      }
+
+      if (!finalUrl) {
+        throw new Error("BFL returned Ready but no result.sample URL");
+      }
+
+      return { url: finalUrl, prompt: args.prompt };
+    } catch (error) {
+      console.error("Error generating image via BFL:", error);
+      throw new Error("Failed to generate image");
+    }
+  },
+});
+
 // Helper function to generate complete HTML
 function generateCompleteHTML(params: any) {
   const { 

@@ -11,6 +11,7 @@ import { Copy, Download, ExternalLink, Search } from "lucide-react";
 import { Button } from "./ui/button";
 import { cn } from "../lib/utils";
 import { FragmentType } from "./RightPanel";
+import { GeneratedImageCard } from "./GeneratedImageCard";
 
 interface MessageBubbleProps {
   message: {
@@ -47,6 +48,7 @@ export function MessageBubble({ message, showTokenCount, onOpenFragment, onMCPCr
   const { isDarkMode } = useTheme();
   const [showSearchResults, setShowSearchResults] = useState(false);
   const [isGeneratingReport, setIsGeneratingReport] = useState(false);
+  const [imageLoadedMap, setImageLoadedMap] = useState<Record<string, boolean>>({});
 
   const user = useQuery(api.auth.loggedInUser);
   const generateReport = useAction(api.ai.generateReport);
@@ -184,10 +186,27 @@ export function MessageBubble({ message, showTokenCount, onOpenFragment, onMCPCr
     return content; // Return original content if no search tag found
   };
 
+  // Detect generated image URLs embedded by backend in the form: "Generated image: <url>"
+  // Be permissive about placement (start, middle of line) and spacing
+  const extractGeneratedImages = (content: string): { cleaned: string; urls: string[] } => {
+    const urls: string[] = [];
+    const pattern = /Generated\s+image:\s*(https?:\/\/\S+)/gi;
+    let cleaned = content;
+    cleaned = cleaned.replace(pattern, (_match, url) => {
+      urls.push(url);
+      return '';
+    });
+    return { cleaned, urls };
+  };
+
   const renderContent = () => {
-    const content = cleanMessageContent(message.content);
+    const raw = cleanMessageContent(message.content);
+    const { cleaned, urls } = extractGeneratedImages(raw);
+    const isImageMessage = urls.length > 0;
     
     return (
+      <>
+      {!isImageMessage && (
       <ReactMarkdown
         remarkPlugins={[remarkGfm]}
         rehypePlugins={[rehypeHighlight]}
@@ -442,15 +461,22 @@ export function MessageBubble({ message, showTokenCount, onOpenFragment, onMCPCr
           ),
         }}
       >
-        {content}
+        {cleaned}
       </ReactMarkdown>
+      )}
+      {/* Render generated images (ChatGPT-like card with blur skeleton) */}
+      {urls.length > 0 && (
+        <div className="mt-3 grid grid-cols-1 sm:grid-cols-2 gap-3">
+          {urls.map((url) => (
+            <GeneratedImageCard key={url} url={url} />
+          ))}
+        </div>
+      )}
+      </>
     );
   };
 
-  // Don't render system messages
-  if (message.role === 'system') {
-    return null;
-  }
+  // Note: message.role is 'user' | 'assistant' in this component's props
 
   return (
     <div className={`flex gap-3 sm:gap-4 ${message.role === 'user' ? 'justify-end' : 'justify-start'} w-full`}>
@@ -603,7 +629,7 @@ export function MessageBubble({ message, showTokenCount, onOpenFragment, onMCPCr
         )}
 
         {/* View in Canvas Button - for assistant messages with substantial content */}
-        {message.role === 'assistant' && !message.isStreaming && message.content && message.content.length > 200 && (
+        {message.role === 'assistant' && !message.isStreaming && message.content && message.content.length > 200 && !message.content.includes('Generated image:') && (
           <div className="mt-2 sm:mt-3">
             <div className="flex items-center gap-2">
               <button

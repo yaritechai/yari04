@@ -2,7 +2,7 @@
 
 import { v } from "convex/values";
 import { internalAction } from "./_generated/server";
-import { internal } from "./_generated/api";
+import { internal, api } from "./_generated/api";
 import OpenAI from "openai";
 import { getModelForTask, getModelParameters } from "./modelRouter";
 import { Id } from "./_generated/dataModel";
@@ -385,6 +385,28 @@ You excel at creating engaging, professional content including:
 
 **LANDING PAGE RULE**: When asked to create a landing page for a person, business, or concept, proceed directly with creative design based on the name provided. Do NOT research unless explicitly requested.
 
+## TOOLS AVAILABLE
+
+You can request the following tool by outputting a single JSON object (treat it like a fenced \`json\` code block) with the shape shown below. Do this only when it helps the user.
+
+Tool name: generate_image
+Purpose: Generate an image via ChatGPT's image model.
+JSON schema to call the tool (example):
+{
+  "tool": "generate_image",
+  "arguments": {
+    "prompt": "<concise visual prompt>",
+    "size": "1024x1024",
+    "quality": "high",
+    "background": "transparent"
+  }
+}
+
+Rules:
+- Output exactly one JSON object in a single fenced block when calling a tool. No extra commentary.
+- Prefer size "1024x1024" unless the user requests a specific aspect ratio.
+- If the user asks for multiple variants, specify it in the prompt text.
+
 ## CONTEXT AWARENESS
 Current conversation context:
 - User timezone: ${currentTimeZone}
@@ -561,10 +583,116 @@ Please provide a detailed and informative response based on these search results
         }
       }
 
-      // Finalize normal response
+      // Attempt to detect a generate_image tool call in the streamed content
+      let finalContent = streamedContent;
+      try {
+        // Helper to execute a generate_image tool call
+        const executeTool = async (
+          matchedText: string,
+          toolObj: { arguments?: { prompt?: string; size?: string; quality?: string; background?: string } }
+        ) => {
+          const argsObj = (toolObj.arguments || {}) as {
+            prompt?: string;
+            size?: string;
+            quality?: string;
+            background?: string;
+          };
+          if (!argsObj.prompt) return;
+          try {
+            const result = await ctx.runAction(api.ai.generateImage, {
+              prompt: argsObj.prompt,
+              size: argsObj.size,
+              quality: argsObj.quality,
+              background: argsObj.background,
+            });
+            if (result && result.url) {
+              finalContent = streamedContent.replace(matchedText, `Generated image: ${result.url}`);
+            } else {
+              finalContent = streamedContent.replace(
+                matchedText,
+                "❌ Failed to generate image. The provider did not return a URL."
+              );
+            }
+          } catch (imageError) {
+            console.error("Image generation failed:", imageError);
+            const hint =
+              "❌ Failed to generate image. Please verify your image provider credentials and quota.";
+            finalContent = streamedContent.replace(matchedText, hint);
+          }
+        };
+
+        // Helper: extract a balanced JSON object containing a given index
+        const extractBalancedJsonAt = (text: string, anchorIndex: number): string | null => {
+          // find the nearest '{' before anchorIndex
+          let start = -1;
+          for (let i = anchorIndex; i >= 0; i--) {
+            if (text[i] === '{') { start = i; break; }
+          }
+          if (start === -1) return null;
+          let depth = 0;
+          let inString = false;
+          let escape = false;
+          for (let i = start; i < text.length; i++) {
+            const ch = text[i];
+            if (inString) {
+              if (escape) {
+                escape = false;
+              } else if (ch === '\\') {
+                escape = true;
+              } else if (ch === '"') {
+                inString = false;
+              }
+              continue;
+            }
+            if (ch === '"') {
+              inString = true;
+            } else if (ch === '{') {
+              depth++;
+            } else if (ch === '}') {
+              depth--;
+              if (depth === 0) {
+                return text.slice(start, i + 1);
+              }
+            }
+          }
+          return null;
+        };
+
+        // 1) Prefer fenced JSON block
+        const toolJsonMatch = streamedContent.match(/```json\s*([\s\S]*?)\s*```/i);
+        if (toolJsonMatch && toolJsonMatch[1]) {
+          const maybeObj = JSON.parse(toolJsonMatch[1]);
+          if (
+            maybeObj &&
+            (maybeObj.tool === "generate_image" || maybeObj.name === "generate_image")
+          ) {
+            await executeTool(toolJsonMatch[0], maybeObj);
+          }
+        } else {
+          // 2) Fallback: try to find an unfenced JSON object containing a generate_image tool call
+          const anchor = streamedContent.indexOf('generate_image');
+          if (anchor >= 0) {
+            const candidate = extractBalancedJsonAt(streamedContent, anchor);
+            if (candidate) {
+              try {
+                const obj = JSON.parse(candidate);
+                if (obj && (obj.tool === 'generate_image' || obj.name === 'generate_image')) {
+                  await executeTool(candidate, obj);
+                }
+              } catch {
+                // ignore parse errors
+              }
+            }
+          }
+        }
+      } catch (e) {
+        console.error("Failed to parse or execute tool call:", e);
+      }
+
+      // Finalize normal response (with possible image result)
       await ctx.runMutation(internal.messages.finalizeStreamingMessage, {
         messageId: args.messageId,
-        content: streamedContent,
+        content: finalContent,
       });
 
       console.log("Stream completed, final content length:", streamedContent.length);
