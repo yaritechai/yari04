@@ -31,6 +31,7 @@ export function MessageInputModern({
   const createConversation = useMutation(api.conversations.create);
   const generateSmartTitle = useMutation(api.conversations.generateSmartTitle);
   const uploadFile = useMutation(api.files.generateUploadUrl);
+  const editImage = useMutation(api.ai.editImage);
   const preferences = useQuery(api.preferences.get, {}) || {};
 
   const handleSend = async (message: string, files?: File[]) => {
@@ -57,28 +58,43 @@ export function MessageInputModern({
       
       if (files && files.length > 0) {
         for (const file of files) {
-          // Generate upload URL
-          const uploadUrl = await uploadFile();
-          
-          // Upload file
-          const result = await fetch(uploadUrl, {
-            method: "POST",
-            headers: { "Content-Type": file.type },
-            body: file,
-          });
-          
-          if (!result.ok) {
-            throw new Error(`Upload failed: ${result.statusText}`);
+          // If user selects exactly one image file and message starts with [Edit: ...], call image edit
+          if (
+            files.length === 1 &&
+            file.type.startsWith("image/") &&
+            /^\[Edit:\s*.+\]/i.test(message.trim())
+          ) {
+            // Extract prompt inside [Edit: ...]
+            const prompt = message.trim().replace(/^\[Edit:\s*(.+)\]$/i, "$1");
+            const toBase64 = (blob: Blob) =>
+              new Promise<string>((resolve, reject) => {
+                const reader = new FileReader();
+                reader.onload = () => resolve(String(reader.result).split(",")[1] || "");
+                reader.onerror = reject;
+                reader.readAsDataURL(blob);
+              });
+            const b64 = await toBase64(file);
+            // Kick off edit; when complete, the backend will send the assistant message with the image URL
+            await editImage({ prompt, imageBase64: b64 });
+          } else {
+            // Generate upload URL and attach as usual
+            const uploadUrl = await uploadFile();
+            const result = await fetch(uploadUrl, {
+              method: "POST",
+              headers: { "Content-Type": file.type },
+              body: file,
+            });
+            if (!result.ok) {
+              throw new Error(`Upload failed: ${result.statusText}`);
+            }
+            const { storageId } = await result.json();
+            attachments.push({
+              fileId: storageId,
+              fileName: file.name,
+              fileType: file.type,
+              fileSize: file.size,
+            });
           }
-          
-          const { storageId } = await result.json();
-          
-          attachments.push({
-            fileId: storageId,
-            fileName: file.name,
-            fileType: file.type,
-            fileSize: file.size,
-          });
         }
       }
 
