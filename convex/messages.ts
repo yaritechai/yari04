@@ -303,6 +303,35 @@ export const addAssistantMessage = internalMutation({
   },
 });
 
+// Public-safe variant so the client can add an assistant message (e.g., for image edits)
+export const addAssistantMessagePublic = mutation({
+  args: {
+    conversationId: v.id("conversations"),
+    content: v.string(),
+  },
+  handler: async (ctx, args) => {
+    const userId = await getAuthUserId(ctx);
+    if (!userId) throw new Error("Not authenticated");
+
+    const conversation = await ctx.db.get(args.conversationId);
+    if (!conversation || conversation.userId !== userId) {
+      throw new Error("Conversation not found");
+    }
+
+    await ctx.db.insert("messages", {
+      conversationId: args.conversationId,
+      role: "assistant",
+      content: args.content,
+      userId: conversation.userId,
+      timestamp: Date.now(),
+      createdAt: Date.now(),
+      updatedAt: Date.now(),
+    });
+
+    await ctx.db.patch(args.conversationId, { lastMessageAt: Date.now() });
+  },
+});
+
 export const addAssistantMessageWithSearch = internalMutation({
   args: {
     conversationId: v.id("conversations"),
