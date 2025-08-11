@@ -352,6 +352,109 @@ export const generateImage = action({
   },
 });
 
+// Edit image via Black Forest Labs (FLUX) using a base64 input image
+export const editImage = action({
+  args: {
+    prompt: v.string(),
+    inputImageBase64: v.optional(v.string()),
+    imageFileId: v.optional(v.id("_storage")),
+    size: v.optional(v.string()), // derive aspect ratio if provided
+  },
+  handler: async (ctx, args) => {
+    const apiKey = process.env.BFL_API_KEY;
+    if (!apiKey) {
+      throw new Error("BFL_API_KEY environment variable is not set. Please configure your Black Forest Labs API key.");
+    }
+
+    // If fileId provided, load and convert to base64
+    let inputB64 = args.inputImageBase64;
+    if (!inputB64 && args.imageFileId) {
+      const fileBlob = await ctx.storage.get(args.imageFileId);
+      if (!fileBlob) throw new Error("Failed to read image from storage");
+      const arrayBuffer = await fileBlob.arrayBuffer();
+      inputB64 = Buffer.from(arrayBuffer).toString("base64");
+    }
+    if (!inputB64) throw new Error("No input image provided");
+
+    const toAspectRatio = (size?: string): string | undefined => {
+      if (!size) return undefined;
+      const match = size.match(/^(\d+)x(\d+)$/i);
+      if (!match) return undefined;
+      const w = parseInt(match[1], 10);
+      const h = parseInt(match[2], 10);
+      if (!w || !h) return undefined;
+      const gcd = (a: number, b: number): number => (b === 0 ? a : gcd(b, a % b));
+      const g = gcd(w, h);
+      return `${Math.round(w / g)}:${Math.round(h / g)}`;
+    };
+
+    const aspect_ratio = toAspectRatio(args.size);
+
+    try {
+      // 1) Submit edit request
+      const submitResp = await fetch("https://api.bfl.ai/v1/flux-kontext-pro", {
+        method: "POST",
+        headers: {
+          accept: "application/json",
+          "x-key": apiKey,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          prompt: args.prompt,
+          input_image: inputB64,
+          ...(aspect_ratio ? { aspect_ratio } : {}),
+        }),
+      });
+
+      if (!submitResp.ok) {
+        const text = await submitResp.text();
+        throw new Error(`BFL submit (edit) failed: ${submitResp.status} ${submitResp.statusText} - ${text}`);
+      }
+
+      const submitJson: any = await submitResp.json();
+      const pollingUrl: string | undefined = submitJson?.polling_url;
+      if (!pollingUrl) {
+        throw new Error("BFL did not return a polling_url for edit request");
+      }
+
+      // 2) Poll for completion
+      const start = Date.now();
+      const timeoutMs = 60000;
+      let finalUrl: string | null = null;
+      // eslint-disable-next-line no-constant-condition
+      while (true) {
+        if (Date.now() - start > timeoutMs) {
+          throw new Error("Timed out waiting for image edit");
+        }
+        await new Promise((r) => setTimeout(r, 500));
+        const pollResp = await fetch(pollingUrl, {
+          method: "GET",
+          headers: { accept: "application/json", "x-key": apiKey },
+        });
+        if (!pollResp.ok) {
+          const text = await pollResp.text();
+          throw new Error(`BFL poll (edit) failed: ${pollResp.status} ${pollResp.statusText} - ${text}`);
+        }
+        const pollJson: any = await pollResp.json();
+        const status: string = pollJson?.status || "";
+        if (status === "Ready") {
+          finalUrl = pollJson?.result?.sample || null;
+          break;
+        }
+        if (status === "Error" || status === "Failed") {
+          throw new Error(`BFL edit failed: ${JSON.stringify(pollJson)}`);
+        }
+      }
+
+      if (!finalUrl) throw new Error("BFL returned Ready but no result.sample for edit");
+      return { url: finalUrl, prompt: args.prompt };
+    } catch (error) {
+      console.error("Error editing image via BFL:", error);
+      throw new Error("Failed to edit image");
+    }
+  },
+});
+
 // Helper function to generate complete HTML
 function generateCompleteHTML(params: any) {
   const { 

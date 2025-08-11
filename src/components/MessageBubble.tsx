@@ -191,8 +191,14 @@ export function MessageBubble({ message, showTokenCount, onOpenFragment, onMCPCr
   const extractGeneratedImages = (content: string): { cleaned: string; urls: string[] } => {
     const urls: string[] = [];
     const pattern = /Generated\s+image:\s*(https?:\/\/\S+)/gi;
+    // Also support edited image hint: "Edited image: <url>"
+    const editedPattern = /Edited\s+image:\s*(https?:\/\/\S+)/gi;
     let cleaned = content;
     cleaned = cleaned.replace(pattern, (_match, url) => {
+      urls.push(url);
+      return '';
+    });
+    cleaned = cleaned.replace(editedPattern, (_match, url) => {
       urls.push(url);
       return '';
     });
