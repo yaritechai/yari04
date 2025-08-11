@@ -10,6 +10,7 @@ export function GeneratedImageCard({ url }: GeneratedImageCardProps) {
   const { isDarkMode } = useTheme();
   const [loaded, setLoaded] = useState(false);
   const [downloading, setDownloading] = useState(false);
+  const [isOpen, setIsOpen] = useState(false);
 
   const handleDownload = async () => {
     try {
@@ -35,7 +36,19 @@ export function GeneratedImageCard({ url }: GeneratedImageCardProps) {
 
   return (
     <div className={`rounded-xl border overflow-hidden shadow-sm ${isDarkMode ? 'bg-neutral-900 border-neutral-800' : 'bg-white border-neutral-200'}`}>
-      <div className="relative w-full pb-[100%]">
+      <div
+        className={`relative w-full pb-[100%] ${url ? 'cursor-zoom-in' : ''}`}
+        onClick={() => url && setIsOpen(true)}
+        role={url ? 'button' : undefined}
+        aria-label={url ? 'Open image' : undefined}
+        tabIndex={url ? 0 : -1}
+        onKeyDown={(e) => {
+          if (url && (e.key === 'Enter' || e.key === ' ')) {
+            e.preventDefault();
+            setIsOpen(true);
+          }
+        }}
+      >
         {!loaded && (
           <div className="absolute inset-0">
             <div className={`h-full w-full animate-pulse ${isDarkMode ? 'bg-neutral-800' : 'bg-neutral-200'}`} />
@@ -56,10 +69,13 @@ export function GeneratedImageCard({ url }: GeneratedImageCardProps) {
         <span className="text-xs font-medium truncate">{url ? 'Image generated' : 'Generating image...'}</span>
         {url ? (
           <div className="flex items-center gap-2">
-            <a href={url} target="_blank" rel="noreferrer" className={`inline-flex items-center gap-1 text-xs ${isDarkMode ? 'hover:text-gray-100' : 'hover:text-gray-900'}`}>
+            <button
+              onClick={() => setIsOpen(true)}
+              className={`inline-flex items-center gap-1 text-xs ${isDarkMode ? 'hover:text-gray-100' : 'hover:text-gray-900'}`}
+            >
               <ExternalLink className="w-3 h-3" />
-              Open
-            </a>
+              View
+            </button>
             <button onClick={handleDownload} className={`inline-flex items-center gap-1 text-xs ${isDarkMode ? 'hover:text-gray-100' : 'hover:text-gray-900'}`} disabled={downloading}>
               <Download className="w-3 h-3" />
               {downloading ? 'Downloading...' : 'Download'}
@@ -69,6 +85,42 @@ export function GeneratedImageCard({ url }: GeneratedImageCardProps) {
           <div className="text-xs opacity-70">Please wait…</div>
         )}
       </div>
+
+      {/* Focus View Modal */}
+      {isOpen && url && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-4"
+          onClick={() => setIsOpen(false)}
+        >
+          <div
+            className={`relative max-w-[95vw] max-h-[90vh] ${isDarkMode ? 'bg-neutral-900' : 'bg-white'} rounded-xl shadow-2xl border ${isDarkMode ? 'border-neutral-700' : 'border-neutral-200'}`}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <img
+              src={url}
+              alt="Generated image"
+              className="block max-h-[90vh] max-w-[95vw] object-contain rounded-xl"
+            />
+            <div className="absolute top-2 right-2 flex gap-2">
+              <button
+                onClick={handleDownload}
+                className={`rounded-md px-2 py-1 text-xs ${isDarkMode ? 'bg-neutral-800 text-gray-200 hover:bg-neutral-700' : 'bg-white text-gray-800 border border-gray-200 hover:bg-gray-50'} shadow`}
+                disabled={downloading}
+              >
+                <span className="inline-flex items-center gap-1">
+                  <Download className="w-3 h-3" /> {downloading ? 'Downloading…' : 'Download'}
+                </span>
+              </button>
+              <button
+                onClick={() => setIsOpen(false)}
+                className={`rounded-md px-2 py-1 text-xs ${isDarkMode ? 'bg-neutral-800 text-gray-200 hover:bg-neutral-700' : 'bg-white text-gray-800 border border-gray-200 hover:bg-gray-50'} shadow`}
+              >
+                Close
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
