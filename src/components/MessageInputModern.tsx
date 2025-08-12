@@ -28,7 +28,6 @@ export function MessageInputModern({
   const { isDarkMode } = useTheme();
   
   const sendMessage = useMutation(api.messages.send);
-  const sendMessageNoStream = useMutation(api.messages.sendWithoutStreaming);
   const createConversation = useMutation(api.conversations.create);
   const generateSmartTitle = useMutation(api.conversations.generateSmartTitle);
   const uploadFile = useMutation(api.files.generateUploadUrl);
@@ -103,24 +102,13 @@ export function MessageInputModern({
       const userTimezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
 
       // Send the message
-      const isEditIntent = /^\[Edit:\s*.+\]$/i.test(message.trim());
-      if (isEditIntent) {
-        // Log the user message without triggering assistant streaming; the edit API will produce the assistant output
-        await sendMessageNoStream({
-          conversationId: currentConversationId,
-          content: message,
-          attachments: attachments.length > 0 ? attachments : undefined,
-          userTimezone,
-        });
-      } else {
-        await sendMessage({
-          conversationId: currentConversationId,
-          content: message,
-          attachments: attachments.length > 0 ? attachments : undefined,
-          requiresWebSearch,
-          userTimezone,
-        });
-      }
+      await sendMessage({
+        conversationId: currentConversationId,
+        content: message,
+        attachments: attachments.length > 0 ? attachments : undefined,
+        requiresWebSearch,
+        userTimezone,
+      });
 
       // Generate smart title for first message
       if (isFirstMessage && message.trim()) {
