@@ -344,6 +344,17 @@ export const generateImage = action({
         throw new Error("BFL returned Ready but no result.sample URL");
       }
 
+      // Optional: mirror the image into Convex storage to serve from our domain
+      try {
+        const resp = await fetch(finalUrl);
+        if (resp.ok) {
+          const blob = await resp.blob();
+          const storageId = await ctx.storage.store(blob);
+          const servedUrl = `${process.env.CONVEX_SITE_URL || ''}/images?id=${storageId}`;
+          return { url: servedUrl, prompt: args.prompt, storageId };
+        }
+      } catch {}
+      // Fallback to provider URL if mirroring fails
       return { url: finalUrl, prompt: args.prompt };
     } catch (error) {
       console.error("Error generating image via BFL:", error);
@@ -421,6 +432,16 @@ export const editImage = action({
       if (!finalUrl) {
         throw new Error("BFL returned Ready but no result.sample URL for edit");
       }
+      // Mirror edited image into Convex storage
+      try {
+        const resp = await fetch(finalUrl);
+        if (resp.ok) {
+          const blob = await resp.blob();
+          const storageId = await ctx.storage.store(blob);
+          const servedUrl = `${process.env.CONVEX_SITE_URL || ''}/images?id=${storageId}`;
+          return { url: servedUrl, storageId };
+        }
+      } catch {}
       return { url: finalUrl };
     } catch (error) {
       console.error("Error editing image via BFL:", error);

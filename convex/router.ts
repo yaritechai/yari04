@@ -1,5 +1,6 @@
 import { httpRouter } from "convex/server";
 import { httpAction } from "./_generated/server";
+import { v } from "convex/values";
 
 const http = httpRouter();
 
@@ -126,3 +127,27 @@ http.route({
 });
 
 export default http;
+
+// Serve images from Convex storage under our own domain
+http.route({
+  path: "/images",
+  method: "GET",
+  handler: httpAction(async (ctx, req) => {
+    const url = new URL(req.url);
+    const id = url.searchParams.get("id");
+    if (!id) return new Response("Missing id", { status: 400 });
+
+    try {
+      // Load from storage
+      const blob = await ctx.storage.get(id as any);
+      if (!blob) return new Response("Not found", { status: 404 });
+
+      const headers = new Headers();
+      headers.set("Content-Type", "image/png");
+      headers.set("Cache-Control", "public, max-age=31536000, immutable");
+      return new Response(blob, { status: 200, headers });
+    } catch (e) {
+      return new Response("Server error", { status: 500 });
+    }
+  }),
+});
