@@ -187,7 +187,7 @@ export const generateStreamingResponse = internalAction({
           console.error('Direct image edit path failed, falling back to normal flow:', e);
         }
       }
-
+      
       const hasDataFiles = filteredMessages.some((msg: any) => 
         msg.attachments && msg.attachments.length > 0 && 
         msg.attachments.some((att: any) => 
@@ -262,10 +262,10 @@ export const generateStreamingResponse = internalAction({
                       type: "text",
                       text: `\n\n📊 CSV FILE: ${attachment.fileName}\nFile Size: ${attachment.fileSize} bytes\nFirst 100 rows:\n\n${dataPreview}\n\n`
                     });
-           } else if (attachment.fileName?.toLowerCase().endsWith('.xlsx') || 
-                    attachment.fileName?.toLowerCase().endsWith('.xls') ||
-                    attachment.fileType === 'application/vnd.ms-excel' ||
-                    attachment.fileType === 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet') {
+                  } else if (attachment.fileName?.toLowerCase().endsWith('.xlsx') || 
+                           attachment.fileName?.toLowerCase().endsWith('.xls') ||
+                           attachment.fileType === 'application/vnd.ms-excel' ||
+                           attachment.fileType === 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet') {
                     // Parse Excel files using xlsx library
                     try {
                       const workbook = XLSX.read(arrayBuffer, { type: 'array' });
@@ -316,9 +316,9 @@ export const generateStreamingResponse = internalAction({
                 content.push({
                   type: "text",
                   text: `\n\n📄 PDF FILE: ${attachment.fileName}\nUnable to extract text from this PDF. You can ask me to focus on specific sections or provide a text excerpt.\n\n`
-                });
-              }
-                   } else {
+                      });
+                    }
+                  } else {
                     // For other data file types
                     content.push({
                       type: "text", 
@@ -719,9 +719,9 @@ When you need to call a tool, output a single fenced JSON object calling the cor
         ) => {
           const argsObj = (toolObj.arguments || {}) as {
             prompt?: string;
-            size?: string;
-            quality?: string;
-            background?: string;
+              size?: string;
+              quality?: string;
+              background?: string;
             input_image?: string;
             attachmentIndex?: number;
             csv?: string;
@@ -734,13 +734,13 @@ When you need to call a tool, output a single fenced JSON object calling the cor
           try {
             if (toolName === 'generate_image') {
               if (!argsObj.prompt) return;
-              const result = await ctx.runAction(api.ai.generateImage, {
-                prompt: argsObj.prompt,
-                size: argsObj.size,
-                quality: argsObj.quality,
-                background: argsObj.background,
-              });
-              if (result && result.url) {
+            const result = await ctx.runAction(api.ai.generateImage, {
+              prompt: argsObj.prompt,
+              size: argsObj.size,
+              quality: argsObj.quality,
+              background: argsObj.background,
+            });
+            if (result && result.url) {
                 finalContent = streamedContent.replace(matchedText, `Generated image: ${result.url}`);
               } else {
                 finalContent = streamedContent.replace(matchedText, "❌ Failed to generate image. The provider did not return a URL.");

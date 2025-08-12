@@ -93,6 +93,52 @@ export const send = mutation({
   },
 });
 
+// Send a user message without creating an assistant placeholder or starting streaming.
+export const sendWithoutStreaming = mutation({
+  args: {
+    conversationId: v.id("conversations"),
+    content: v.string(),
+    userTimezone: v.optional(v.string()),
+    attachments: v.optional(v.array(v.object({
+      fileId: v.id("_storage"),
+      fileName: v.string(),
+      fileType: v.string(),
+      fileSize: v.number(),
+    }))),
+  },
+  handler: async (ctx, args) => {
+    const userId = await getAuthUserId(ctx);
+    if (!userId) {
+      throw new Error("Not authenticated");
+    }
+
+    // Verify user owns the conversation
+    const conversation = await ctx.db.get(args.conversationId);
+    if (!conversation || conversation.userId !== userId) {
+      throw new Error("Conversation not found");
+    }
+
+    // Add user message only
+    const userMessageId = await ctx.db.insert("messages", {
+      conversationId: args.conversationId,
+      role: "user",
+      content: args.content,
+      userId,
+      attachments: args.attachments,
+      timestamp: Date.now(),
+      createdAt: Date.now(),
+      updatedAt: Date.now(),
+    });
+
+    // Update conversation last message time
+    await ctx.db.patch(args.conversationId, {
+      lastMessageAt: Date.now(),
+    });
+
+    return { userMessageId };
+  },
+});
+
 export const edit = mutation({
   args: {
     messageId: v.id("messages"),
