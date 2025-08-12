@@ -852,7 +852,38 @@ When you need to call a tool, output a single fenced JSON object calling the cor
             }
             if (toolName === 'plan_task') {
               const planTitle = argsObj.title || 'Plan';
-              const tasks = (argsObj.tasks || []).map(t => ({ title: t.title, description: t.description, done: false }));
+              let tasks = (argsObj.tasks || []).map(t => ({ title: t.title, description: t.description, done: false }));
+
+              // Deep reasoning for planning: use Kimi 2 to structure the plan when tasks not provided or for refinement
+              try {
+                if (tasks.length === 0) {
+                  const planningPrompt = `You are a planning assistant. Create a concise, actionable checklist to accomplish the user's goal.
+Return ONLY valid JSON with this shape:
+{
+  "title": string,
+  "tasks": [ { "title": string, "description"?: string }, ... ]
+}
+Keep 5-9 steps, ordered, each step specific and verifiable.
+User request: ${message.content}`;
+                  const planResp: any = await openrouter.chat.completions.create({
+                    model: 'moonshotai/kimi-k2',
+                    messages: [
+                      { role: 'system', content: 'You are an expert planner. Output only valid JSON.' },
+                      { role: 'user', content: planningPrompt },
+                    ],
+                    temperature: 0.3,
+                    max_tokens: 1200,
+                  });
+                  const out = planResp?.choices?.[0]?.message?.content?.trim() || '';
+                  const jsonMatch = out.match(/\{[\s\S]*\}$/);
+                  const parsed = JSON.parse(jsonMatch ? jsonMatch[0] : out);
+                  if (parsed && Array.isArray(parsed.tasks)) {
+                    tasks = parsed.tasks.map((t: any) => ({ title: String(t.title || ''), description: t.description ? String(t.description) : undefined, done: false }));
+                  }
+                }
+              } catch (planErr) {
+                console.warn('Kimi planning fallback – using provided tasks. Error:', planErr);
+              }
               const saved = await ctx.runMutation(api.plans.save, {
                 conversationId: args.conversationId,
                 title: planTitle,
