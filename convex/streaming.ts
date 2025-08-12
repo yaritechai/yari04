@@ -692,6 +692,8 @@ Please provide a detailed and informative response based on these search results
   - If useful context is missing, call gather_research in parallel and continue. Always include multiple queries to collect many sources.
   - Provide brief status updates every few minutes of long tasks.
   - Always resume from the persisted plan; don’t re-plan unless asked.
+  - If a plan already exists (draft or approved), DO NOT call plan_task again. Continue execution with complete_task and gather_research until done.
+  - When all steps are done OR max steps reached, post a short final summary and stop calling tools.
 
 ## CONSTRAINTS
 - Only use capabilities that exist: web search (Tavily), Jina Reader for page content, CSV/Table creation, planning, research orchestration, and image generation/edit via BFL.
