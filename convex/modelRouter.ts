@@ -7,8 +7,8 @@ export const MODELS = {
   RESEARCH: "google/gemini-2.0-flash-001",
   SUMMARIZATION: "google/gemini-2.0-flash-001",
   DATA_ANALYSIS: "google/gemini-2.0-flash-001",
-  // Coding tasks - Kimi 2 for specialized coding
-  CODING_LANDING: "moonshotai/kimi-k2",
+  // Coding tasks - Qwen3 Coder for specialized coding
+  CODING_LANDING: "qwen/qwen3-coder",
   // Vision tasks: use Gemini Flash for image tasks
   // The AI will use the edit_image tool for actual image editing via BFL
   VISION: "google/gemini-2.0-flash-001",
@@ -273,7 +273,7 @@ export function getAllModels() {
 
 // Check if a model supports thinking mode
 export function supportsThinking(modelId: string): boolean {
-  // Both Gemini Flash and Kimi 2 support thinking mode
+  // Both Gemini Flash and Qwen3 Coder support thinking mode
   return modelId === MODELS.GENERAL_THINKING || modelId === MODELS.CODING_LANDING;
 }
 
