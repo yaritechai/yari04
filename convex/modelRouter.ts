@@ -286,7 +286,7 @@ export function getModelParameters(modelId: string) {
     case MODELS.DATA_ANALYSIS:
       return {
         temperature: 0.7,
-        max_tokens: 4000,
+        max_tokens: 12000,
         top_p: 0.9,
       };
     
