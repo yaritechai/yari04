@@ -2,16 +2,17 @@ import { v } from "convex/values";
 
 // Model configurations with task-specific routing
 export const MODELS = {
-  // Default chat model
-  GENERAL_THINKING: "moonshotai/kimi-k2",
-  RESEARCH: "moonshotai/kimi-k2",
+  // Default chat model - Gemini Flash for general interactions
+  GENERAL_THINKING: "google/gemini-2.0-flash-001",
+  RESEARCH: "google/gemini-2.0-flash-001",
+  SUMMARIZATION: "google/gemini-2.0-flash-001",
+  DATA_ANALYSIS: "google/gemini-2.0-flash-001",
+  // Coding tasks - Kimi 2 for specialized coding
   CODING_LANDING: "moonshotai/kimi-k2",
-  SUMMARIZATION: "moonshotai/kimi-k2",
-  DATA_ANALYSIS: "moonshotai/kimi-k2",
-  // Vision tasks: use kimi-k2 for image tasks too
+  // Vision tasks: use Gemini Flash for image tasks
   // The AI will use the edit_image tool for actual image editing via BFL
-  VISION: "moonshotai/kimi-k2",
-  VISION_GPT: "moonshotai/kimi-k2",
+  VISION: "google/gemini-2.0-flash-001",
+  VISION_GPT: "google/gemini-2.0-flash-001",
 } as const;
 
 // Task type identification patterns
@@ -272,7 +273,8 @@ export function getAllModels() {
 
 // Check if a model supports thinking mode
 export function supportsThinking(modelId: string): boolean {
-  return modelId === MODELS.GENERAL_THINKING;
+  // Both Gemini Flash and Kimi 2 support thinking mode
+  return modelId === MODELS.GENERAL_THINKING || modelId === MODELS.CODING_LANDING;
 }
 
 // Get optimal parameters for each model
