@@ -276,6 +276,34 @@ export const finalizeStreamingMessage = internalMutation({
   },
 });
 
+// Attach a file to an existing message (used by actions that generate files)
+export const addAttachment = internalMutation({
+  args: {
+    messageId: v.id("messages"),
+    attachment: v.object({
+      fileId: v.id("_storage"),
+      fileName: v.string(),
+      fileType: v.string(),
+      fileSize: v.number(),
+    }),
+  },
+  returns: v.null(),
+  handler: async (ctx, args) => {
+    const message = await ctx.db.get(args.messageId);
+    if (!message) return null;
+
+    const nextAttachments = Array.isArray(message.attachments)
+      ? [...message.attachments, args.attachment]
+      : [args.attachment];
+
+    await ctx.db.patch(args.messageId, {
+      attachments: nextAttachments,
+      updatedAt: Date.now(),
+    });
+    return null;
+  },
+});
+
 export const addAssistantMessage = internalMutation({
   args: {
     conversationId: v.id("conversations"),

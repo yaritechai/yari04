@@ -139,3 +139,16 @@ export const generateUploadUrl = mutation({
     return await ctx.storage.generateUploadUrl();
   },
 });
+
+// Helper to resolve a storage URL for previews/links (e.g., for images)
+export const getStorageUrl = query({
+  args: { fileId: v.id("_storage") },
+  returns: v.union(v.string(), v.null()),
+  handler: async (ctx, args) => {
+    try {
+      return await ctx.storage.getUrl(args.fileId);
+    } catch (e) {
+      return null;
+    }
+  },
+});

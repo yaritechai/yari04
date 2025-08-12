@@ -35,7 +35,7 @@ export function ChatInterface({ conversationId, onTitleUpdate, onOpenFragment }:
 
   // Handle opening fragments based on message content
   const handleMessageFragment = (type: FragmentType, data: any) => {
-    onOpenFragment?.(type, data);
+    onOpenFragment?.(type, { ...(data || {}), userInitiated: false });
   };
 
   return (

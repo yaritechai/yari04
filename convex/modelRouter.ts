@@ -2,24 +2,24 @@ import { v } from "convex/values";
 
 // Model configurations with task-specific routing
 export const MODELS = {
-  // General model - moonshotai/kimi-k2 for most conversations
-  GENERAL_THINKING: "moonshotai/kimi-k2",
-  
-  // Research and analysis tasks - moonshotai/kimi-k2 with tool support
-  RESEARCH: "moonshotai/kimi-k2",
-  
-  // Landing pages and coding tasks - moonshotai/kimi-k2 for tool compatibility
-  CODING_LANDING: "moonshotai/kimi-k2",
-  
-  // Summarization and title generation - moonshotai/kimi-k2 for all tasks
-  SUMMARIZATION: "moonshotai/kimi-k2",
-  
-  // Vision-capable models for image processing
-  VISION: "anthropic/claude-3.5-sonnet", // Claude has excellent vision capabilities
-  VISION_GPT: "openai/gpt-4-vision-preview", // Alternative vision model
-  
+  // General default model via OpenRouter (base model)
+  GENERAL_THINKING: "openai/gpt-oss-120b",
+
+  // Research and analysis
+  RESEARCH: "openai/gpt-oss-120b",
+
+  // Landing pages and coding tasks
+  CODING_LANDING: "openai/gpt-oss-120b",
+
+  // Summarization and title generation
+  SUMMARIZATION: "openai/gpt-oss-120b",
+
+  // Vision-capable models (keep a vision-capable chat model; edits go to BFL directly)
+  VISION: "openai/gpt-5",
+  VISION_GPT: "openai/gpt-5",
+
   // Data analysis for CSV/Excel files
-  DATA_ANALYSIS: "anthropic/claude-3.5-sonnet", // Claude excels at data analysis
+  DATA_ANALYSIS: "openai/gpt-oss-120b",
 } as const;
 
 // Task type identification patterns
@@ -246,12 +246,12 @@ export function getModelForTask(
 
 // Model metadata for UI display
 export const MODEL_METADATA = {
-  "moonshotai/kimi-k2": {
-    label: "Moonshot AI Kimi-K2",
-    description: "Advanced AI model with tool support for research, coding, conversations, and more",
+  "openai/gpt-oss-120b": {
+    label: "GPT-OSS 120B",
+    description: "OpenAI OSS 120B model via OpenRouter, used as the base model for conversation, coding, research, and more",
     category: "Universal",
     capabilities: ["thinking", "reasoning", "conversation", "research", "coding", "summarization", "tool-use"],
-    icon: "🌙"
+    icon: "⚙️"
   },
   "anthropic/claude-3.5-sonnet": {
     label: "Claude 3.5 Sonnet",
@@ -274,7 +274,7 @@ export function getAllModels() {
   return Object.entries(MODELS).map(([taskType, modelId]) => ({
     value: modelId,
     taskType,
-    ...MODEL_METADATA[modelId]
+    ...(MODEL_METADATA as Record<string, any>)[modelId]
   }));
 }
 

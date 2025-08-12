@@ -7,6 +7,8 @@ import OpenAI from "openai";
 import { getModelForTask, getModelParameters } from "./modelRouter";
 import { Id } from "./_generated/dataModel";
 import * as XLSX from 'xlsx';
+// Import pdf-parse dynamically inside handler to keep action lean on cold start
+// duplicate import removed
 
 // Test action to verify OpenRouter connection
 export const testOpenRouter = internalAction({
@@ -133,6 +135,59 @@ export const generateStreamingResponse = internalAction({
         msg.attachments.some((att: any) => att.fileType && att.fileType.startsWith('image/'))
       );
       
+      // Early path: detect explicit image edit requests and route directly to Black Forest Labs
+      const latestUserWithImage = [...messages]
+        .filter((m: any) => m.role === 'user' && m.attachments && m.attachments.some((a: any) => a.fileType?.startsWith('image/')))
+        .sort((a: any, b: any) => b._creationTime - a._creationTime)[0];
+
+      const isImageEditRequest = (text: string | undefined) => {
+        if (!text) return false;
+        const t = text.toLowerCase();
+        // Recognize a variety of common edit intents
+        const patterns = [
+          /^\[\s*edit:\s*.+\]$/i, // [Edit: ...]
+          /\b(edit|remove|erase|replace|change|swap|add|insert|crop|blur|sharpen|enhance|retouch|background|bg|logo|text)\b/,
+        ];
+        return patterns.some((re) => re.test(t));
+      };
+
+      if (latestUserWithImage && isImageEditRequest(latestUserWithImage.content)) {
+        try {
+          // Use the first image attachment of that message
+          const att = latestUserWithImage.attachments.find((a: any) => a.fileType?.startsWith('image/'));
+          if (att) {
+            const blob = await ctx.storage.get(att.fileId);
+            if (blob) {
+              const arr = await blob.arrayBuffer();
+              const base64 = Buffer.from(arr).toString('base64');
+              const prompt = latestUserWithImage.content?.replace(/^\[\s*edit:\s*(.+)\]$/i, '$1') || latestUserWithImage.content || 'Please edit this image.';
+
+              const result = await ctx.runAction(api.ai.editImage, {
+                prompt,
+                imageBase64: base64,
+              });
+
+              const url = (result as any)?.url;
+              const content = url ? `Generated image: ${url}` : '❌ Failed to edit image.';
+
+              await ctx.runMutation(internal.messages.updateStreamingMessage, {
+                messageId: args.messageId,
+                content,
+                isComplete: true,
+              });
+
+              await ctx.runMutation(internal.conversations.updateLastMessage, {
+                conversationId: args.conversationId,
+              });
+
+              return null;
+            }
+          }
+        } catch (e) {
+          console.error('Direct image edit path failed, falling back to normal flow:', e);
+        }
+      }
+
       const hasDataFiles = filteredMessages.some((msg: any) => 
         msg.attachments && msg.attachments.length > 0 && 
         msg.attachments.some((att: any) => 
@@ -207,10 +262,10 @@ export const generateStreamingResponse = internalAction({
                       type: "text",
                       text: `\n\n📊 CSV FILE: ${attachment.fileName}\nFile Size: ${attachment.fileSize} bytes\nFirst 100 rows:\n\n${dataPreview}\n\n`
                     });
-                  } else if (attachment.fileName?.toLowerCase().endsWith('.xlsx') || 
-                           attachment.fileName?.toLowerCase().endsWith('.xls') ||
-                           attachment.fileType === 'application/vnd.ms-excel' ||
-                           attachment.fileType === 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet') {
+           } else if (attachment.fileName?.toLowerCase().endsWith('.xlsx') || 
+                    attachment.fileName?.toLowerCase().endsWith('.xls') ||
+                    attachment.fileType === 'application/vnd.ms-excel' ||
+                    attachment.fileType === 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet') {
                     // Parse Excel files using xlsx library
                     try {
                       const workbook = XLSX.read(arrayBuffer, { type: 'array' });
@@ -233,7 +288,37 @@ export const generateStreamingResponse = internalAction({
                         text: `\n\n📊 EXCEL FILE: ${attachment.fileName}\nFile Size: ${attachment.fileSize} bytes\n❌ Error parsing Excel file. Please try converting to CSV format.\n\n`
                       });
                     }
-                  } else {
+            } else if (attachment.fileType === 'application/pdf' || attachment.fileName?.toLowerCase().endsWith('.pdf')) {
+              try {
+                const fileBlob = await ctx.storage.get(attachment.fileId);
+                if (fileBlob) {
+                  const arrayBuffer = await fileBlob.arrayBuffer();
+                  const nodeBuffer = Buffer.from(arrayBuffer);
+                  // Use require to avoid TS type resolution issues in Convex typecheck
+                  // eslint-disable-next-line @typescript-eslint/no-var-requires, @typescript-eslint/no-unsafe-assignment
+                  const pdfParse = require('pdf-parse');
+                  const parsed = await pdfParse(nodeBuffer);
+                  const fullText: string = parsed?.text || '';
+                  const preview = fullText.split(/\n/).slice(0, 60).join('\n').slice(0, 4000);
+                  const pageCount = parsed?.numpages || parsed?.numPages || undefined;
+                  content.push({
+                    type: "text",
+                    text: `\n\n📄 PDF FILE: ${attachment.fileName}${pageCount ? ` (Pages: ${pageCount})` : ''}\nPreview (first lines):\n\n${preview}\n\n`
+                  });
+                } else {
+                  content.push({
+                    type: "text",
+                    text: `\n\n📄 PDF FILE: ${attachment.fileName}\n(File not available for reading)\n\n`
+                  });
+                }
+              } catch (pdfErr) {
+                console.error('Failed to parse PDF:', pdfErr);
+                content.push({
+                  type: "text",
+                  text: `\n\n📄 PDF FILE: ${attachment.fileName}\nUnable to extract text from this PDF. You can ask me to focus on specific sections or provide a text excerpt.\n\n`
+                });
+              }
+                   } else {
                     // For other data file types
                     content.push({
                       type: "text", 
@@ -549,6 +634,15 @@ Please provide a detailed and informative response based on these search results
       // NORMAL RESPONSE (no search)
       const systemWithTools = `${systemPrompt}
 
+## MARKDOWN OUTPUT RULES
+- Use Markdown to format responses when it improves clarity.
+- Prefer concise headings, bullet/numbered lists, and bold for key points.
+- For comparisons or tabular data, render a Markdown table. Avoid HTML tables unless explicitly requested.
+- When showing code, use fenced code blocks with the correct language tag (e.g., \`\`\`js, \`\`\`ts, \`\`\`python).
+- When attaching CSVs, include a short Markdown table preview (first 10–30 rows) in the message when feasible.
+- Do not introduce colors or visual styling in the content; the app theme handles visuals. Stick to plain Markdown.
+- Use descriptive links like [Title](https://example.com) rather than bare URLs when appropriate.
+
 ## IMAGE TOOLS
 - Tool name: generate_image
   - Use when creating a new image from text.
@@ -558,6 +652,24 @@ Please provide a detailed and informative response based on these search results
   - Use when the user provides an image and asks to modify or edit it (changes, additions, removals, style tweaks, inpainting-like changes).
   - If the user did not include a base64 image in the tool call, use the most recent image attached in this conversation.
   - Arguments: { "prompt": string, "input_image"?: base64 or data URL, "attachmentIndex"?: number }
+
+## DATA TOOLS
+- Tool name: generate_csv
+  - Use when you want to provide the user with a downloadable CSV derived from your analysis.
+  - Arguments: { "csv": string, "filename"?: string }
+  - ALWAYS include non-empty CSV content.
+  - The CSV will be attached to your current assistant message and shown with a small download button.
+
+- Tool name: generate_table
+  - Use when you want to present structured data clearly as a table (and provide a downloadable CSV).
+  - Arguments: { "headers"?: string[], "rows"?: string[][], "records"?: Array<Record<string, string | number>>, "filename"?: string }
+  - ALWAYS include data via either:
+    - headers + rows (rows are arrays matching headers order), or
+    - records (array of objects; headers will be inferred from keys).
+  - The table will be inserted into your response as a Markdown table and a CSV will be attached for download.
+
+### PDF HANDLING
+- When the user attaches a PDF, acknowledge it and summarize or extract key points. If you cannot access the full text, ask the user what sections to focus on or request a text excerpt.
 
 When you need to call a tool, output a single fenced JSON object calling the correct tool.`;
 
@@ -597,13 +709,13 @@ When you need to call a tool, output a single fenced JSON object calling the cor
         }
       }
 
-      // Attempt to detect a generate_image or edit_image tool call in the streamed content
+      // Attempt to detect a generate_image, edit_image, or generate_csv tool call in the streamed content
       let finalContent = streamedContent;
       try {
-        // Helper to execute a generate_image or edit_image tool call
+        // Helper to execute a generate_image, edit_image or generate_csv tool call
         const executeTool = async (
           matchedText: string,
-          toolObj: { tool?: string; name?: string; arguments?: { prompt?: string; size?: string; quality?: string; background?: string; input_image?: string; attachmentIndex?: number } }
+          toolObj: { tool?: string; name?: string; arguments?: { prompt?: string; size?: string; quality?: string; background?: string; input_image?: string; attachmentIndex?: number; csv?: string; filename?: string; headers?: string[]; rows?: string[][]; records?: Array<Record<string, string | number>> } }
         ) => {
           const argsObj = (toolObj.arguments || {}) as {
             prompt?: string;
@@ -612,11 +724,16 @@ When you need to call a tool, output a single fenced JSON object calling the cor
             background?: string;
             input_image?: string;
             attachmentIndex?: number;
+            csv?: string;
+            filename?: string;
+            headers?: string[];
+            rows?: string[][];
+            records?: Array<Record<string, string | number>>;
           };
           const toolName = (toolObj.tool || toolObj.name || '').toLowerCase();
-          if (!argsObj.prompt) return;
           try {
             if (toolName === 'generate_image') {
+              if (!argsObj.prompt) return;
               const result = await ctx.runAction(api.ai.generateImage, {
                 prompt: argsObj.prompt,
                 size: argsObj.size,
@@ -631,6 +748,7 @@ When you need to call a tool, output a single fenced JSON object calling the cor
               return;
             }
             if (toolName === 'edit_image') {
+              if (!argsObj.prompt) return;
               // Prefer provided input_image (base64 or data URL). Otherwise use most recent image attachment in this conversation.
               let base64: string | null = null;
               if (argsObj.input_image && typeof argsObj.input_image === 'string') {
@@ -668,6 +786,112 @@ When you need to call a tool, output a single fenced JSON object calling the cor
               } else {
                 finalContent = streamedContent.replace(matchedText, "❌ Failed to edit image. The provider did not return a URL.");
               }
+              return;
+            }
+            if (toolName === 'generate_csv') {
+              // Expect CSV content in argsObj.csv. If not present, derive from prompt via simple pass-through
+              const csvText = (argsObj.csv && typeof argsObj.csv === 'string') ? argsObj.csv : '';
+              const desiredName = (argsObj.filename && typeof argsObj.filename === 'string') ? argsObj.filename : 'data.csv';
+
+              const encoder = new TextEncoder();
+              const csvBytes = encoder.encode(csvText);
+              const blob = new Blob([csvBytes], { type: 'text/csv' });
+
+              // Save to storage and attach to this assistant message
+              const storageId = await ctx.storage.store(blob as any);
+              await ctx.runMutation(internal.messages.addAttachment, {
+                messageId: args.messageId,
+                attachment: {
+                  fileId: storageId as any,
+                  fileName: desiredName,
+                  fileType: 'text/csv',
+                  fileSize: csvBytes.byteLength,
+                },
+              });
+
+              finalContent = streamedContent.replace(
+                matchedText,
+                `CSV generated and attached as ${desiredName}.`
+              );
+              return;
+            }
+            if (toolName === 'generate_table') {
+              // Build CSV/MD from headers+rows or records. Fallback to csv string if provided.
+              let headers = Array.isArray(argsObj.headers) ? argsObj.headers : [];
+              let rows = Array.isArray(argsObj.rows) ? argsObj.rows : [];
+              const records = Array.isArray(argsObj.records) ? argsObj.records : [];
+              const desiredName = (argsObj.filename && typeof argsObj.filename === 'string') ? argsObj.filename : 'table.csv';
+
+              const escapeCsv = (val: string) => {
+                const needsQuotes = /[",\n]/.test(val);
+                const escaped = val.replace(/"/g, '""');
+                return needsQuotes ? `"${escaped}"` : escaped;
+              };
+              // If records provided, derive headers and row matrix
+              if (records.length > 0) {
+                const keySet = new Set<string>();
+                for (const rec of records) Object.keys(rec || {}).forEach(k => keySet.add(k));
+                if (headers.length === 0) headers = Array.from(keySet);
+                if (rows.length === 0) rows = records.map(rec => headers.map(h => String((rec as any)[h] ?? '')));
+              }
+
+              // Build CSV (or use provided csv string)
+              let csvText = '';
+              if (typeof argsObj.csv === 'string' && argsObj.csv.trim().length > 0) {
+                csvText = argsObj.csv.trim();
+              } else {
+                const csvLines: string[] = [];
+                if (headers.length > 0) csvLines.push(headers.map(h => escapeCsv(String(h))).join(','));
+                for (const r of rows) {
+                  const safeRow = (Array.isArray(r) ? r : []).map(v => {
+                    const s = String(v ?? '');
+                    const sanitized = /^[=+\-@]/.test(s) ? `'${s}` : s;
+                    return escapeCsv(sanitized);
+                  });
+                  csvLines.push(safeRow.join(','));
+                }
+                csvText = csvLines.join('\n');
+              }
+
+              if (!csvText || csvText.trim().length === 0) {
+                finalContent = streamedContent.replace(matchedText, "I tried to create a table but no valid data was provided.");
+                return;
+              }
+              const encoder = new TextEncoder();
+              const csvBytes = encoder.encode(csvText);
+              const blob = new Blob([csvBytes], { type: 'text/csv' });
+
+              const storageId = await ctx.storage.store(blob as any);
+              await ctx.runMutation(internal.messages.addAttachment, {
+                messageId: args.messageId,
+                attachment: {
+                  fileId: storageId as any,
+                  fileName: desiredName,
+                  fileType: 'text/csv',
+                  fileSize: csvBytes.byteLength,
+                },
+              });
+
+              // Build Markdown table preview (if no matrix, parse first rows of csv)
+              let mdHeaders = headers;
+              let mdBodyRows = rows;
+              if (mdHeaders.length === 0 || mdBodyRows.length === 0) {
+                const lines = csvText.split(/\r?\n/).filter(Boolean);
+                if (lines.length > 0) {
+                  const split = (line: string) => line.split(',').map(c => c.replace(/^\"|\"$/g, ''));
+                  mdHeaders = split(lines[0]);
+                  mdBodyRows = lines.slice(1, 31).map(split);
+                }
+              }
+              const mdHeader = mdHeaders.length > 0 ? `| ${mdHeaders.join(' | ')} |` : '';
+              const mdDivider = mdHeaders.length > 0 ? `| ${mdHeaders.map(() => '---').join(' | ')} |` : '';
+              const mdRows = (mdBodyRows || []).map(r => `| ${(r || []).map(c => String(c ?? '')).join(' | ')} |`).join('\n');
+              const mdTable = mdHeaders.length > 0 ? `${mdHeader}\n${mdDivider}\n${mdRows}` : mdRows;
+
+              finalContent = streamedContent.replace(
+                matchedText,
+                `\n\nGenerated table (download attached CSV: ${desiredName}):\n\n${mdTable}\n\n`
+              );
               return;
             }
           } catch (imageError) {
@@ -719,13 +943,16 @@ When you need to call a tool, output a single fenced JSON object calling the cor
           const maybeObj = JSON.parse(toolJsonMatch[1]);
           if (
             maybeObj &&
-            (maybeObj.tool === "generate_image" || maybeObj.name === "generate_image" || maybeObj.tool === 'edit_image' || maybeObj.name === 'edit_image')
+            (maybeObj.tool === "generate_image" || maybeObj.name === "generate_image" ||
+             maybeObj.tool === 'edit_image' || maybeObj.name === 'edit_image' ||
+             maybeObj.tool === 'generate_csv' || maybeObj.name === 'generate_csv' ||
+             maybeObj.tool === 'generate_table' || maybeObj.name === 'generate_table')
           ) {
             await executeTool(toolJsonMatch[0], maybeObj);
           }
         } else {
           // 2) Fallback: try to find an unfenced JSON object containing a generate_image or edit_image tool call
-          const anchors = ['generate_image', 'edit_image']
+          const anchors = ['generate_image', 'edit_image', 'generate_csv', 'generate_table']
             .map((key) => ({ key, idx: streamedContent.indexOf(key) }))
             .filter((a) => a.idx >= 0)
             .sort((a, b) => a.idx - b.idx);

@@ -178,3 +178,109 @@ http.route({
     }
   }),
 });
+
+// Generic file download route for CSV/XLSX and others
+http.route({
+  path: "/files/download",
+  method: "GET",
+  handler: httpAction(async (ctx, req) => {
+    const url = new URL(req.url);
+    const id = url.searchParams.get("id");
+    const fileName = url.searchParams.get("name") || "download";
+    const mime = url.searchParams.get("type") || "application/octet-stream";
+    if (!id) return new Response("Missing id", { status: 400 });
+
+    try {
+      const blob = await ctx.storage.get(id as any);
+      if (!blob) return new Response("Not found", { status: 404 });
+
+      const headers = new Headers();
+      headers.set("Content-Type", mime);
+      headers.set(
+        "Content-Disposition",
+        `attachment; filename="${fileName}"`
+      );
+      headers.set("Cache-Control", "public, max-age=31536000, immutable");
+      return new Response(blob, { status: 200, headers });
+    } catch (e) {
+      return new Response("Server error", { status: 500 });
+    }
+  }),
+});
+
+// Mirror routes under /api/* to support environments that proxy Convex under /api
+http.route({
+  path: "/api/images",
+  method: "GET",
+  handler: httpAction(async (ctx, req) => {
+    const url = new URL(req.url);
+    const id = url.searchParams.get("id");
+    if (!id) return new Response("Missing id", { status: 400 });
+
+    try {
+      const blob = await ctx.storage.get(id as any);
+      if (!blob) return new Response("Not found", { status: 404 });
+
+      const headers = new Headers();
+      headers.set("Content-Type", "image/png");
+      headers.set("Cache-Control", "public, max-age=31536000, immutable");
+      return new Response(blob, { status: 200, headers });
+    } catch (e) {
+      return new Response("Server error", { status: 500 });
+    }
+  }),
+});
+
+http.route({
+  path: "/api/images/download",
+  method: "GET",
+  handler: httpAction(async (ctx, req) => {
+    const url = new URL(req.url);
+    const id = url.searchParams.get("id");
+    if (!id) return new Response("Missing id", { status: 400 });
+
+    try {
+      const blob = await ctx.storage.get(id as any);
+      if (!blob) return new Response("Not found", { status: 404 });
+
+      const headers = new Headers();
+      headers.set("Content-Type", "application/octet-stream");
+      headers.set(
+        "Content-Disposition",
+        `attachment; filename="generated-image.png"`
+      );
+      headers.set("Cache-Control", "public, max-age=31536000, immutable");
+      return new Response(blob, { status: 200, headers });
+    } catch (e) {
+      return new Response("Server error", { status: 500 });
+    }
+  }),
+});
+
+http.route({
+  path: "/api/files/download",
+  method: "GET",
+  handler: httpAction(async (ctx, req) => {
+    const url = new URL(req.url);
+    const id = url.searchParams.get("id");
+    const fileName = url.searchParams.get("name") || "download";
+    const mime = url.searchParams.get("type") || "application/octet-stream";
+    if (!id) return new Response("Missing id", { status: 400 });
+
+    try {
+      const blob = await ctx.storage.get(id as any);
+      if (!blob) return new Response("Not found", { status: 404 });
+
+      const headers = new Headers();
+      headers.set("Content-Type", mime);
+      headers.set(
+        "Content-Disposition",
+        `attachment; filename="${fileName}"`
+      );
+      headers.set("Cache-Control", "public, max-age=31536000, immutable");
+      return new Response(blob, { status: 200, headers });
+    } catch (e) {
+      return new Response("Server error", { status: 500 });
+    }
+  }),
+});

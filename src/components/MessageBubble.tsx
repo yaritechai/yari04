@@ -109,17 +109,7 @@ export function MessageBubble({ message, showTokenCount, onOpenFragment, onMCPCr
     }
   };
 
-  // Auto-open search results panel when search results become available
-  useEffect(() => {
-    if (message.searchResults && message.searchResults.length > 0 && !message.isStreaming) {
-      // Small delay to ensure UI is ready and avoid conflicts
-      const timer = setTimeout(() => {
-        handleOpenInFragment('search', { results: message.searchResults });
-      }, 100);
-      
-      return () => clearTimeout(timer);
-    }
-  }, [message.searchResults, message.isStreaming, handleOpenInFragment]);
+  // Removed auto-open of search results to prevent right panel from re-opening after user closes it
 
   // Handler for opening content in document editor (canvas)
   const handleViewInCanvas = () => {
@@ -163,6 +153,22 @@ export function MessageBubble({ message, showTokenCount, onOpenFragment, onMCPCr
     if (lang === 'sql') return '🗃️';
     if (lang === 'bash' || lang === 'shell') return '💻';
     return '📄';
+  };
+
+  // Determine a simple tool label from file type/name
+  const getAttachmentLabel = (att: { fileName: string; fileType: string }) => {
+    const name = (att.fileName || '').toLowerCase();
+    const type = (att.fileType || '').toLowerCase();
+    if (type.startsWith('image/')) return 'Image';
+    if (type === 'text/csv' || name.endsWith('.csv')) return 'CSV';
+    if (
+      type === 'application/vnd.ms-excel' ||
+      type === 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' ||
+      name.endsWith('.xls') ||
+      name.endsWith('.xlsx')
+    ) return 'Table';
+    if (type === 'application/pdf' || name.endsWith('.pdf')) return 'PDF';
+    return 'File';
   };
 
   // Helper function to extract title from HTML
@@ -250,17 +256,7 @@ export function MessageBubble({ message, showTokenCount, onOpenFragment, onMCPCr
                            codeContent.includes('<html') ||
                            (codeContent.includes('<head>') && codeContent.includes('<body>'));
 
-              // Auto-open right panel for HTML content (only if not already open)
-              if (isHTML && onOpenFragment) {
-                // Use requestAnimationFrame for better timing and avoid conflicts
-                requestAnimationFrame(() => {
-                  handleOpenInFragment('browser', {
-                    htmlContent: codeContent,
-                    title: extractTitleFromHTML(codeContent) || 'Generated HTML Document',
-                    isStreaming: message.isStreaming
-                  });
-                });
-              }
+              // Do not auto-open right panel for HTML; require explicit user action
 
               return (
                 <div className="my-3 sm:my-4 w-full min-w-0">
@@ -492,24 +488,33 @@ export function MessageBubble({ message, showTokenCount, onOpenFragment, onMCPCr
         }`}>
           {/* Attachments */}
           {message.attachments && message.attachments.length > 0 && (
-            <div className="mb-2 sm:mb-3 space-y-2">
-              {message.attachments.map((attachment, index) => (
-                <div key={index} className={`flex items-center gap-2 p-2 rounded-lg text-sm break-words min-w-0 ${
-                  message.role === 'user' 
-                    ? isDarkMode 
-                      ? 'bg-neutral-700/70' 
-                      : 'bg-neutral-200/70'
-                    : isDarkMode ? 'bg-gray-700' : 'bg-gray-50'
-                }`}>
-                  <svg className="w-3 h-3 sm:w-4 sm:h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13" />
-                  </svg>
-                  <span className="font-medium truncate min-w-0">{attachment.fileName}</span>
-                  <span className="text-xs opacity-75 flex-shrink-0">
-                    ({Math.round(attachment.fileSize / 1024)}KB)
-                  </span>
-                </div>
-              ))}
+            <div className="mb-2 sm:mb-3 flex flex-wrap gap-2">
+              {message.attachments.map((attachment, index) => {
+                const label = getAttachmentLabel(attachment);
+                return (
+                  <div
+                    key={index}
+                    className={`inline-flex items-center gap-2 rounded-xl border px-2 py-1 text-xs ${
+                      isDarkMode ? 'border-neutral-700/70 bg-neutral-800/60 text-gray-200' : 'border-gray-300/70 bg-white text-gray-800'
+                    }`}
+                    title={attachment.fileName}
+                  >
+                    <span className={`px-2 py-0.5 rounded-md ${
+                      isDarkMode ? 'bg-neutral-900 text-gray-300' : 'bg-gray-100 text-gray-700'
+                    }`}>{label}</span>
+                    <a
+                      href={`/files/download?id=${attachment.fileId}&name=${encodeURIComponent(attachment.fileName)}&type=${encodeURIComponent(attachment.fileType)}`}
+                      title="Download"
+                      className={`ml-1 flex-shrink-0 inline-flex items-center justify-center rounded-md h-7 w-7 ${
+                        isDarkMode ? 'hover:bg-neutral-900 border border-neutral-700/70' : 'hover:bg-gray-50 border border-gray-300/70'
+                      }`}
+                      download
+                    >
+                      <Download className={`w-4 h-4 ${isDarkMode ? 'text-gray-200' : 'text-gray-700'}`} />
+                    </a>
+                  </div>
+                );
+              })}
             </div>
           )}
 

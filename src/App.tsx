@@ -49,10 +49,15 @@ function AppContent() {
     return () => window.removeEventListener('resize', checkMobile);
   }, [isSidebarOpen]);
 
-  // Wrapper for openFragment that handles mobile behavior
+  // Wrapper for openFragment that handles mobile behavior and suppresses chat-driven reopen
   const openFragment = (fragment: FragmentType, data?: any) => {
     // Only close sidebar when opening a NEW fragment, not when panel is already open
     const isNewFragment = !isRightPanelOpen || activeFragment !== fragment;
+    // If user explicitly closes the panel, require a user-initiated flag to reopen
+    const userInitiated = Boolean(data && (data.userInitiated === true));
+    if (!userInitiated && !isNewFragment && !isRightPanelOpen) {
+      return;
+    }
     
     originalOpenFragment(fragment, data);
     
@@ -89,6 +94,11 @@ function AppContent() {
   const handleOpenFragment = (fragment: FragmentType, data?: any) => {
     openFragment(fragment, data);
   };
+
+  // Close right panel when switching conversations or leaving chat
+  useEffect(() => {
+    closeFragment();
+  }, [selectedConversationId]);
 
   const handleSidebarClose = () => {
     setIsSidebarOpen(false);
@@ -188,7 +198,9 @@ function AppContent() {
                   defaultWebSearch={false}
                   isFirstMessage={true}
                   onConversationCreated={setSelectedConversationId}
-                  onOpenFragment={handleOpenFragment}
+                onOpenFragment={(fragment: string, data?: any) =>
+                  handleOpenFragment(fragment as FragmentType, { ...(data || {}), userInitiated: true })
+                }
                 />
               </div>
             </div>
@@ -199,7 +211,7 @@ function AppContent() {
       {/* Right Panel */}
       <RightPanel
         isOpen={isRightPanelOpen}
-        onToggle={() => {
+        onToggle={(e?: any) => {
           const newRightPanelState = !isRightPanelOpen;
           toggleRightPanel();
           // On mobile, close sidebar when right panel opens
@@ -210,7 +222,16 @@ function AppContent() {
         width={rightPanelWidth}
         onWidthChange={setRightPanelWidth}
         activeFragment={activeFragment}
-        onFragmentChange={openFragment}
+        onFragmentChange={(fragment: FragmentType | null, data?: any) => {
+          if (fragment === null) {
+            // User explicitly closed; toggle the panel off immediately and do not reopen
+            if (isRightPanelOpen) {
+              toggleRightPanel();
+            }
+            return;
+          }
+          openFragment(fragment, { ...(data || {}), userInitiated: true });
+        }}
         fragmentData={fragmentData}
         isTransitioning={isTransitioning}
       />

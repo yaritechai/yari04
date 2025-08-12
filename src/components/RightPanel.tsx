@@ -205,7 +205,6 @@ export function RightPanel({
               filename: fragmentData?.title,
               isStreaming: fragmentData?.isStreaming
             }}
-            onClose={() => onFragmentChange(null)}
           />
         );
       case 'browser':
@@ -216,7 +215,6 @@ export function RightPanel({
               title: fragmentData?.title || 'Preview',
               isStreaming: fragmentData?.isStreaming
             }}
-            onClose={() => onFragmentChange(null)}
           />
         );
       case 'search':
@@ -234,7 +232,6 @@ export function RightPanel({
             key={`doc-${fragmentData?.title || 'untitled'}`} // Force re-mount with different titles
             initialContent={fragmentData?.content || ''}
             title={fragmentData?.title || 'New Document'}
-            onClose={() => onFragmentChange(null)}
           />
         );
       case 'mcp':

@@ -2,6 +2,7 @@ import React from "react";
 import * as TooltipPrimitive from "@radix-ui/react-tooltip";
 import * as DialogPrimitive from "@radix-ui/react-dialog";
 import { ArrowUp, Paperclip, Square, X, StopCircle, Mic, Globe, BrainCog, FolderCode } from "lucide-react";
+import { FileChip } from "./file-chip";
 import { motion, AnimatePresence } from "framer-motion";
 import { useTheme } from "../../contexts/ThemeContext";
 
@@ -795,12 +796,14 @@ export const PromptInputBox = React.forwardRef<HTMLDivElement, PromptInputBoxPro
   const isImageFile = (file: File) => file.type.startsWith("image/");
   
   const isDataFile = (file: File) => {
-    return file.type === "text/csv" || 
+    return file.type === "text/csv" ||
            file.type === "application/vnd.ms-excel" ||
            file.type === "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" ||
+           file.type === "application/pdf" ||
            file.name.toLowerCase().endsWith('.csv') ||
            file.name.toLowerCase().endsWith('.xls') ||
-           file.name.toLowerCase().endsWith('.xlsx');
+           file.name.toLowerCase().endsWith('.xlsx') ||
+           file.name.toLowerCase().endsWith('.pdf');
   };
   
   const isAllowedFile = (file: File) => isImageFile(file) || isDataFile(file);
@@ -822,8 +825,10 @@ export const PromptInputBox = React.forwardRef<HTMLDivElement, PromptInputBoxPro
       reader.onload = (e) => setFilePreviews({ [file.name]: e.target?.result as string });
       reader.readAsDataURL(file);
     } else if (isDataFile(file)) {
-      // Handle CSV/Excel files - show file name preview
-      setFilePreviews({ [file.name]: `📊 ${file.name} (${(file.size / 1024).toFixed(1)} KB)` });
+      // Handle CSV/Excel/PDF files - show file name preview
+      const isPdf = file.type === 'application/pdf' || file.name.toLowerCase().endsWith('.pdf');
+      const prefix = isPdf ? '📄' : '📊';
+      setFilePreviews({ [file.name]: `${prefix} ${file.name} (${(file.size / 1024).toFixed(1)} KB)` });
     }
   };
 
@@ -938,29 +943,15 @@ export const PromptInputBox = React.forwardRef<HTMLDivElement, PromptInputBoxPro
         {files.length > 0 && !isRecording && (
           <div className="flex flex-wrap gap-2 p-0 pb-1 transition-all duration-300">
             {files.map((file, index) => (
-              <div key={index} className="relative group">
-                {file.type.startsWith("image/") && filePreviews[file.name] && (
-                  <div
-                    className="w-16 h-16 rounded-xl overflow-hidden cursor-pointer transition-all duration-300"
-                    onClick={() => openImageModal(filePreviews[file.name])}
-                  >
-                    <img
-                      src={filePreviews[file.name]}
-                      alt={file.name}
-                      className="h-full w-full object-cover"
-                    />
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        handleRemoveFile(index);
-                      }}
-                      className="absolute top-1 right-1 rounded-full bg-black/70 p-0.5 opacity-100 transition-opacity"
-                    >
-                      <X className="h-3 w-3 text-white" />
-                    </button>
-                  </div>
-                )}
-              </div>
+              <FileChip
+                key={`${file.name}-${index}`}
+                name={file.name}
+                size={file.size}
+                type={file.type}
+                previewUrl={file.type.startsWith('image/') ? filePreviews[file.name] : undefined}
+                uploading={false}
+                onRemove={() => handleRemoveFile(index)}
+              />
             ))}
           </div>
         )}
@@ -1003,7 +994,7 @@ export const PromptInputBox = React.forwardRef<HTMLDivElement, PromptInputBoxPro
               isRecording ? "opacity-0 invisible h-0" : "opacity-100 visible"
             )}
           >
-            <PromptInputAction tooltip="Upload image or data file">
+            <PromptInputAction tooltip="Upload image, CSV/Excel, or PDF">
               <button
                 onClick={() => uploadInputRef.current?.click()}
                 className={`flex h-8 w-8 cursor-pointer items-center justify-center rounded-full transition-colors ${
@@ -1022,7 +1013,7 @@ export const PromptInputBox = React.forwardRef<HTMLDivElement, PromptInputBoxPro
                     if (e.target.files && e.target.files.length > 0) processFile(e.target.files[0]);
                     if (e.target) e.target.value = "";
                   }}
-                  accept="image/*,.csv,.xls,.xlsx,application/vnd.ms-excel,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,text/csv"
+                  accept="image/*,.csv,.xls,.xlsx,.pdf,application/pdf,application/vnd.ms-excel,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,text/csv"
                 />
               </button>
             </PromptInputAction>
