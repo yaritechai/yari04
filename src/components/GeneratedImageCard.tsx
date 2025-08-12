@@ -16,15 +16,24 @@ export function GeneratedImageCard({ url }: GeneratedImageCardProps) {
     try {
       setDownloading(true);
       if (!url) return;
-      // Use our forced-download endpoint when available
+      // Prefer navigating to our forced-download endpoint with Content-Disposition
       let downloadHref = url;
       try {
         const u = new URL(url, window.location.origin);
         if (u.pathname === "/images" && u.searchParams.get("id")) {
+          // Same-origin first-party URL; use direct link to trigger native download without opening new tab
           downloadHref = `${u.origin}/images/download?id=${u.searchParams.get("id")}`;
+          const a = document.createElement("a");
+          a.href = downloadHref;
+          a.download = "generated-image.png"; // hint
+          document.body.appendChild(a);
+          a.click();
+          a.remove();
+          return;
         }
       } catch {}
 
+      // Fallback: fetch and save as blob
       const response = await fetch(downloadHref, { mode: "cors" });
       const blob = await response.blob();
       const objectUrl = URL.createObjectURL(blob);
@@ -36,8 +45,8 @@ export function GeneratedImageCard({ url }: GeneratedImageCardProps) {
       a.remove();
       URL.revokeObjectURL(objectUrl);
     } catch (e) {
-      // Fallback to opening in new tab if direct fetch is blocked
-      if (url) window.open(url, "_blank", "noopener,noreferrer");
+      // Last resort: open in same tab; server-side Content-Disposition should still download
+      if (url) window.location.href = url;
     } finally {
       setDownloading(false);
     }
