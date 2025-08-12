@@ -9,6 +9,7 @@ export const save = mutation({
     tasks: v.array(v.object({ title: v.string(), description: v.optional(v.string()), done: v.boolean() })),
     status: v.union(v.literal("draft"), v.literal("approved"), v.literal("completed")),
     auto: v.optional(v.boolean()),
+    maxSteps: v.optional(v.number()),
   },
   returns: v.object({ planId: v.id("plans") }),
   handler: async (ctx, args) => {
@@ -26,6 +27,7 @@ export const save = mutation({
         tasks: args.tasks,
         status: args.status,
         auto: args.auto ?? existing.auto ?? false,
+        maxSteps: args.maxSteps ?? existing.maxSteps ?? Math.max(5, Math.min(20, args.tasks.length || 10)),
         updatedAt: now,
       });
       return { planId: existing._id };
@@ -38,6 +40,8 @@ export const save = mutation({
       tasks: args.tasks,
       currentStep: 0,
       auto: args.auto ?? false,
+      maxSteps: args.maxSteps ?? Math.max(5, Math.min(20, args.tasks.length || 10)),
+      executedSteps: 0,
       createdAt: now,
       updatedAt: now,
     });
@@ -79,8 +83,11 @@ export const toggleTask = mutation({
     const tasks = [...plan.tasks];
     if (args.index < 0 || args.index >= tasks.length) throw new Error("Index out of range");
     tasks[args.index] = { ...tasks[args.index], done: args.done };
-    const currentStep = args.done && plan.currentStep === args.index ? plan.currentStep + 1 : plan.currentStep;
-    await ctx.db.patch(args.planId, { tasks, currentStep, updatedAt: Date.now() });
+    const increment = args.done ? 1 : 0;
+    const currentStep = args.done && plan.currentStep === args.index ? (plan.currentStep ?? 0) + 1 : plan.currentStep ?? 0;
+    const executedSteps = (plan.executedSteps ?? 0) + increment;
+    const status = executedSteps >= (plan.maxSteps ?? tasks.length) || currentStep >= tasks.length ? "completed" : plan.status;
+    await ctx.db.patch(args.planId, { tasks, currentStep, executedSteps, status, updatedAt: Date.now() });
     return null;
   },
 });

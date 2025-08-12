@@ -293,6 +293,8 @@ const applicationTables = {
     ),
     currentStep: v.optional(v.number()),
     auto: v.optional(v.boolean()),
+    maxSteps: v.optional(v.number()),
+    executedSteps: v.optional(v.number()),
     createdAt: v.number(),
     updatedAt: v.number(),
   }).index("by_conversation", ["conversationId"]).index("by_user", ["userId"]),

@@ -891,6 +891,7 @@ User request: ${message.content}`;
                 tasks,
                 status: 'draft',
                 auto: true,
+                maxSteps: Math.max(5, Math.min(20, tasks.length || 10)),
               });
               // Replace tool call with an inline plan token that renders a rounded checklist component
               finalContent = streamedContent.replace(matchedText, `\n\n<plan id=\"${saved.planId}\" title=\"${planTitle}\"></plan>\n\n`);
