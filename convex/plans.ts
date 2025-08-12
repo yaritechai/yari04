@@ -7,6 +7,7 @@ export const save = mutation({
     title: v.string(),
     tasks: v.array(v.object({ title: v.string(), description: v.optional(v.string()), done: v.boolean() })),
     status: v.union(v.literal("draft"), v.literal("approved"), v.literal("completed")),
+    auto: v.optional(v.boolean()),
   },
   returns: v.object({ planId: v.id("plans") }),
   handler: async (ctx, args) => {
@@ -23,6 +24,7 @@ export const save = mutation({
         title: args.title,
         tasks: args.tasks,
         status: args.status,
+        auto: args.auto ?? existing.auto ?? false,
         updatedAt: now,
       });
       return { planId: existing._id };
@@ -33,6 +35,8 @@ export const save = mutation({
       title: args.title,
       status: args.status,
       tasks: args.tasks,
+      currentStep: 0,
+      auto: args.auto ?? false,
       createdAt: now,
       updatedAt: now,
     });
@@ -60,7 +64,8 @@ export const toggleTask = mutation({
     const tasks = [...plan.tasks];
     if (args.index < 0 || args.index >= tasks.length) throw new Error("Index out of range");
     tasks[args.index] = { ...tasks[args.index], done: args.done };
-    await ctx.db.patch(args.planId, { tasks, updatedAt: Date.now() });
+    const currentStep = args.done && plan.currentStep === args.index ? plan.currentStep + 1 : plan.currentStep;
+    await ctx.db.patch(args.planId, { tasks, currentStep, updatedAt: Date.now() });
     return null;
   },
 });
@@ -83,6 +88,31 @@ export const getByConversation = query({
       .order("desc")
       .collect();
   },
+});
+
+export const logEvent = mutation({
+  args: {
+    planId: v.id("plans"),
+    conversationId: v.id("conversations"),
+    message: v.string(),
+    type: v.optional(v.union(v.literal("info"), v.literal("progress"), v.literal("warning"), v.literal("error"))),
+    stepIndex: v.optional(v.number()),
+  },
+  returns: v.null(),
+  handler: async (ctx, args) => {
+    const plan = await ctx.db.get(args.planId);
+    if (!plan) throw new Error("Plan not found");
+    await ctx.db.insert("planEvents", {
+      planId: args.planId,
+      conversationId: args.conversationId,
+      userId: plan.userId,
+      type: args.type ?? "info",
+      message: args.message,
+      stepIndex: args.stepIndex,
+      createdAt: Date.now(),
+    });
+    return null;
+  }
 });
 
 

@@ -716,7 +716,7 @@ When you need to call a tool, output a single fenced JSON object calling the cor
         }
       }
 
-      // Attempt to detect a generate_image, edit_image, or generate_csv tool call in the streamed content
+      // Attempt to detect a generate_image, edit_image, generate_csv, plan_task, or gather_research tool call in the streamed content
       let finalContent = streamedContent;
       try {
         // Helper to execute a generate_image, edit_image, generate_csv, plan_task, gather_research tool call
@@ -833,6 +833,12 @@ When you need to call a tool, output a single fenced JSON object calling the cor
                 title: planTitle,
                 tasks,
                 status: 'draft',
+                auto: true,
+              });
+              // Log plan creation event and also send a small assistant update
+              await ctx.runMutation(internal.messages.addAssistantMessage, {
+                conversationId: args.conversationId,
+                content: `🗂️ Created a plan with ${tasks.length} steps. I will begin once you approve.`,
               });
               finalContent = streamedContent.replace(matchedText, `Plan created: [plan:${saved.planId}]`);
               return;
@@ -850,7 +856,7 @@ When you need to call a tool, output a single fenced JSON object calling the cor
                 // Attach to assistant message as searchResults for badges
                 await ctx.runMutation(internal.messages.addAssistantMessageWithSearch, {
                   conversationId: args.conversationId,
-                  content: `Research summary for: ${allQueries.join('; ')}`,
+                  content: `🔎 Research ready (${aggregated.length} sources). I’ll use them as context.`,
                   searchResults: aggregated.map((r: any) => ({
                     title: r.title || '',
                     link: r.link || '',

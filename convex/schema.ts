@@ -291,6 +291,8 @@ const applicationTables = {
         done: v.boolean(),
       })
     ),
+    currentStep: v.optional(v.number()),
+    auto: v.optional(v.boolean()),
     createdAt: v.number(),
     updatedAt: v.number(),
   }).index("by_conversation", ["conversationId"]).index("by_user", ["userId"]),
@@ -310,6 +312,21 @@ const applicationTables = {
     ),
     createdAt: v.number(),
   }).index("by_conversation", ["conversationId"]).index("by_plan", ["planId"]),
+
+  planEvents: defineTable({
+    planId: v.id("plans"),
+    conversationId: v.id("conversations"),
+    userId: v.id("users"),
+    type: v.union(
+      v.literal("info"),
+      v.literal("progress"),
+      v.literal("warning"),
+      v.literal("error"),
+    ),
+    message: v.string(),
+    stepIndex: v.optional(v.number()),
+    createdAt: v.number(),
+  }).index("by_plan", ["planId"]).index("by_conversation", ["conversationId"]),
 };
 
 export default defineSchema({
