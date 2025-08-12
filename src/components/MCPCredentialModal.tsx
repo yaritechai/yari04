@@ -102,7 +102,7 @@ export function MCPCredentialModal({
 
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-      <div className={`max-w-2xl w-full max-h-[90vh] overflow-y-auto rounded-2xl shadow-2xl ${
+      <div className={`max-w-[92vw] md:max-w-2xl w-full max-h-[90vh] overflow-y-auto rounded-2xl shadow-2xl ${
         isDarkMode ? 'bg-black border border-neutral-700' : 'bg-white border border-neutral-200'
       }`}>
         {/* Header */}

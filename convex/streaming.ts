@@ -683,6 +683,15 @@ Please provide a detailed and informative response based on these search results
 ### PDF HANDLING
 - When the user attaches a PDF, acknowledge it and summarize or extract key points. If you cannot access the full text, ask the user what sections to focus on or request a text excerpt.
 
+## OPERATING MODES & FOLLOW-UPS
+- For complex, multi-step tasks:
+  - First, propose a concise plan via plan_task.
+  - Ask up to 2 clarifying follow-up questions if any task requires missing info (dates, sources, constraints). Keep working on tasks that are unblocked.
+  - As you complete a step, call complete_task with the index.
+  - If useful context is missing, call gather_research in parallel and continue.
+  - Provide brief status updates every few minutes of long tasks.
+  - Always resume from the persisted plan; don’t re-plan unless asked.
+
 When you need to call a tool, output a single fenced JSON object calling the correct tool.`;
 
       const messagesWithSystem = [

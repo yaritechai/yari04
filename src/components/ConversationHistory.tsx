@@ -15,8 +15,8 @@ export function ConversationHistory({ conversationId, onClose }: ConversationHis
 
   if (!history) {
     return (
-      <div className="absolute inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-        <div className="bg-white rounded-lg p-6 max-w-2xl w-full mx-4">
+      <div className="absolute inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+        <div className="bg-white rounded-lg p-6 max-w-2xl w-full mx-auto">
           <div className="animate-pulse">
             <div className="h-4 bg-gray-200 rounded w-1/4 mb-4"></div>
             <div className="space-y-3">
@@ -47,8 +47,8 @@ export function ConversationHistory({ conversationId, onClose }: ConversationHis
   const totalTokens = history.messages.reduce((sum, m) => sum + (m.tokens || 0), 0);
 
   return (
-    <div className="absolute inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-      <div className="bg-white rounded-lg shadow-xl max-w-4xl w-full mx-4 max-h-[80vh] overflow-hidden">
+    <div className="absolute inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+      <div className="bg-white rounded-lg shadow-xl max-w-4xl w-full mx-auto max-h-[85vh] overflow-hidden">
         {/* Header */}
         <div className="flex items-center justify-between p-6 border-b border-gray-200">
           <div>

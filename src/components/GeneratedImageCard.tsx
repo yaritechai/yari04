@@ -111,7 +111,7 @@ export function GeneratedImageCard({ url }: GeneratedImageCardProps) {
           onClick={() => setIsOpen(false)}
         >
           <div
-            className={`relative max-w-[95vw] max-h-[90vh] ${isDarkMode ? 'bg-neutral-900' : 'bg-white'} rounded-xl shadow-2xl border ${isDarkMode ? 'border-neutral-700' : 'border-neutral-200'}`}
+            className={`relative max-w-[95vw] max-h-[90vh] ${isDarkMode ? 'bg-neutral-900' : 'bg-white'} rounded-xl shadow-2xl border ${isDarkMode ? 'border-neutral-700' : 'border-neutral-200'} p-[max(env(safe-area-inset-top),0px)]`}
             onClick={(e) => e.stopPropagation()}
           >
             <img
