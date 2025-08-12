@@ -58,48 +58,45 @@ export function MessageInputModern({
       
       if (files && files.length > 0) {
         for (const file of files) {
-          // If user selects exactly one image file and message starts with [Edit: ...], call image edit
-          if (
-            files.length === 1 &&
-            file.type.startsWith("image/") &&
-            /^\[Edit:\s*.+\]/i.test(message.trim())
-          ) {
-            // Extract prompt inside [Edit: ...]
-            const prompt = message.trim().replace(/^\[Edit:\s*(.+)\]$/i, "$1");
-            const toBase64 = (blob: Blob) =>
-              new Promise<string>((resolve, reject) => {
-                const reader = new FileReader();
-                reader.onload = () => resolve(String(reader.result).split(",")[1] || "");
-                reader.onerror = reject;
-                reader.readAsDataURL(blob);
-              });
-            const b64 = await toBase64(file);
-            // Kick off edit; when complete, the backend will send the assistant message with the image URL
-            await editImage({ prompt, imageBase64: b64 });
-          } else {
-            // Generate upload URL and attach as usual
-            const uploadUrl = await uploadFile();
-            const result = await fetch(uploadUrl, {
-              method: "POST",
-              headers: { "Content-Type": file.type },
-              body: file,
-            });
-            if (!result.ok) {
-              throw new Error(`Upload failed: ${result.statusText}`);
-            }
-            const { storageId } = await result.json();
-            attachments.push({
-              fileId: storageId,
-              fileName: file.name,
-              fileType: file.type,
-              fileSize: file.size,
-            });
+          // Always upload the file so it is attached to the conversation for history & model context
+          const uploadUrl = await uploadFile();
+          const result = await fetch(uploadUrl, {
+            method: "POST",
+            headers: { "Content-Type": file.type },
+            body: file,
+          });
+          if (!result.ok) {
+            throw new Error(`Upload failed: ${result.statusText}`);
           }
+          const { storageId } = await result.json();
+          attachments.push({
+            fileId: storageId,
+            fileName: file.name,
+            fileType: file.type,
+            fileSize: file.size,
+          });
         }
       }
 
       // Determine if web search is enabled
       const requiresWebSearch = message.toLowerCase().includes('[search:') || webSearchEnabled;
+
+      // If the intent is Edit (via [Edit: ...]) and exactly one image was attached, also call editImage explicitly.
+      const editMatch = message.trim().match(/^\[Edit:\s*(.+)\]$/i);
+      if (editMatch && attachments.length === 1 && attachments[0].fileType.startsWith('image/')) {
+        // Convert the attached image to base64 for the edit API
+        // We use the original File as well if available in `files` argument
+        if (files && files.length === 1 && files[0].type.startsWith('image/')) {
+          const toBase64 = (blob: Blob) => new Promise<string>((resolve, reject) => {
+            const reader = new FileReader();
+            reader.onload = () => resolve(String(reader.result).split(',')[1] || '');
+            reader.onerror = reject;
+            reader.readAsDataURL(blob);
+          });
+          const b64 = await toBase64(files[0]);
+          await editImage({ prompt: editMatch[1], imageBase64: b64 });
+        }
+      }
 
       // Get user's actual timezone from browser
       const userTimezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
