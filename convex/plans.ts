@@ -51,6 +51,20 @@ export const approve = mutation({
     const plan = await ctx.db.get(args.planId);
     if (!plan) throw new Error("Plan not found");
     await ctx.db.patch(args.planId, { status: "approved", updatedAt: Date.now() });
+    // Post a short assistant confirmation and kick off execution stream
+    await ctx.scheduler.runAfter(0, internal.streaming.generateStreamingResponse, {
+      conversationId: plan.conversationId,
+      messageId: await ctx.db.insert("messages", {
+        conversationId: plan.conversationId,
+        role: "assistant",
+        content: "Approved. I’m starting now and will keep you updated.",
+        userId: plan.userId,
+        isStreaming: true,
+        timestamp: Date.now(),
+        createdAt: Date.now(),
+        updatedAt: Date.now(),
+      }),
+    });
     return null;
   },
 });
