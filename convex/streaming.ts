@@ -841,9 +841,7 @@ When you need to call a tool, output a single fenced JSON object calling the cor
                 auto: true,
               });
               // Replace tool call with an inline plan token that renders a rounded checklist component
-              finalContent = streamedContent.replace(matchedText, `
-<plan id="${saved.planId}" title="${planTitle}"></plan>
-`);
+              finalContent = streamedContent.replace(matchedText, `\n\n<plan id=\"${saved.planId}\" title=\"${planTitle}\"></plan>\n\n`);
               return;
             }
             if (toolName === 'complete_task') {
@@ -1019,13 +1017,16 @@ When you need to call a tool, output a single fenced JSON object calling the cor
             (maybeObj.tool === "generate_image" || maybeObj.name === "generate_image" ||
              maybeObj.tool === 'edit_image' || maybeObj.name === 'edit_image' ||
              maybeObj.tool === 'generate_csv' || maybeObj.name === 'generate_csv' ||
-             maybeObj.tool === 'generate_table' || maybeObj.name === 'generate_table')
+             maybeObj.tool === 'generate_table' || maybeObj.name === 'generate_table' ||
+             maybeObj.tool === 'plan_task' || maybeObj.name === 'plan_task' ||
+             maybeObj.tool === 'gather_research' || maybeObj.name === 'gather_research' ||
+             maybeObj.tool === 'complete_task' || maybeObj.name === 'complete_task')
           ) {
             await executeTool(toolJsonMatch[0], maybeObj);
           }
         } else {
-          // 2) Fallback: try to find an unfenced JSON object containing a generate_image or edit_image tool call
-          const anchors = ['generate_image', 'edit_image', 'generate_csv', 'generate_table']
+          // 2) Fallback: try to find an unfenced JSON object containing a tool call
+          const anchors = ['generate_image', 'edit_image', 'generate_csv', 'generate_table', 'plan_task', 'gather_research', 'complete_task']
             .map((key) => ({ key, idx: streamedContent.indexOf(key) }))
             .filter((a) => a.idx >= 0)
             .sort((a, b) => a.idx - b.idx);

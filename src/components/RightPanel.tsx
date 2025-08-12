@@ -324,7 +324,7 @@ export function RightPanel({
   if (isMobile) {
     // Mobile: Full screen modal overlay
     return (
-      <div className="fixed inset-0 z-50 bg-background">
+      <div className="fixed inset-0 z-50 bg-background px-[max(env(safe-area-inset-left),0px)] pr-[max(env(safe-area-inset-right),0px)] pt-[max(env(safe-area-inset-top),0px)] pb-[max(env(safe-area-inset-bottom),0px)]">
         <div className="h-full flex flex-col">
           {/* Mobile Header */}
           <div className={`flex items-center justify-between p-4 border-b bg-background ${

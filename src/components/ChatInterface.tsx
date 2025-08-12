@@ -52,8 +52,8 @@ export function ChatInterface({ conversationId, onTitleUpdate, onOpenFragment }:
       {/* Header removed (settings icon) */}
 
       {/* Messages - Add top padding to account for header */}
-      <div className={`flex-1 overflow-y-auto scrollbar-thin ${isDarkMode ? 'bg-neutral-900' : 'bg-neutral-50'} pt-16`}>
-        <div className="max-w-4xl mx-auto px-3 sm:px-4 py-4 sm:py-6 space-y-4 sm:space-y-6">
+      <div className={`flex-1 overflow-y-auto scrollbar-thin ${isDarkMode ? 'bg-neutral-900' : 'bg-neutral-50'} pt-14 sm:pt-16`}>
+        <div className="max-w-4xl mx-auto px-3 sm:px-4 py-3 sm:py-6 space-y-4 sm:space-y-6">
         {messages.length === 0 ? (
           <div className="flex-1 flex items-center justify-center min-h-[50vh] sm:min-h-[60vh]">
             <div className="text-center max-w-md px-4">

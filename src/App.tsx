@@ -146,16 +146,39 @@ function AppContent() {
           maxWidth: (!isMobile && isRightPanelOpen) ? `calc(100vw - ${isSidebarOpen ? sidebarWidth : 0}px - ${rightPanelWidth}px - 2rem)` : undefined
         }}
       >
-        {/* Sidebar Toggle Button - Always show on mobile, only when sidebar closed on desktop */}
-        {(isMobile || !isSidebarOpen) && (
+        {/* Mobile Header */}
+        {isMobile && (
+          <div className={`sticky top-0 z-20 flex items-center justify-between border-b mobile-container-padding px-3 py-3 ${
+            isDarkMode ? 'bg-neutral-900 border-neutral-800' : 'bg-white border-neutral-200'
+          }`}>
+            <button
+              onClick={() => setIsSidebarOpen(!isSidebarOpen)}
+              className={`p-2 rounded-lg ${
+                isDarkMode
+                  ? 'bg-neutral-800 hover:bg-neutral-700 text-gray-300 hover:text-white'
+                  : 'bg-neutral-100 hover:bg-neutral-200 text-gray-700 hover:text-gray-900'
+              }`}
+              title={isSidebarOpen ? 'Close sidebar' : 'Open sidebar'}
+            >
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
+              </svg>
+            </button>
+            <div className={`font-semibold ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>Yari AI</div>
+            <div className="w-9" />
+          </div>
+        )}
+
+        {/* Sidebar Toggle Button - Desktop only when sidebar is closed */}
+        {(!isMobile && !isSidebarOpen) && (
           <button
             onClick={() => setIsSidebarOpen(!isSidebarOpen)}
             className={`absolute top-4 left-4 z-30 p-2 ${
               isDarkMode 
-                ? 'bg-neutral-800 hover:bg-neutral-700 text-gray-300 hover:text-white' 
-                : 'bg-neutral-100 hover:bg-neutral-200 text-gray-600 hover:text-gray-900'
-            } rounded-lg transition-colors shadow-sm`}
-            title="Open sidebar"
+                ? 'bg-neutral-800/80 hover:bg-neutral-700 text-gray-300 hover:text-white' 
+                : 'bg-white/80 hover:bg-neutral-100 text-gray-700 hover:text-gray-900'
+            } rounded-lg transition-colors shadow-sm backdrop-blur supports-[backdrop-filter]:backdrop-blur`}
+            title={isSidebarOpen ? 'Close sidebar' : 'Open sidebar'}
           >
             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />

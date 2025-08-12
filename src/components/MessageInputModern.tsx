@@ -128,8 +128,8 @@ export function MessageInputModern({
   };
 
   return (
-    <div className="w-full px-4 pb-4">
-      <div className="max-w-4xl mx-auto">
+    <div className="w-full px-3 sm:px-4 pb-3 sm:pb-4 mobile-container-padding">
+      <div className="max-w-4xl mx-auto w-full">
         <PromptInputBox
           onSend={handleSend}
           isLoading={isGenerating}

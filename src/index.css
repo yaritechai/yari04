@@ -72,6 +72,15 @@ body {
     "Noto Color Emoji";
   color: var(--color-dark);
   background: var(--color-light);
+  /* Support iOS safe area on mobile */
+  padding-top: env(safe-area-inset-top);
+  padding-bottom: env(safe-area-inset-bottom);
+}
+
+/* Mobile container padding helpers */
+.mobile-container-padding {
+  padding-left: max(env(safe-area-inset-left), 1rem);
+  padding-right: max(env(safe-area-inset-right), 1rem);
 }
 
 /* only use this to update the style of the auth input fields. use a different class for all other input fields */
