@@ -223,21 +223,9 @@ export const generateStreamingResponse = internalAction({
           // Process image attachments
           for (const attachment of msg.attachments) {
             if (attachment.fileType && attachment.fileType.startsWith('image/')) {
-              try {
-                // Get the image URL from Convex storage
-                const imageUrl = await ctx.storage.getUrl(attachment.fileId);
-                if (imageUrl) {
-                  content.push({
-                    type: "image_url",
-                    image_url: {
-                      url: imageUrl,
-                      detail: "high" // Use high detail for better analysis
-                    }
-                  });
-                }
-              } catch (error) {
-                console.error("Failed to get image URL:", error);
-              }
+              // For models that don't support image_url, just mention the image
+              // The AI will use the edit_image tool if needed
+              content[0].text += `\n\n[Image attached: ${attachment.fileName}]`;
             } else if (attachment.fileType && (
               attachment.fileType === 'text/csv' ||
               attachment.fileType === 'application/vnd.ms-excel' ||
@@ -651,10 +639,11 @@ Please provide a detailed and informative response based on these search results
 
 - Tool: edit_image
   - Purpose: Edit an existing image via BFL FLUX.
-  - Use this when an image is attached and the user requests changes to that image (e.g., "make it snow", "replace background").
+  - IMPORTANT: When you see "[Image attached: filename]" and the user asks for ANY changes to that image, you MUST use this tool.
+  - Common edit requests: "make her wear a hoodie", "change background", "add snow", "remove object", etc.
   - Args: { "prompt": string, "input_image"?: base64 or data URL, "attachmentIndex"?: number }
-  - If you don’t have base64, omit input_image; the server will use the most recent attached image.
-  - Do NOT call any OpenAI/vision chat tools for edits; use this tool instead.
+  - If you don't have base64, omit input_image; the server will use the most recent attached image.
+  - Do NOT try to analyze the image content directly - use this tool for edits.
 
 ## DATA TOOLS
 - Tool name: generate_csv

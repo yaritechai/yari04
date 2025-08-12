@@ -8,9 +8,10 @@ export const MODELS = {
   CODING_LANDING: "moonshotai/kimi-k2",
   SUMMARIZATION: "moonshotai/kimi-k2",
   DATA_ANALYSIS: "moonshotai/kimi-k2",
-  // Vision tasks: use an image-capable model for image_url content
-  VISION: "openai/gpt-4-vision-preview",
-  VISION_GPT: "openai/gpt-4-vision-preview",
+  // Vision tasks: use kimi-k2 for image tasks too
+  // The AI will use the edit_image tool for actual image editing via BFL
+  VISION: "moonshotai/kimi-k2",
+  VISION_GPT: "moonshotai/kimi-k2",
 } as const;
 
 // Task type identification patterns
