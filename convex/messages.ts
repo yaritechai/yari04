@@ -377,6 +377,33 @@ export const addAssistantMessage = internalMutation({
   },
 });
 
+// Create an assistant streaming placeholder and return its id
+export const createStreamingAssistantMessage = internalMutation({
+  args: {
+    conversationId: v.id("conversations"),
+    content: v.optional(v.string()),
+  },
+  returns: v.id("messages"),
+  handler: async (ctx, args) => {
+    const conversation = await ctx.db.get(args.conversationId);
+    if (!conversation) throw new Error("Conversation not found");
+
+    const assistantMessageId = await ctx.db.insert("messages", {
+      conversationId: args.conversationId,
+      role: "assistant",
+      content: args.content ?? "",
+      userId: conversation.userId,
+      isStreaming: true,
+      timestamp: Date.now(),
+      createdAt: Date.now(),
+      updatedAt: Date.now(),
+    });
+
+    await ctx.db.patch(args.conversationId, { lastMessageAt: Date.now() });
+    return assistantMessageId;
+  },
+});
+
 // Public-safe variant so the client can add an assistant message (e.g., for image edits)
 export const addAssistantMessagePublic = mutation({
   args: {

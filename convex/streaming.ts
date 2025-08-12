@@ -1110,6 +1110,32 @@ User request: ${message.content}`;
         content: finalContent,
       });
 
+      // If there is an approved plan, continue executing next step automatically
+      try {
+        const plans = await ctx.runQuery(api.plans.getByConversation as any, { conversationId: args.conversationId } as any);
+        const plan = Array.isArray(plans) && plans[0] ? plans[0] : null;
+        if (plan && plan.status === 'approved') {
+          const nextIndex = Number(plan.currentStep ?? 0);
+          const hasNext = Array.isArray(plan.tasks) && nextIndex < plan.tasks.length;
+          const withinCap = (plan.executedSteps ?? 0) < (plan.maxSteps ?? plan.tasks.length);
+          if (hasNext && withinCap) {
+            // Create a new assistant streaming message and schedule execution again
+            const newMsgId = await ctx.runMutation(internal.messages.createStreamingAssistantMessage, {
+              conversationId: args.conversationId,
+              content: "Continuing with the next step…",
+            });
+            await ctx.scheduler.runAfter(0, internal.streaming.generateStreamingResponse, {
+              conversationId: args.conversationId,
+              messageId: newMsgId,
+              includeWebSearch: true,
+              userTimezone: currentTimeZone,
+            });
+          }
+        }
+      } catch (contErr) {
+        console.warn('Auto-continue skipped:', contErr);
+      }
+
       console.log("Stream completed, final content length:", streamedContent.length);
 
       // Update conversation metadata
