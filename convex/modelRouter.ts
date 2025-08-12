@@ -2,15 +2,15 @@ import { v } from "convex/values";
 
 // Model configurations with task-specific routing
 export const MODELS = {
-  // Use z-ai/glm-4.5 across chat tasks
-  GENERAL_THINKING: "z-ai/glm-4.5",
-  RESEARCH: "z-ai/glm-4.5",
-  CODING_LANDING: "z-ai/glm-4.5",
-  SUMMARIZATION: "z-ai/glm-4.5",
-  // Vision routed to chat model; image gen/edits handled by BFL actions
-  VISION: "z-ai/glm-4.5",
-  VISION_GPT: "z-ai/glm-4.5",
-  DATA_ANALYSIS: "z-ai/glm-4.5",
+  // Default chat model
+  GENERAL_THINKING: "moonshotai/kimi-k2",
+  RESEARCH: "moonshotai/kimi-k2",
+  CODING_LANDING: "moonshotai/kimi-k2",
+  SUMMARIZATION: "moonshotai/kimi-k2",
+  DATA_ANALYSIS: "moonshotai/kimi-k2",
+  // Vision tasks: use an image-capable model for image_url content
+  VISION: "openai/gpt-4-vision-preview",
+  VISION_GPT: "openai/gpt-4-vision-preview",
 } as const;
 
 // Task type identification patterns
