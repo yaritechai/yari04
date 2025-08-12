@@ -671,6 +671,11 @@ Please provide a detailed and informative response based on these search results
   - Purpose: Perform parallel web research using available search providers to gather context.
   - Args: { "queries": string[] }
   - Behavior: The server will fetch results and attach summarized sources back to the conversation.
+
+- Tool: complete_task
+  - Purpose: Mark a specific checklist item as completed so the UI crosses it off.
+  - Args: { "stepIndex": number, "planId"?: string, "note"?: string }
+  - Behavior: If planId is omitted, the latest plan in this conversation is used. The step is marked done and progress is logged.
     - headers + rows (rows are arrays matching headers order), or
     - records (array of objects; headers will be inferred from keys).
   - The table will be inserted into your response as a Markdown table and a CSV will be attached for download.
@@ -835,12 +840,25 @@ When you need to call a tool, output a single fenced JSON object calling the cor
                 status: 'draft',
                 auto: true,
               });
-              // Log plan creation event and also send a small assistant update
-              await ctx.runMutation(internal.messages.addAssistantMessage, {
-                conversationId: args.conversationId,
-                content: `🗂️ Created a plan with ${tasks.length} steps. I will begin once you approve.`,
-              });
-              finalContent = streamedContent.replace(matchedText, `Plan created: [plan:${saved.planId}]`);
+              // Replace tool call with an inline plan token that renders a rounded checklist component
+              finalContent = streamedContent.replace(matchedText, `
+<plan id="${saved.planId}" title="${planTitle}"></plan>
+`);
+              return;
+            }
+            if (toolName === 'complete_task') {
+              // Mark a single step complete and log progress
+              // Resolve the plan id
+              let targetPlanId = (argsObj as any).planId as Id<'plans'> | undefined;
+              if (!targetPlanId) {
+                const plans = await ctx.runQuery(api.plans.getByConversation as any, { conversationId: args.conversationId } as any);
+                if (Array.isArray(plans) && plans.length > 0) targetPlanId = plans[0]._id;
+              }
+              if (!targetPlanId) return;
+              const stepIndex = Number((argsObj as any).stepIndex ?? 0);
+              await ctx.runMutation(api.plans.toggleTask, { planId: targetPlanId, index: stepIndex, done: true } as any);
+              await ctx.runMutation(api.plans.logEvent, { planId: targetPlanId, conversationId: args.conversationId, type: 'progress', message: `Completed step ${stepIndex + 1}`, stepIndex } as any);
+              // Keep original content, no visible replacement needed
               return;
             }
             if (toolName === 'gather_research') {

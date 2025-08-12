@@ -211,8 +211,8 @@ export function MessageBubble({ message, showTokenCount, onOpenFragment, onMCPCr
     const { cleaned, urls } = extractGeneratedImages(raw);
     const isImageMessage = urls.length > 0;
 
-    // Plan UI embed: detect tokens like "Plan created: [plan:<id>]"
-    const planMatch = raw.match(/Plan created: \[plan:([a-z0-9]+)\]/i);
+    // Plan UI embed: detect inline <plan id="..." title="..."></plan> token
+    const planMatch = raw.match(/<plan\s+id=\"([A-Za-z0-9]+)\"\s*(title=\"([^\"]*)\")?\s*><\/plan>/i);
     
     return (
       <>
@@ -473,7 +473,9 @@ export function MessageBubble({ message, showTokenCount, onOpenFragment, onMCPCr
         </div>
       )}
       {planMatch && (
-        <PlanChecklist planId={planMatch[1]} title={"Proposed Plan"} tasks={[]} />
+        <div className="mt-2">
+          <PlanChecklist planId={planMatch[1]} title={planMatch[3] || "Proposed Plan"} tasks={[]} />
+        </div>
       )}
       </>
     );
