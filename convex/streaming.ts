@@ -643,15 +643,18 @@ Please provide a detailed and informative response based on these search results
 - Do not introduce colors or visual styling in the content; the app theme handles visuals. Stick to plain Markdown.
 - Use descriptive links like [Title](https://example.com) rather than bare URLs when appropriate.
 
-## IMAGE TOOLS
-- Tool name: generate_image
-  - Use when creating a new image from text.
-  - Arguments: { "prompt": string, "size"?: string, "quality"?: string, "background"?: string }
+## IMAGE TOOLS (Black Forest Labs)
+- Tool: generate_image
+  - Purpose: Create a brand-new image from text.
+  - Args: { "prompt": string, "size"?: string, "quality"?: string, "background"?: string }
+  - Use ONLY when no source image needs to be edited.
 
-- Tool name: edit_image
-  - Use when the user provides an image and asks to modify or edit it (changes, additions, removals, style tweaks, inpainting-like changes).
-  - If the user did not include a base64 image in the tool call, use the most recent image attached in this conversation.
-  - Arguments: { "prompt": string, "input_image"?: base64 or data URL, "attachmentIndex"?: number }
+- Tool: edit_image
+  - Purpose: Edit an existing image via BFL FLUX.
+  - Use this when an image is attached and the user requests changes to that image (e.g., "make it snow", "replace background").
+  - Args: { "prompt": string, "input_image"?: base64 or data URL, "attachmentIndex"?: number }
+  - If you don’t have base64, omit input_image; the server will use the most recent attached image.
+  - Do NOT call any OpenAI/vision chat tools for edits; use this tool instead.
 
 ## DATA TOOLS
 - Tool name: generate_csv
