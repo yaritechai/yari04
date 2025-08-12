@@ -876,7 +876,8 @@ User request: ${message.content}`;
                   });
                   const out = planResp?.choices?.[0]?.message?.content?.trim() || '';
                   const jsonMatch = out.match(/\{[\s\S]*\}$/);
-                  const parsed = JSON.parse(jsonMatch ? jsonMatch[0] : out);
+                  let parsed: any = null;
+                  try { parsed = JSON.parse(jsonMatch ? jsonMatch[0] : out); } catch {}
                   if (parsed && Array.isArray(parsed.tasks)) {
                     tasks = parsed.tasks.map((t: any) => ({ title: String(t.title || ''), description: t.description ? String(t.description) : undefined, done: false }));
                   }
@@ -893,6 +894,7 @@ User request: ${message.content}`;
               });
               // Replace tool call with an inline plan token that renders a rounded checklist component
               finalContent = streamedContent.replace(matchedText, `\n\n<plan id=\"${saved.planId}\" title=\"${planTitle}\"></plan>\n\n`);
+              // Guard: if a plan already exists in this response, do not re-plan again
               return;
             }
             if (toolName === 'complete_task') {
