@@ -2,24 +2,15 @@ import { v } from "convex/values";
 
 // Model configurations with task-specific routing
 export const MODELS = {
-  // General default model via OpenRouter (base model)
-  GENERAL_THINKING: "openai/gpt-oss-120b",
-
-  // Research and analysis
-  RESEARCH: "openai/gpt-oss-120b",
-
-  // Landing pages and coding tasks
-  CODING_LANDING: "openai/gpt-oss-120b",
-
-  // Summarization and title generation
-  SUMMARIZATION: "openai/gpt-oss-120b",
-
-  // Vision-capable models (keep a vision-capable chat model; edits go to BFL directly)
-  VISION: "openai/gpt-5",
-  VISION_GPT: "openai/gpt-5",
-
-  // Data analysis for CSV/Excel files
-  DATA_ANALYSIS: "openai/gpt-oss-120b",
+  // Use z-ai/glm-4.5 across chat tasks
+  GENERAL_THINKING: "z-ai/glm-4.5",
+  RESEARCH: "z-ai/glm-4.5",
+  CODING_LANDING: "z-ai/glm-4.5",
+  SUMMARIZATION: "z-ai/glm-4.5",
+  // Vision routed to chat model; image gen/edits handled by BFL actions
+  VISION: "z-ai/glm-4.5",
+  VISION_GPT: "z-ai/glm-4.5",
+  DATA_ANALYSIS: "z-ai/glm-4.5",
 } as const;
 
 // Task type identification patterns
@@ -287,52 +278,16 @@ export function supportsThinking(modelId: string): boolean {
 export function getModelParameters(modelId: string) {
   switch (modelId) {
     case MODELS.GENERAL_THINKING:
+    case MODELS.RESEARCH:
+    case MODELS.CODING_LANDING:
+    case MODELS.SUMMARIZATION:
+    case MODELS.VISION:
+    case MODELS.VISION_GPT:
+    case MODELS.DATA_ANALYSIS:
       return {
         temperature: 0.7,
         max_tokens: 4000,
         top_p: 0.9,
-      };
-    
-    case MODELS.RESEARCH:
-      return {
-        temperature: 0.3,
-        max_tokens: 8000,
-        top_p: 0.8,
-      };
-    
-    case MODELS.CODING_LANDING:
-      return {
-        temperature: 0.2,
-        max_tokens: 6000,
-        top_p: 0.85,
-      };
-    
-    case MODELS.SUMMARIZATION:
-      return {
-        temperature: 0.1,
-        max_tokens: 1000,
-        top_p: 0.7,
-      };
-    
-    case MODELS.VISION:
-      return {
-        temperature: 0.5,
-        max_tokens: 4000,
-        top_p: 0.9,
-      };
-    
-    case MODELS.VISION_GPT:
-      return {
-        temperature: 0.5,
-        max_tokens: 4000,
-        top_p: 0.9,
-      };
-    
-    case MODELS.DATA_ANALYSIS:
-      return {
-        temperature: 0.3,
-        max_tokens: 6000,
-        top_p: 0.8,
       };
     
     default:
