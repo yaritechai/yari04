@@ -277,6 +277,39 @@ const applicationTables = {
     error: v.optional(v.string()),
     steps: v.array(v.any()),
   }).index("by_user", ["userId"]).index("by_workflow", ["workflowId"]),
+
+  // Planning and research (Agent Swarm)
+  plans: defineTable({
+    conversationId: v.id("conversations"),
+    userId: v.id("users"),
+    title: v.string(),
+    status: v.union(v.literal("draft"), v.literal("approved"), v.literal("completed")),
+    tasks: v.array(
+      v.object({
+        title: v.string(),
+        description: v.optional(v.string()),
+        done: v.boolean(),
+      })
+    ),
+    createdAt: v.number(),
+    updatedAt: v.number(),
+  }).index("by_conversation", ["conversationId"]).index("by_user", ["userId"]),
+
+  researchArtifacts: defineTable({
+    conversationId: v.id("conversations"),
+    planId: v.optional(v.id("plans")),
+    userId: v.id("users"),
+    query: v.string(),
+    results: v.array(
+      v.object({
+        title: v.string(),
+        link: v.string(),
+        snippet: v.optional(v.string()),
+        displayLink: v.optional(v.string()),
+      })
+    ),
+    createdAt: v.number(),
+  }).index("by_conversation", ["conversationId"]).index("by_plan", ["planId"]),
 };
 
 export default defineSchema({

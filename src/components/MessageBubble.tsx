@@ -12,6 +12,7 @@ import { Button } from "./ui/button";
 import { cn } from "../lib/utils";
 import { FragmentType } from "./RightPanel";
 import { GeneratedImageCard } from "./GeneratedImageCard";
+import PlanChecklist from "./PlanChecklist";
 
 interface MessageBubbleProps {
   message: {
@@ -209,10 +210,13 @@ export function MessageBubble({ message, showTokenCount, onOpenFragment, onMCPCr
     const raw = cleanMessageContent(message.content);
     const { cleaned, urls } = extractGeneratedImages(raw);
     const isImageMessage = urls.length > 0;
+
+    // Plan UI embed: detect tokens like "Plan created: [plan:<id>]"
+    const planMatch = raw.match(/Plan created: \[plan:([a-z0-9]+)\]/i);
     
     return (
       <>
-      {!isImageMessage && (
+      {!isImageMessage && !planMatch && (
       <ReactMarkdown
         remarkPlugins={[remarkGfm]}
         rehypePlugins={[rehypeHighlight]}
@@ -467,6 +471,9 @@ export function MessageBubble({ message, showTokenCount, onOpenFragment, onMCPCr
             <GeneratedImageCard key={url} url={url} />
           ))}
         </div>
+      )}
+      {planMatch && (
+        <PlanChecklist planId={planMatch[1]} title={"Proposed Plan"} tasks={[]} />
       )}
       </>
     );

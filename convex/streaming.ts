@@ -656,6 +656,21 @@ Please provide a detailed and informative response based on these search results
   - Use when you want to present structured data clearly as a table (and provide a downloadable CSV).
   - Arguments: { "headers"?: string[], "rows"?: string[][], "records"?: Array<Record<string, string | number>>, "filename"?: string }
   - ALWAYS include data via either:
+
+### Planning & Research Tools (Agent Swarm)
+
+- Tool: plan_task
+  - Purpose: Break a complex user request into a short, actionable checklist for approval.
+  - Args: {
+      "title": string,
+      "tasks": Array<{"title": string, "description"?: string}>
+    }
+  - Behavior: The server will persist this plan and render a checklist UI in the chat for user approval.
+
+- Tool: gather_research
+  - Purpose: Perform parallel web research using available search providers to gather context.
+  - Args: { "queries": string[] }
+  - Behavior: The server will fetch results and attach summarized sources back to the conversation.
     - headers + rows (rows are arrays matching headers order), or
     - records (array of objects; headers will be inferred from keys).
   - The table will be inserted into your response as a Markdown table and a CSV will be attached for download.
@@ -704,10 +719,10 @@ When you need to call a tool, output a single fenced JSON object calling the cor
       // Attempt to detect a generate_image, edit_image, or generate_csv tool call in the streamed content
       let finalContent = streamedContent;
       try {
-        // Helper to execute a generate_image, edit_image or generate_csv tool call
+        // Helper to execute a generate_image, edit_image, generate_csv, plan_task, gather_research tool call
         const executeTool = async (
           matchedText: string,
-          toolObj: { tool?: string; name?: string; arguments?: { prompt?: string; size?: string; quality?: string; background?: string; input_image?: string; attachmentIndex?: number; csv?: string; filename?: string; headers?: string[]; rows?: string[][]; records?: Array<Record<string, string | number>> } }
+          toolObj: { tool?: string; name?: string; arguments?: { prompt?: string; size?: string; quality?: string; background?: string; input_image?: string; attachmentIndex?: number; csv?: string; filename?: string; headers?: string[]; rows?: string[][]; records?: Array<Record<string, string | number>>; title?: string; tasks?: Array<{ title: string; description?: string }>; queries?: string[] } }
         ) => {
           const argsObj = (toolObj.arguments || {}) as {
             prompt?: string;
@@ -721,6 +736,9 @@ When you need to call a tool, output a single fenced JSON object calling the cor
             headers?: string[];
             rows?: string[][];
             records?: Array<Record<string, string | number>>;
+            title?: string;
+            tasks?: Array<{ title: string; description?: string }>;
+            queries?: string[];
           };
           const toolName = (toolObj.tool || toolObj.name || '').toLowerCase();
           try {
@@ -805,6 +823,45 @@ When you need to call a tool, output a single fenced JSON object calling the cor
                 matchedText,
                 `CSV generated and attached as ${desiredName}.`
               );
+              return;
+            }
+            if (toolName === 'plan_task') {
+              const planTitle = argsObj.title || 'Plan';
+              const tasks = (argsObj.tasks || []).map(t => ({ title: t.title, description: t.description, done: false }));
+              const saved = await ctx.runMutation(api.plans.save, {
+                conversationId: args.conversationId,
+                title: planTitle,
+                tasks,
+                status: 'draft',
+              });
+              finalContent = streamedContent.replace(matchedText, `Plan created: [plan:${saved.planId}]`);
+              return;
+            }
+            if (toolName === 'gather_research') {
+              const allQueries = (argsObj.queries && argsObj.queries.length > 0) ? argsObj.queries : [message.content];
+              // Run in sequence (providers parallelized inside action)
+              const aggregated: any[] = [];
+              for (const q of allQueries) {
+                const res = await ctx.runAction(api.research.gather, { conversationId: args.conversationId, query: q });
+                aggregated.push(...res);
+              }
+              // Attach as a compact list for UI badges
+              if (aggregated.length > 0) {
+                // Attach to assistant message as searchResults for badges
+                await ctx.runMutation(internal.messages.addAssistantMessageWithSearch, {
+                  conversationId: args.conversationId,
+                  content: `Research summary for: ${allQueries.join('; ')}`,
+                  searchResults: aggregated.map((r: any) => ({
+                    title: r.title || '',
+                    link: r.link || '',
+                    snippet: r.snippet || '',
+                    displayLink: r.displayLink || (r.link ? new URL(r.link).hostname : ''),
+                  })),
+                });
+                finalContent = streamedContent.replace(matchedText, `Gathered ${aggregated.length} research sources.`);
+              } else {
+                finalContent = streamedContent.replace(matchedText, `No research sources found.`);
+              }
               return;
             }
             if (toolName === 'generate_table') {
