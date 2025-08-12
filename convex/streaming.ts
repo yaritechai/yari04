@@ -671,6 +671,7 @@ Please provide a detailed and informative response based on these search results
   - Purpose: Perform parallel web research using available search providers to gather context.
   - Args: { "queries": string[] }
   - Behavior: The server will fetch results and attach summarized sources back to the conversation.
+  - Providers available: Tavily (preferred), DuckDuckGo fallback. We also have Jina Reader to fetch full page text for the top sources.
 
 - Tool: complete_task
   - Purpose: Mark a specific checklist item as completed so the UI crosses it off.
@@ -688,9 +689,13 @@ Please provide a detailed and informative response based on these search results
   - First, propose a concise plan via plan_task.
   - Ask up to 2 clarifying follow-up questions if any task requires missing info (dates, sources, constraints). Keep working on tasks that are unblocked.
   - As you complete a step, call complete_task with the index.
-  - If useful context is missing, call gather_research in parallel and continue.
+  - If useful context is missing, call gather_research in parallel and continue. Always include multiple queries to collect many sources.
   - Provide brief status updates every few minutes of long tasks.
   - Always resume from the persisted plan; don’t re-plan unless asked.
+
+## CONSTRAINTS
+- Only use capabilities that exist: web search (Tavily), Jina Reader for page content, CSV/Table creation, planning, research orchestration, and image generation/edit via BFL.
+- For coding and landing pages, you can produce code/HTML in replies (the app handles display). Do not assume tools beyond those listed.
 
 When you need to call a tool, output a single fenced JSON object calling the correct tool.`;
 
@@ -729,6 +734,12 @@ When you need to call a tool, output a single fenced JSON object calling the cor
           }
         }
       }
+
+      // Kick off background research in parallel for context enrichment (non-blocking)
+      try {
+        const autoQueries = [message.content];
+        ctx.runAction(api.research.gather, { conversationId: args.conversationId, query: autoQueries[0] });
+      } catch {}
 
       // Attempt to detect a generate_image, edit_image, generate_csv, plan_task, or gather_research tool call in the streamed content
       let finalContent = streamedContent;
