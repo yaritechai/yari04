@@ -16,7 +16,16 @@ export function GeneratedImageCard({ url }: GeneratedImageCardProps) {
     try {
       setDownloading(true);
       if (!url) return;
-      const response = await fetch(url, { mode: "cors" });
+      // Use our forced-download endpoint when available
+      let downloadHref = url;
+      try {
+        const u = new URL(url, window.location.origin);
+        if (u.pathname === "/images" && u.searchParams.get("id")) {
+          downloadHref = `${u.origin}/images/download?id=${u.searchParams.get("id")}`;
+        }
+      } catch {}
+
+      const response = await fetch(downloadHref, { mode: "cors" });
       const blob = await response.blob();
       const objectUrl = URL.createObjectURL(blob);
       const a = document.createElement("a");
