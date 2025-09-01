@@ -12,6 +12,7 @@ interface ChatInterfaceProps {
   conversationId: Id<"conversations">;
   onTitleUpdate: (title: string) => void;
   onOpenFragment?: (fragment: FragmentType, data?: any) => void;
+  isPreviewMode?: boolean;
 }
 
 export function ChatInterface({ conversationId, onTitleUpdate, onOpenFragment }: ChatInterfaceProps) {

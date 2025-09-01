@@ -20,6 +20,7 @@ interface SidebarProps {
   onSelectConversation: (id: Id<"conversations">) => void;
   onNewChat: () => void;
   onOpenMCP?: () => void;
+  onOpenAgentBuilder?: () => void;
   isMobile?: boolean;
   onClose?: () => void;
 }
@@ -30,6 +31,7 @@ export function Sidebar({
   onSelectConversation, 
   onNewChat,
   onOpenMCP,
+  onOpenAgentBuilder,
   isMobile = false,
   onClose
 }: SidebarProps) {
@@ -149,6 +151,23 @@ export function Sidebar({
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
           </svg>
           <span className="font-medium">New Chat</span>
+        </button>
+        <div className="mt-2" />
+        <button
+          onClick={() => {
+            onOpenAgentBuilder?.();
+            if (isMobile && onClose) onClose();
+          }}
+          className={`w-full flex items-center gap-3 ${isMobile ? 'px-3 py-3' : 'px-4 py-3'} rounded-lg transition-colors ${
+            isDarkMode 
+              ? 'bg-purple-900/30 hover:bg-purple-900/50 text-purple-200 border-purple-800/60' 
+              : 'bg-purple-50 hover:bg-purple-100 text-purple-700 border-purple-200'
+          } border`}
+        >
+          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 7h18M3 12h18M3 17h18" />
+          </svg>
+          <span className="font-medium">Agent Builder</span>
         </button>
       </div>
 

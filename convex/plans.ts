@@ -56,6 +56,12 @@ export const approve = mutation({
     const plan = await ctx.db.get(args.planId);
     if (!plan) throw new Error("Plan not found");
     await ctx.db.patch(args.planId, { status: "approved", updatedAt: Date.now() });
+    // Emit Inngest event for external workflow runner
+    await ctx.scheduler.runAfter(0, internal.inngest.emitPlanApproved, {
+      planId: args.planId,
+      userId: plan.userId as unknown as string,
+    });
+
     // Post a short assistant confirmation and kick off execution stream
     await ctx.scheduler.runAfter(0, internal.streaming.generateStreamingResponse, {
       conversationId: plan.conversationId,
@@ -88,6 +94,23 @@ export const toggleTask = mutation({
     const executedSteps = (plan.executedSteps ?? 0) + increment;
     const status = executedSteps >= (plan.maxSteps ?? tasks.length) || currentStep >= tasks.length ? "completed" : plan.status;
     await ctx.db.patch(args.planId, { tasks, currentStep, executedSteps, status, updatedAt: Date.now() });
+
+    // Emit step completed event when marking as done
+    if (args.done) {
+      await ctx.scheduler.runAfter(0, internal.inngest.emitPlanStepCompleted, {
+        planId: args.planId,
+        stepIndex: args.index,
+        userId: plan.userId as unknown as string,
+      });
+    }
+
+    // If plan completed, emit completion event
+    if (status === "completed") {
+      await ctx.scheduler.runAfter(0, internal.inngest.emitPlanCompleted, {
+        planId: args.planId,
+        userId: plan.userId as unknown as string,
+      });
+    }
     return null;
   },
 });

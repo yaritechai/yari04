@@ -43,7 +43,7 @@ export function MessageInputModern({
     if (!currentConversationId) {
       currentConversationId = await createConversation({
         title: "New Chat",
-        model: (preferences as any).defaultModel || "gpt-4o-mini",
+        model: (preferences as any).defaultModel || "openai/gpt-5",
         systemPrompt: (preferences as any).systemPrompt,
         temperature: (preferences as any).temperature,
       });

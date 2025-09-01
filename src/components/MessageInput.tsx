@@ -44,8 +44,9 @@ export function MessageInput({
   const generateUploadUrl = useMutation(api.files.generateUploadUrl);
   const updateConversationSettings = useMutation(api.conversations.updateSettings);
 
-  // Updated model options - Now using intelligent task-based routing
+  // Updated model options - Now using GPT-5 as primary via OpenRouter
   const modelOptions = [
+    { value: "openai/gpt-5", label: "GPT-5", description: "Primary model via OpenRouter", category: "Universal" },
     { value: "z-ai/glm-4.5-air", label: "GLM-4.5 Air", description: "Advanced thinking & reasoning", category: "General" },
     { value: "z-ai/glm-4-32b", label: "GLM-4 32B", description: "Deep research & analysis", category: "Research" },
     { value: "z-ai/glm-4.5", label: "GLM-4.5", description: "Coding & web development", category: "Development" },
@@ -55,7 +56,7 @@ export function MessageInput({
     { value: "openai/gpt-4o-mini", label: "GPT-4o Mini", description: "Fast & efficient (legacy)", category: "Legacy" },
   ];
 
-  const currentModel = conversation?.model || "z-ai/glm-4.5-air";
+  const currentModel = conversation?.model || "openai/gpt-5";
   const currentModelInfo = modelOptions.find(m => m.value === currentModel) || modelOptions[0];
 
   // Auto-resize textarea

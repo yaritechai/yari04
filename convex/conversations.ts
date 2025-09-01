@@ -230,6 +230,7 @@ export const updateSettings = mutation({
     model: v.optional(v.string()),
     systemPrompt: v.optional(v.string()),
     temperature: v.optional(v.number()),
+    isPaused: v.optional(v.boolean()),
   },
   returns: v.null(),
   handler: async (ctx, args) => {
@@ -247,7 +248,26 @@ export const updateSettings = mutation({
       model: args.model,
       systemPrompt: args.systemPrompt,
       temperature: args.temperature,
+      ...(args.isPaused !== undefined ? { isPaused: args.isPaused } : {}),
     });
+  },
+});
+
+export const setPause = mutation({
+  args: { conversationId: v.id("conversations"), paused: v.boolean() },
+  returns: v.null(),
+  handler: async (ctx, args) => {
+    const userId = await getAuthUserId(ctx);
+    if (!userId) {
+      throw new Error("Not authenticated");
+    }
+
+    const conversation = await ctx.db.get(args.conversationId);
+    if (!conversation || conversation.userId !== userId) {
+      throw new Error("Conversation not found");
+    }
+
+    await ctx.db.patch(args.conversationId, { isPaused: args.paused, updatedAt: Date.now() });
   },
 });
 
@@ -361,7 +381,7 @@ export const createAgentBuilder = mutation({
       userId,
       title: "Agent Builder",
       lastMessageAt: Date.now(),
-      model: "gpt-4o-mini",
+      model: "openai/gpt-5",
       systemPrompt: agentBuilderPrompt,
       temperature: 0.7,
       type: "agent_builder",

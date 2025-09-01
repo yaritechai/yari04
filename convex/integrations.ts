@@ -1,6 +1,7 @@
 import { v } from "convex/values";
 import { query, mutation, internalQuery, internalMutation } from "./_generated/server";
 import { getAuthUserId } from "@convex-dev/auth/server";
+import { Id } from "./_generated/dataModel";
 
 export const list = query({
   args: {},
@@ -150,6 +151,42 @@ export const getIntegrationsForAI = internalQuery({
       permissions: integration.metadata?.permissions || [],
       lastSyncAt: integration.metadata?.lastSyncAt,
     }));
+  },
+});
+
+// Get credentials for a specific integration type (like Pipedream)
+export const getCredentialsForUser = internalQuery({
+  args: { 
+    userId: v.id("users"),
+    type: v.optional(v.string())
+  },
+  handler: async (ctx, args) => {
+    const type = args.type || "pipedream"; // Default to pipedream if not specified
+    
+    // First query by user
+    const integration = await ctx.db
+      .query("integrations")
+      .withIndex("by_user", (q) => q.eq("userId", args.userId))
+      // Then filter by type and isEnabled
+      .filter((q) => 
+        q.and(
+          q.eq(q.field("type"), type),
+          q.eq(q.field("isEnabled"), true)
+        )
+      )
+      .first();
+    
+    if (!integration) {
+      return null;
+    }
+    
+    // Access credentials from the config field instead of directly
+    return {
+      apiKey: integration.config?.apiKey,
+      orgId: integration.config?.orgId,
+      accountId: integration.metadata?.accountId,
+      accountName: integration.metadata?.accountName,
+    };
   },
 });
 

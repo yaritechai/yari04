@@ -12,6 +12,8 @@ import { RightPanel, FragmentType } from "./components/RightPanel";
 import { useRightPanel } from "./hooks/useRightPanel";
 import { ThemeProvider, useTheme } from "./contexts/ThemeContext";
 import { MessageInputModern } from "./components/MessageInputModern";
+import { AgentBuilderInterface } from "./components/AgentBuilderInterface";
+// Removed PipedreamChatEmbed - using native AgentBuilderInterface instead
 
 function AppContent() {
   const { isDarkMode } = useTheme();
@@ -21,6 +23,8 @@ function AppContent() {
   const [sidebarWidth, setSidebarWidth] = useState(320);
   const [rightPanelWidth, setRightPanelWidth] = useState(600);
   const [minChatWidth] = useState(400);
+  const [isAgentBuilderMode, setIsAgentBuilderMode] = useState(false);
+  const [previewConversationId, setPreviewConversationId] = useState<Id<"conversations"> | null>(null);
 
   const {
     isOpen: isRightPanelOpen,
@@ -87,6 +91,47 @@ function AppContent() {
     }
   };
 
+  const openAgentBuilder = async () => {
+    setIsAgentBuilderMode(true);
+    // On mobile, close sidebar when switching modes
+    if (isMobile) setIsSidebarOpen(false);
+    
+    // Create or find agent builder conversation
+    const agentBuilderConv = conversations.find(c => c.title === "Agent Builder");
+    if (agentBuilderConv) {
+      setSelectedConversationId(agentBuilderConv._id);
+    } else {
+      try {
+        const cid = await createConversation({
+          title: "Agent Builder",
+          folderId: undefined,
+          type: "chat"
+        });
+        setSelectedConversationId(cid);
+      } catch (e) {
+        console.error("Failed to create agent builder conversation:", e);
+      }
+    }
+    
+    // Create preview conversation if needed
+    if (!previewConversationId) {
+      try {
+        const cid = await createConversation({
+          title: "Agent Preview",
+          folderId: undefined,
+          type: "chat"
+        });
+        setPreviewConversationId(cid);
+      } catch (e) {
+        console.error("Failed to create preview conversation:", e);
+      }
+    }
+  };
+
+  const exitAgentBuilder = () => {
+    setIsAgentBuilderMode(false);
+  };
+
   const handleTitleUpdate = () => {
     // Title updates are handled by the ChatInterface component
   };
@@ -123,6 +168,7 @@ function AppContent() {
               selectedConversationId={selectedConversationId}
               onSelectConversation={setSelectedConversationId}
               onNewChat={handleNewChat}
+              onOpenAgentBuilder={openAgentBuilder}
               isMobile={isMobile}
               onClose={handleSidebarClose}
             />
@@ -138,7 +184,7 @@ function AppContent() {
         />
       )}
 
-      {/* Main Chat Area */}
+      {/* Main Area */}
       <div 
         className="flex-1 flex flex-col min-w-0 relative"
         style={{ 
@@ -146,89 +192,148 @@ function AppContent() {
           maxWidth: (!isMobile && isRightPanelOpen) ? `calc(100vw - ${isSidebarOpen ? sidebarWidth : 0}px - ${rightPanelWidth}px - 2rem)` : undefined
         }}
       >
-        {/* Mobile Header */}
-        {isMobile && (
-          <div className={`sticky top-0 z-20 flex items-center justify-between border-b mobile-container-padding px-3 py-3 ${
-            isDarkMode ? 'bg-neutral-900 border-neutral-800' : 'bg-white border-neutral-200'
-          }`}>
-            <button
-              onClick={() => setIsSidebarOpen(!isSidebarOpen)}
-              className={`p-2 rounded-lg ${
-                isDarkMode
-                  ? 'bg-neutral-800 hover:bg-neutral-700 text-gray-300 hover:text-white'
-                  : 'bg-neutral-100 hover:bg-neutral-200 text-gray-700 hover:text-gray-900'
-              }`}
-              title={isSidebarOpen ? 'Close sidebar' : 'Open sidebar'}
-            >
-              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
-              </svg>
-            </button>
-            <div className={`font-semibold ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>Yari AI</div>
-            <div className="w-9" />
-          </div>
-        )}
+        {isAgentBuilderMode ? (
+          <div className={`flex-1 flex flex-col ${isDarkMode ? 'bg-neutral-900' : 'bg-neutral-50'}`}>
+            {/* Top bar */}
+            <div className={`flex items-center justify-between px-3 py-3 border-b ${isDarkMode ? 'bg-neutral-900 border-neutral-800' : 'bg-white border-neutral-200'}`}>
+              <div className={`font-semibold ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>Agent Builder</div>
+              <button
+                onClick={exitAgentBuilder}
+                className={`${isDarkMode ? 'bg-neutral-800 hover:bg-neutral-700 text-gray-200' : 'bg-neutral-100 hover:bg-neutral-200 text-gray-800'} px-3 py-1.5 rounded-lg border ${isDarkMode ? 'border-neutral-700' : 'border-neutral-200'}`}
+              >
+                Back to Chat
+              </button>
+            </div>
 
-        {/* Sidebar Toggle Button - Desktop only when sidebar is closed */}
-        {(!isMobile && !isSidebarOpen) && (
-          <button
-            onClick={() => setIsSidebarOpen(!isSidebarOpen)}
-            className={`absolute top-4 left-4 z-30 p-2 ${
-              isDarkMode 
-                ? 'bg-neutral-800/80 hover:bg-neutral-700 text-gray-300 hover:text-white' 
-                : 'bg-white/80 hover:bg-neutral-100 text-gray-700 hover:text-gray-900'
-            } rounded-lg transition-colors shadow-sm backdrop-blur supports-[backdrop-filter]:backdrop-blur`}
-            title={isSidebarOpen ? 'Close sidebar' : 'Open sidebar'}
-          >
-            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
-            </svg>
-          </button>
-        )}
-
-        {selectedConversationId ? (
-          <ChatInterface
-            conversationId={selectedConversationId}
-            onTitleUpdate={handleTitleUpdate}
-            onOpenFragment={handleOpenFragment}
-          />
-        ) : (
-          <div className={`flex-1 flex flex-col items-center justify-center ${isDarkMode ? 'bg-neutral-900' : 'bg-neutral-50'} px-4`}>
-            <div className="w-full max-w-4xl flex flex-col items-center justify-center min-h-[60vh]">
-              {/* Welcome Message */}
-              <div className="text-center mb-8">
-                <div className="flex items-center justify-center mx-auto mb-6">
-                  <img 
-                    src="/yari-logo.png" 
-                    alt="Yari AI Logo" 
-                    className="w-16 h-16 object-contain"
+            {/* Two-column layout: left Agent Builder chat, right preview */}
+            <div className="flex-1 grid grid-cols-1 lg:grid-cols-2 gap-0">
+              {/* Left: Agent Builder Chat Interface */}
+              <div className={`${isDarkMode ? 'bg-black' : 'bg-neutral-50'} border-r ${isDarkMode ? 'border-neutral-800' : 'border-neutral-200'} min-h-0 flex flex-col`}> 
+                <div className={`px-4 py-3 border-b ${isDarkMode ? 'border-neutral-800' : 'border-neutral-200'}`}>
+                  <h3 className={`text-sm font-medium ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>Build Your Agent</h3>
+                  <p className={`text-xs mt-1 ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>Chat with AI to create workflows and automations</p>
+                </div>
+                <div className="flex-1 min-h-0">
+                  <AgentBuilderInterface 
+                    conversationId={selectedConversationId} 
+                    onTitleUpdate={handleTitleUpdate}
+                    isBuilderMode={true}
+                    previewConversationId={previewConversationId}
                   />
                 </div>
-                <h2 className={`text-2xl font-bold ${isDarkMode ? 'text-white' : 'text-gray-900'} mb-4`}>
-                  Welcome to Yari AI
-                </h2>
-                <p className={`${isDarkMode ? 'text-gray-400' : 'text-gray-600'} mb-8`}>
-                  Start a conversation below
-                </p>
               </div>
-
-              {/* Chat Input */}
-              <div className="w-full max-w-3xl px-4">
-                <MessageInputModern
-                  conversationId={null}
-                  isGenerating={false}
-                  onTitleUpdate={handleTitleUpdate}
-                  defaultWebSearch={false}
-                  isFirstMessage={true}
-                  onConversationCreated={setSelectedConversationId}
-                onOpenFragment={(fragment: string, data?: any) =>
-                  handleOpenFragment(fragment as FragmentType, { ...(data || {}), userInitiated: true })
-                }
-                />
+              
+              {/* Right: Live Preview */}
+              <div className={`${isDarkMode ? 'bg-black' : 'bg-neutral-50'} min-h-0 flex flex-col`}> 
+                <div className={`px-4 py-3 border-b ${isDarkMode ? 'border-neutral-800' : 'border-neutral-200'}`}>
+                  <h3 className={`text-sm font-medium ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>Live Preview</h3>
+                  <p className={`text-xs mt-1 ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>See your agent in action</p>
+                </div>
+                <div className="flex-1 min-h-0">
+                  {previewConversationId ? (
+                    <ChatInterface
+                      conversationId={previewConversationId}
+                      onTitleUpdate={() => {}}
+                      onOpenFragment={handleOpenFragment}
+                      isPreviewMode={true}
+                    />
+                  ) : (
+                    <div className={`h-full w-full flex items-center justify-center ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>
+                      Preparing preview conversation…
+                    </div>
+                  )}
+                </div>
               </div>
             </div>
           </div>
+        ) : (
+          <>
+            {/* Mobile Header */}
+            {isMobile && (
+              <div className={`sticky top-0 z-20 flex items-center justify-between border-b mobile-container-padding px-3 py-3 ${
+                isDarkMode ? 'bg-neutral-900 border-neutral-800' : 'bg-white border-neutral-200'
+              }`}>
+                <button
+                  onClick={() => setIsSidebarOpen(!isSidebarOpen)}
+                  className={`p-2 rounded-lg ${
+                    isDarkMode
+                      ? 'bg-neutral-800 hover:bg-neutral-700 text-gray-300 hover:text-white'
+                      : 'bg-neutral-100 hover:bg-neutral-200 text-gray-700 hover:text-gray-900'
+                  }`}
+                  title={isSidebarOpen ? 'Close sidebar' : 'Open sidebar'}
+                >
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
+                  </svg>
+                </button>
+                <div className={`font-semibold ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>Yari AI</div>
+                <div className="w-9" />
+              </div>
+            )}
+
+            {/* Sidebar Toggle Button - Desktop only when sidebar is closed */}
+            {(!isMobile && !isSidebarOpen) && (
+              <button
+                onClick={() => setIsSidebarOpen(!isSidebarOpen)}
+                className={`absolute top-4 left-4 z-30 p-2 ${
+                  isDarkMode 
+                    ? 'bg-neutral-800/80 hover:bg-neutral-700 text-gray-300 hover:text-white' 
+                    : 'bg-white/80 hover:bg-neutral-100 text-gray-700 hover:text-gray-900'
+                } rounded-lg transition-colors shadow-sm backdrop-blur supports-[backdrop-filter]:backdrop-blur`}
+                title={isSidebarOpen ? 'Close sidebar' : 'Open sidebar'}
+              >
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
+                </svg>
+              </button>
+            )}
+
+            {selectedConversationId ? (
+              <ChatInterface
+                conversationId={selectedConversationId}
+                onTitleUpdate={handleTitleUpdate}
+                onOpenFragment={handleOpenFragment}
+              />
+            ) : (
+              <div className={`flex-1 flex flex-col items-center justify-center ${isDarkMode ? 'bg-neutral-900' : 'bg-neutral-50'} px-4`}>
+                <div className="w-full max-w-4xl flex flex-col items-center justify-center min-h-[60vh]">
+                  {/* Welcome Message */}
+                  <div className="text-center mb-8">
+                    <div className="flex items-center justify-center mx-auto mb-6">
+                      <img 
+                        src="/yari-logo.png" 
+                        alt="Yari AI Logo" 
+                        className="w-16 h-16 object-contain"
+                      />
+                    </div>
+                    <h2 className={`text-2xl font-bold ${isDarkMode ? 'text-white' : 'text-gray-900'} mb-4`}>
+                      Welcome to Yari AI
+                    </h2>
+                    <p className={`${isDarkMode ? 'text-gray-400' : 'text-gray-600'} mb-8`}>
+                      Start a conversation below
+                    </p>
+                  </div>
+
+                  {/* Chat Input */}
+                  <div className="w-full max-w-3xl px-4">
+                    <MessageInputModern
+                      conversationId={null}
+                      isGenerating={false}
+                      onTitleUpdate={handleTitleUpdate}
+                      defaultWebSearch={false}
+                      isFirstMessage={true}
+                      onConversationCreated={setSelectedConversationId}
+                      onOpenFragment={(fragment: string, data?: any) =>
+                        handleOpenFragment(fragment as FragmentType, { ...(data || {}), userInitiated: true })
+                      }
+                    />
+                  </div>
+                </div>
+              </div>
+            )}
+          </>
         )}
+
       </div>
 
       {/* Right Panel */}

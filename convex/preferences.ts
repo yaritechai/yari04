@@ -16,7 +16,7 @@ export const get = query({
       .first();
 
     return preferences || {
-      defaultModel: "moonshotai/kimi-k2",
+      defaultModel: "openai/gpt-5",
       defaultTemperature: 0.7,
       theme: "light",
       codeTheme: "github",

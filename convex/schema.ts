@@ -11,6 +11,7 @@ const applicationTables = {
     updatedAt: v.optional(v.number()),
     lastMessageAt: v.optional(v.number()),
     isArchived: v.optional(v.boolean()),
+    isPaused: v.optional(v.boolean()),
     tags: v.optional(v.array(v.string())),
     model: v.optional(v.string()),
     systemPrompt: v.optional(v.string()),

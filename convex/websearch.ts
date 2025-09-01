@@ -185,7 +185,7 @@ The search results include full webpage content retrieved using Jina Reader for 
       });
 
       const completion: any = await openrouter.chat.completions.create({
-        model: "openai/gpt-4o-mini",
+        model: "openai/gpt-5",
         messages: [systemMessage, ...openaiMessages],
         max_tokens: 1500,
         temperature: 0.7,

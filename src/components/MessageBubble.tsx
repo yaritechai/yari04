@@ -13,6 +13,8 @@ import { cn } from "../lib/utils";
 import { FragmentType } from "./RightPanel";
 import { GeneratedImageCard } from "./GeneratedImageCard";
 import PlanChecklist from "./PlanChecklist";
+// AI Elements: Render tool UI when tool calls are present (server support incremental)
+import { Tool as AITool, ToolHeader as AIToolHeader, ToolContent as AIToolContent, ToolInput as AIToolInput, ToolOutput as AIToolOutput } from "./ai-elements/tool";
 
 interface MessageBubbleProps {
   message: {
@@ -254,13 +256,32 @@ export function MessageBubble({ message, showTokenCount, onOpenFragment, onMCPCr
             const codeContent = extractTextContent(children).replace(/\n$/, '');
             
             if (!inline && language) {
+              // Check if this is a JSON tool call - hide these from display
+              const isToolCall = language.toLowerCase() === 'json' && 
+                                codeContent.includes('"tool":') &&
+                                (codeContent.includes('generate_image') || codeContent.includes('web_search'));
+
+              // Hide JSON tool calls entirely
+              if (isToolCall) {
+                return null;
+              }
+
               // Check if this is HTML content
               const isHTML = language.toLowerCase() === 'html' || 
                            codeContent.trim().startsWith('<!DOCTYPE html') ||
                            codeContent.includes('<html') ||
                            (codeContent.includes('<head>') && codeContent.includes('<body>'));
 
-              // Do not auto-open right panel for HTML; require explicit user action
+              // Auto-open right panel for HTML only
+              if (onOpenFragment && isHTML) {
+                requestAnimationFrame(() => {
+                  handleOpenInFragment('browser', {
+                    htmlContent: codeContent,
+                    title: extractTitleFromHTML(codeContent) || 'Generated HTML Document',
+                    isStreaming: message.isStreaming
+                  });
+                });
+              }
 
               return (
                 <div className="my-3 sm:my-4 w-full min-w-0">
@@ -464,6 +485,18 @@ export function MessageBubble({ message, showTokenCount, onOpenFragment, onMCPCr
         {cleaned}
       </ReactMarkdown>
       )}
+      {/* Tool calls (if backend attaches structured toolCalls UI parts later) */}
+      {Array.isArray((message as any).toolCallsUI) && (message as any).toolCallsUI.map((tool: any, idx: number) => (
+        <div className="mt-3" key={idx}>
+          <AITool defaultOpen={tool.state === 'output-available' || tool.state === 'output-error'}>
+            <AIToolHeader type={tool.type} state={tool.state} />
+            <AIToolContent>
+              {tool.input && <AIToolInput input={tool.input} />}
+              <AIToolOutput output={tool.output} errorText={tool.errorText} />
+            </AIToolContent>
+          </AITool>
+        </div>
+      ))}
       {/* Render generated images (ChatGPT-like card with blur skeleton) */}
       {urls.length > 0 && (
         <div className="mt-3 grid grid-cols-1 sm:grid-cols-2 gap-3">
@@ -489,7 +522,7 @@ export function MessageBubble({ message, showTokenCount, onOpenFragment, onMCPCr
         <div className={`rounded-2xl px-3 py-2 sm:px-4 sm:py-3 break-words overflow-hidden ${
           message.role === 'user'
             ? isDarkMode
-              ? 'bg-neutral-800 text-gray-100 ml-auto border border-neutral-700'
+              ? 'bg-neutral-900 text-gray-100 ml-auto border border-neutral-800'
               : 'bg-neutral-100 text-gray-900 ml-auto border border-neutral-200'
             : isDarkMode
             ? 'text-gray-100'

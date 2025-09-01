@@ -52,6 +52,24 @@ export const send = mutation({
       throw new Error("Conversation not found");
     }
 
+    // Respect pause flag: do not enqueue a streaming response when paused
+    if (conversation.isPaused) {
+      const userMessageId = await ctx.db.insert("messages", {
+        conversationId: args.conversationId,
+        role: "user",
+        content: args.content,
+        userId,
+        attachments: args.attachments,
+        timestamp: Date.now(),
+        createdAt: Date.now(),
+        updatedAt: Date.now(),
+      });
+      await ctx.db.patch(args.conversationId, {
+        lastMessageAt: Date.now(),
+      });
+      return { userMessageId, assistantMessageId: null } as any;
+    }
+
     // Add user message
     const userMessageId = await ctx.db.insert("messages", {
       conversationId: args.conversationId,
@@ -81,13 +99,23 @@ export const send = mutation({
       lastMessageAt: Date.now(),
     });
 
-    // Start streaming response
-    await ctx.scheduler.runAfter(0, internal.streaming.generateStreamingResponse, {
+    // Start FAST TOOL streaming response - original JSON pattern but optimized!
+    await ctx.scheduler.runAfter(0, internal.fastToolStreaming.generateFastToolResponse, {
       conversationId: args.conversationId,
       messageId: assistantMessageId,
       includeWebSearch: args.requiresWebSearch,
       userTimezone: args.userTimezone,
     });
+
+    // Emit a generalist agent run request for persistence/orchestration in Inngest
+    try {
+      await ctx.scheduler.runAfter(0, internal.inngest.emitGeneralistRunRequested, {
+        conversationId: args.conversationId,
+        userId: userId as unknown as string,
+      });
+    } catch (_err) {
+      // Non-fatal if Inngest key not configured
+    }
 
     return { userMessageId, assistantMessageId };
   },
@@ -194,8 +222,8 @@ export const edit = mutation({
         updatedAt: Date.now(),
       });
 
-      // Start streaming response
-      await ctx.scheduler.runAfter(0, internal.streaming.generateStreamingResponse, {
+      // Start FAST TOOL streaming response
+      await ctx.scheduler.runAfter(0, internal.fastToolStreaming.generateFastToolResponse, {
         conversationId: message.conversationId,
         messageId: assistantMessageId,
       });
@@ -239,8 +267,8 @@ export const regenerate = mutation({
       isStreaming: true,
     });
 
-    // Start streaming response
-    await ctx.scheduler.runAfter(0, internal.streaming.generateStreamingResponse, {
+    // Start FAST TOOL streaming response
+    await ctx.scheduler.runAfter(0, internal.fastToolStreaming.generateFastToolResponse, {
       conversationId: message.conversationId,
       messageId: args.messageId,
     });

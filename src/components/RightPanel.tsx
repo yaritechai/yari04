@@ -7,8 +7,9 @@ import { DocumentEditor } from './DocumentEditor';
 import { ProductionMCPIntegration } from './ProductionMCPIntegration';
 import { IntegrationsPanel } from './IntegrationsPanel';
 import { AgentBuilderInterface } from './AgentBuilderInterface';
+import { ChatInterface } from './ChatInterface';
 
-export type FragmentType = 'code' | 'browser' | 'search' | 'document' | 'mcp' | 'integrations' | 'agent-builder';
+export type FragmentType = 'code' | 'browser' | 'search' | 'document' | 'mcp' | 'integrations' | 'agent-builder' | 'chat-preview';
 
 interface RightPanelProps {
   isOpen: boolean;
@@ -240,6 +241,14 @@ export function RightPanel({
         return <IntegrationsPanel onClose={() => onFragmentChange('integrations', null)} />;
       case 'agent-builder':
         return <AgentBuilderInterface conversationId={null} onTitleUpdate={() => {}} />;
+      case 'chat-preview':
+        return (
+          <ChatInterface
+            conversationId={fragmentData?.conversationId || null}
+            onTitleUpdate={() => {}}
+            onOpenFragment={() => {}}
+          />
+        );
       default:
         return null;
     }
@@ -374,7 +383,7 @@ export function RightPanel({
           style={{ width: `${width}px` }}
         >
           {/* Header */}
-          <div className={`flex items-center justify-between p-6 border-b border-border bg-background relative z-10`}>
+          <div className={`flex items-center justify-between p-4 sm:p-6 border-b border-border bg-background relative z-10`}>
             <div className="flex items-center gap-3">
               <div className={`p-2 rounded-xl bg-muted`}>
                 {getFragmentIcon()}
@@ -394,7 +403,11 @@ export function RightPanel({
           </div>
 
           {/* Content */}
-          <div className={`flex-1 overflow-hidden relative bg-background`}>
+          <div className={`flex-1 overflow-hidden relative bg-background`}
+               style={{
+                 // Wider default when code is active, but still resizable and responsive
+                 minWidth: activeFragment === 'code' ? undefined : undefined,
+               }}>
             {renderContent()}
           </div>
         </div>

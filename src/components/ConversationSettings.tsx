@@ -17,7 +17,7 @@ interface ConversationSettingsProps {
 
 export function ConversationSettings({ conversation, onClose }: ConversationSettingsProps) {
   const [title, setTitle] = useState(conversation.title);
-  const [model, setModel] = useState(conversation.model || "z-ai/glm-4.5-air");
+  const [model, setModel] = useState(conversation.model || "openai/gpt-5");
   const [systemPrompt, setSystemPrompt] = useState(conversation.systemPrompt || "");
   const [temperature, setTemperature] = useState(conversation.temperature || 0.7);
   const [isLoading, setIsLoading] = useState(false);
@@ -25,8 +25,9 @@ export function ConversationSettings({ conversation, onClose }: ConversationSett
 
   const updateConversation = useMutation(api.conversations.update);
 
-  // Updated model options - Task-based intelligent routing
+  // Updated model options - GPT-5 primary via OpenRouter
   const modelOptions = [
+    { value: "openai/gpt-5", label: "GPT-5", description: "Primary model via OpenRouter" },
     { value: "z-ai/glm-4.5-air", label: "GLM-4.5 Air", description: "Advanced thinking & reasoning" },
     { value: "z-ai/glm-4-32b", label: "GLM-4 32B", description: "Deep research & analysis" },
     { value: "z-ai/glm-4.5", label: "GLM-4.5", description: "Coding & web development" },

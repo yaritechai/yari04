@@ -1,18 +1,16 @@
 import { v } from "convex/values";
 
-// Model configurations with task-specific routing
+// Model configurations with task-specific routing using Groq
 export const MODELS = {
-  // Default chat model - Gemini Flash for general interactions
-  GENERAL_THINKING: "google/gemini-2.0-flash-001",
-  RESEARCH: "google/gemini-2.0-flash-001",
-  SUMMARIZATION: "google/gemini-2.0-flash-001",
-  DATA_ANALYSIS: "google/gemini-2.0-flash-001",
-  // Coding tasks - Kimi 2 for specialized coding
-  CODING_LANDING: "moonshotai/kimi-k2",
-  // Vision tasks: use Gemini Flash for image tasks
-  // The AI will use the edit_image tool for actual image editing via BFL
-  VISION: "google/gemini-2.0-flash-001",
-  VISION_GPT: "google/gemini-2.0-flash-001",
+  // General purpose models
+  GENERAL_THINKING: "openai/gpt-5",
+  RESEARCH: "openai/gpt-5",
+  SUMMARIZATION: "openai/gpt-5",
+  DATA_ANALYSIS: "openai/gpt-5",
+  CODING_LANDING: "openai/gpt-5",
+  // Moonshot AI model for specific tasks
+  VISION: "moonshotai/kimi-k2-instruct",
+  VISION_GPT: "moonshotai/kimi-k2-instruct",
 } as const;
 
 // Task type identification patterns
@@ -231,32 +229,67 @@ export function getModelForTask(
     isResearchTask?: boolean;
     hasImages?: boolean; // New parameter for image detection
     hasDataFiles?: boolean; // New parameter for CSV/Excel detection
+    conversationTokens?: number; // Hint based on convo length
+    needsSpeed?: boolean; // Prefer smaller faster models
   }
 ): string {
   const taskType = detectTaskType(prompt, context);
-  return MODELS[taskType];
+  const primary = MODELS[taskType];
+
+  // Lightweight heuristics to bias selection based on conversation conditions
+  // If very long conversation and not vision, prefer a model with larger context window
+  // Do not override GPT-5 default; keep Groq as fallback path only.
+  // If conversation is very long, we still keep GPT-5 but will expose fallbacks downstream.
+
+  // If user prefers speed for simple asks, pick Gemma
+  // Keep GPT-5 primary even when speed is requested; downstream can choose fallbacks if needed.
+
+  return primary;
 }
 
 // Model metadata for UI display
 export const MODEL_METADATA = {
-  "openai/gpt-oss-120b": {
-    label: "GPT-OSS 120B",
-    description: "OpenAI OSS 120B model via OpenRouter, used as the base model for conversation, coding, research, and more",
+  // Groq Models
+  "groq/llama3-70b-8192": {
+    label: "Llama 3 70B",
+    description: "Meta's Llama 3 70B model via Groq for fast, high-quality responses across general tasks",
     category: "Universal",
     capabilities: ["thinking", "reasoning", "conversation", "research", "coding", "summarization", "tool-use"],
-    icon: "⚙️"
+    icon: "🦙"
   },
-  "anthropic/claude-3.5-sonnet": {
-    label: "Claude 3.5 Sonnet",
-    description: "Advanced vision-capable model for image analysis, OCR, visual understanding, and data analysis",
-    category: "Vision & Data",
-    capabilities: ["vision", "image-analysis", "ocr", "reasoning", "conversation", "coding", "data-analysis", "csv-excel"],
-    icon: "👁️"
+  "groq/mixtral-8x7b-32768": {
+    label: "Mixtral 8x7B",
+    description: "Mixtral's MoE model via Groq with 32K context for research and data analysis",
+    category: "Research",
+    capabilities: ["thinking", "reasoning", "conversation", "research", "data-analysis", "summarization"],
+    icon: "📊"
+  },
+  "groq/gemma-7b-it": {
+    label: "Gemma 7B",
+    description: "Google's Gemma 7B instruction-tuned model via Groq for efficient summarization",
+    category: "Summarization",
+    capabilities: ["reasoning", "conversation", "summarization"],
+    icon: "💎"
+  },
+  "moonshotai/kimi-k2-instruct": {
+    label: "Kimi K2",
+    description: "Moonshot AI's Kimi K2 model via Groq for vision tasks",
+    category: "Vision",
+    capabilities: ["vision", "image-analysis", "reasoning", "conversation"],
+    icon: "🌙"
+  },
+  // Legacy Models (kept for reference)
+  "openai/gpt-5": {
+    label: "GPT-5",
+    description: "OpenAI's GPT-5 via OpenRouter. Default generalist.",
+    category: "Universal",
+    capabilities: ["thinking", "reasoning", "conversation", "research", "coding", "summarization", "tool-use", "vision"],
+    icon: "🧠"
   },
   "openai/gpt-4-vision-preview": {
     label: "GPT-4 Vision",
-    description: "OpenAI's vision model for image understanding and multimodal interactions",
-    category: "Vision",
+    description: "OpenAI's vision model for image understanding",
+    category: "Legacy",
     capabilities: ["vision", "image-analysis", "ocr", "reasoning", "conversation"],
     icon: "🔍"
   }
@@ -279,14 +312,52 @@ export function supportsThinking(modelId: string): boolean {
 
 // Get optimal parameters for each model
 export function getModelParameters(modelId: string) {
+  // Groq model parameters
+  if (modelId.startsWith("groq/") || modelId.startsWith("moonshotai/")) {
+    switch (modelId) {
+      case "groq/llama3-70b-8192":
+        return {
+          temperature: 0.7,
+          max_tokens: 8000,
+          top_p: 0.9,
+        };
+      case "groq/mixtral-8x7b-32768":
+        return {
+          temperature: 0.7,
+          max_tokens: 16000, // Conservative value for 32K context
+          top_p: 0.9,
+        };
+      case "groq/gemma-7b-it":
+        return {
+          temperature: 0.8,
+          max_tokens: 4000,
+          top_p: 0.9,
+        };
+      case "moonshotai/kimi-k2-instruct":
+        return {
+          temperature: 0.6,
+          max_tokens: 4096,
+          top_p: 1.0,
+        };
+      default:
+        // Default parameters for any other Groq model
+        return {
+          temperature: 0.7,
+          max_tokens: 4000,
+          top_p: 0.9,
+        };
+    }
+  }
+  
+  // Legacy OpenRouter models
   switch (modelId) {
-    case MODELS.GENERAL_THINKING:
-    case MODELS.RESEARCH:
-    case MODELS.CODING_LANDING:
-    case MODELS.SUMMARIZATION:
-    case MODELS.VISION:
-    case MODELS.VISION_GPT:
-    case MODELS.DATA_ANALYSIS:
+    case "openai/gpt-5":
+      return {
+        temperature: 0.7,
+        max_tokens: 12000,
+        top_p: 0.9,
+      };
+    case "openai/gpt-4-vision-preview":
       return {
         temperature: 0.7,
         max_tokens: 12000,
@@ -301,3 +372,43 @@ export function getModelParameters(modelId: string) {
       };
   }
 } 
+
+// Provide a prioritized list of fallback models if the primary fails
+export function getFallbackModels(
+  primary: string,
+  opts?: { hasImages?: boolean; fast?: boolean }
+): Array<string> {
+  const fallbacks: Array<string> = [];
+  const wantsVision = !!opts?.hasImages;
+  const wantsFast = !!opts?.fast;
+
+  // Prefer staying within Groq family first
+  if (primary.startsWith("groq/")) {
+    if (primary !== "groq/llama3-70b-8192") fallbacks.push("groq/llama3-70b-8192");
+    if (primary !== "groq/mixtral-8x7b-32768") fallbacks.push("groq/mixtral-8x7b-32768");
+    if (primary !== "groq/gemma-7b-it") fallbacks.push("groq/gemma-7b-it");
+  }
+
+  // For Moonshot models, use other Groq models as fallback
+  if (primary.startsWith("moonshotai/")) {
+    fallbacks.push("groq/llama3-70b-8192");
+  }
+
+  // For vision tasks
+  if (wantsVision) {
+    if (primary !== "moonshotai/kimi-k2-instruct") fallbacks.push("moonshotai/kimi-k2-instruct");
+  }
+
+  // For speed-optimized tasks
+  if (wantsFast && primary !== "groq/gemma-7b-it") {
+    fallbacks.push("groq/gemma-7b-it"); // Fastest Groq model
+  }
+
+  // Legacy fallbacks as last resort
+  if (!primary.startsWith("openai/")) {
+    fallbacks.push("openai/gpt-4o");
+  }
+
+  // Ensure we don't duplicate the primary
+  return fallbacks.filter((m) => m !== primary);
+}

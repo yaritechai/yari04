@@ -50,7 +50,7 @@ Ready to start? Just tell me what you'd like your agent to help you with, and I'
       userId,
       title: "Agent Builder",
       lastMessageAt: Date.now(),
-      model: "gpt-4o-mini",
+      model: "openai/gpt-5",
       systemPrompt: agentBuilderPrompt,
       temperature: 0.7,
       type: "agent_builder",
